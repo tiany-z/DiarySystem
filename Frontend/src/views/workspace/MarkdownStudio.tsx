@@ -28,6 +28,7 @@ import {
 } from "@fluentui/react-components";
 import {
   ArrowLeft20Regular,
+  ArrowUpload20Regular,
   CheckmarkCircle20Regular,
   Code20Regular,
   Copy20Regular,
@@ -67,6 +68,7 @@ import { MoodPicker } from "../../components/MoodBadge";
 import { WeatherPicker } from "../../components/WeatherBadge";
 import { useAppTheme } from "../../context/ThemeContext";
 import { htmlToMarkdown, markdownToHtml } from "../../utils/markdownUtils";
+import { parseMarkdownFile } from "../../components/MarkdownImportModal";
 
 export const MarkdownStudio: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -129,7 +131,32 @@ export const MarkdownStudio: React.FC = () => {
   const wysiwygRef = useRef<HTMLDivElement>(null);
   const sheetTextareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importLocalMdRef = useRef<HTMLInputElement>(null);
   const justSavedIdRef = useRef<string | null>(null);
+
+  // 本地 Markdown 文件快速导入当前编辑器
+  const handleImportLocalMd = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = parseMarkdownFile(file, text);
+      setTitle(parsed.title);
+      const newContent = parsed.hasHeadingTitle
+        ? parsed.bodyContent || parsed.fullContent
+        : parsed.fullContent;
+      setContent(newContent);
+      setIsDirty(true);
+      if (wysiwygRef.current) {
+        wysiwygRef.current.innerHTML = markdownToHtml(newContent);
+      }
+      setSaveSuccessNotice(false);
+    } catch (err: any) {
+      setErrorMsg(`导入 Markdown 文件失败: ${err.message || String(err)}`);
+    } finally {
+      e.target.value = "";
+    }
+  };
 
   // 图片上传与尺寸调节状态
   const [isUploadingImage, setIsUploadingImage] = useState<boolean>(false);
@@ -917,6 +944,24 @@ export const MarkdownStudio: React.FC = () => {
 
         {/* Right: Actions (Desktop) */}
         <div className="desktop-only" style={{ alignItems: "center", gap: "8px", flexShrink: 0 }}>
+          {/* Import Local Markdown File */}
+          <input
+            type="file"
+            ref={importLocalMdRef}
+            accept=".md,.markdown,text/markdown,text/plain"
+            style={{ display: "none" }}
+            onChange={handleImportLocalMd}
+          />
+          <Tooltip content="导入本地 Markdown 文件到当前编辑器" relationship="label">
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<ArrowUpload20Regular />}
+              onClick={() => importLocalMdRef.current?.click()}
+              aria-label="导入 Markdown"
+            />
+          </Tooltip>
+
           {/* View Raw Markdown Source */}
           <Tooltip content="检视 Markdown 源码" relationship="label">
             <Button

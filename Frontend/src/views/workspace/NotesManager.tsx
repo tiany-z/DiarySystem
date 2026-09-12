@@ -27,6 +27,7 @@ import {
 } from "@fluentui/react-components";
 import {
   Add20Filled,
+  ArrowUpload20Regular,
   Delete20Regular,
   Dismiss20Regular,
   Document24Regular,
@@ -43,6 +44,7 @@ import { diaryApi, DiaryItem } from "../../api/diary";
 import { MoodBadge } from "../../components/MoodBadge";
 import { formatDate, NoteCard, extractFirstImage } from "../../components/NoteCard";
 import { WeatherBadge } from "../../components/WeatherBadge";
+import { MarkdownImportModal } from "../../components/MarkdownImportModal";
 import { useAuth } from "../../context/AuthContext";
 import { useAppTheme } from "../../context/ThemeContext";
 
@@ -62,6 +64,10 @@ export const NotesManager: React.FC = () => {
   // 删除对话框状态
   const [deleteTarget, setDeleteTarget] = useState<DiaryItem | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  // Markdown 批量导入对话框状态
+  const [importModalOpen, setImportModalOpen] = useState<boolean>(false);
+  const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
 
   const fetchNotes = async () => {
     setIsLoading(true);
@@ -144,6 +150,19 @@ export const NotesManager: React.FC = () => {
   return (
     <div
       className="workspace-page-container"
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          const files = Array.from(e.dataTransfer.files).filter((f) =>
+            /\.(md|markdown|txt)$/i.test(f.name)
+          );
+          if (files.length > 0) {
+            e.preventDefault();
+            setDroppedFiles(files);
+            setImportModalOpen(true);
+          }
+        }
+      }}
       style={{
         width: "100%",
         maxWidth: "1280px",
@@ -166,18 +185,35 @@ export const NotesManager: React.FC = () => {
       >
         <Title2 style={{ fontWeight: 800 }}>我的笔记</Title2>
 
-        <Button
-          appearance="primary"
-          icon={<Add20Filled />}
-          onClick={() => navigate("/workspace/new")}
-          style={{
-            background: "linear-gradient(135deg, #0078d4, #005a9e)",
-            borderRadius: "8px",
-            fontWeight: 600,
-          }}
-        >
-          新建
-        </Button>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <Button
+            appearance="secondary"
+            icon={<ArrowUpload20Regular />}
+            onClick={() => {
+              setDroppedFiles([]);
+              setImportModalOpen(true);
+            }}
+            style={{
+              borderRadius: "8px",
+              fontWeight: 600,
+            }}
+          >
+            导入 Markdown
+          </Button>
+
+          <Button
+            appearance="primary"
+            icon={<Add20Filled />}
+            onClick={() => navigate("/workspace/new")}
+            style={{
+              background: "linear-gradient(135deg, #0078d4, #005a9e)",
+              borderRadius: "8px",
+              fontWeight: 600,
+            }}
+          >
+            新建
+          </Button>
+        </div>
       </div>
 
       {/* Metric Cards */}
@@ -602,6 +638,21 @@ export const NotesManager: React.FC = () => {
           </DialogBody>
         </DialogSurface>
       </Dialog>
+
+      {/* 批量导入 Markdown 日记弹窗 */}
+      <MarkdownImportModal
+        open={importModalOpen}
+        initialFiles={droppedFiles}
+        onClose={() => {
+          setImportModalOpen(false);
+          setDroppedFiles([]);
+        }}
+        onImportSuccess={(count) => {
+          if (count > 0) {
+            fetchNotes();
+          }
+        }}
+      />
     </div>
   );
 };
