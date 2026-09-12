@@ -17,6 +17,7 @@ import {
   Globe20Regular,
   Navigation20Regular,
   Notebook24Filled,
+  PeopleCommunity20Regular,
   Person20Regular,
   Settings20Regular,
   SignOut20Regular,
@@ -145,6 +146,19 @@ export const Header: React.FC = () => {
             >
               写新日记
             </Button>
+            {user?.username === "tiany" && (
+              <Button
+                appearance={location.pathname.startsWith("/workspace/users") ? "subtle" : "transparent"}
+                icon={<PeopleCommunity20Regular />}
+                onClick={() => handleNav("/workspace/users")}
+                style={{
+                  fontWeight: location.pathname.startsWith("/workspace/users") ? 600 : 400,
+                  color: isDark ? "#ffffff" : "#242424",
+                }}
+              >
+                用户管理
+              </Button>
+            )}
           </>
         )}
       </nav>
@@ -202,6 +216,14 @@ export const Header: React.FC = () => {
                   >
                     笔记库
                   </MenuItem>
+                  {user.username === "tiany" && (
+                    <MenuItem
+                      icon={<PeopleCommunity20Regular />}
+                      onClick={() => handleNav("/workspace/users")}
+                    >
+                      👑 用户管理中枢
+                    </MenuItem>
+                  )}
                   <MenuItem
                     icon={<Settings20Regular />}
                     onClick={() => setIsSettingsOpen(true)}
@@ -229,7 +251,7 @@ export const Header: React.FC = () => {
               fontWeight: 600,
             }}
           >
-            登录 / 注册
+            登录
           </Button>
         )}
       </div>
@@ -291,6 +313,11 @@ export const Header: React.FC = () => {
                   <MenuItem icon={<Add20Filled />} onClick={() => handleNav("/workspace/new")}>
                     写新日记
                   </MenuItem>
+                  {user?.username === "tiany" && (
+                    <MenuItem icon={<PeopleCommunity20Regular />} onClick={() => handleNav("/workspace/users")}>
+                      👑 用户管理中枢
+                    </MenuItem>
+                  )}
                   <MenuItem icon={<Settings20Regular />} onClick={() => setIsSettingsOpen(true)}>
                     壁纸与背景设置
                   </MenuItem>
@@ -300,7 +327,7 @@ export const Header: React.FC = () => {
                 </>
               ) : (
                 <MenuItem icon={<Person20Regular />} onClick={() => handleNav("/auth")}>
-                  登录 / 注册
+                  登录
                 </MenuItem>
               )}
             </MenuList>

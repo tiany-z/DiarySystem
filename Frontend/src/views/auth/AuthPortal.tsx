@@ -9,31 +9,29 @@ import {
   MessageBar,
   MessageBarBody,
   Spinner,
-  Subtitle1,
-  Tab,
-  TabList,
   Title3,
+  Tooltip,
 } from "@fluentui/react-components";
 import {
   ArrowLeft20Regular,
+  Eye20Regular,
+  EyeOff20Regular,
   LockClosed20Regular,
   Notebook24Filled,
   Person20Regular,
-  PersonAdd20Regular,
-  Sparkle20Regular,
+  ShieldCheckmark20Regular,
 } from "@fluentui/react-icons";
 import { useAuth } from "../../context/AuthContext";
 import { useAppTheme } from "../../context/ThemeContext";
 
 export const AuthPortal: React.FC = () => {
   const { isDark } = useAppTheme();
-  const { login, register } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [nickname, setNickname] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -41,7 +39,10 @@ export const AuthPortal: React.FC = () => {
     e.preventDefault();
     setErrorMsg(null);
 
-    if (!username.trim() || !password.trim()) {
+    const cleanUsername = username.trim();
+    const cleanPassword = password.trim();
+
+    if (!cleanUsername || !cleanPassword) {
       setErrorMsg("用户名和密码不能为空");
       return;
     }
@@ -63,24 +64,11 @@ export const AuthPortal: React.FC = () => {
         navigate("/workspace");
       };
 
-      if (mode === "login") {
-        const res = await login(username.trim(), password.trim());
-        if (res.success) {
-          redirectAfterAuth();
-        } else {
-          setErrorMsg(res.message || "登录失败，请检查用户名与密码");
-        }
+      const res = await login(cleanUsername, cleanPassword);
+      if (res.success) {
+        redirectAfterAuth();
       } else {
-        const res = await register(
-          username.trim(),
-          password.trim(),
-          nickname.trim() || undefined
-        );
-        if (res.success) {
-          redirectAfterAuth();
-        } else {
-          setErrorMsg(res.message || "注册失败，请更换用户名重试");
-        }
+        setErrorMsg(res.message || "登录失败，请检查用户名与密码");
       }
     } finally {
       setIsSubmitting(false);
@@ -118,7 +106,7 @@ export const AuthPortal: React.FC = () => {
           className="auth-portal-card"
           style={{
             borderRadius: "16px",
-            padding: "32px 28px",
+            padding: "36px 32px",
             backgroundColor: isDark ? "#202026" : "#ffffff",
             border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
             boxShadow: isDark
@@ -127,89 +115,77 @@ export const AuthPortal: React.FC = () => {
           }}
         >
           {/* Logo & Header */}
-          <div style={{ textAlign: "center", marginBottom: "24px" }}>
+          <div style={{ textAlign: "center", marginBottom: "28px" }}>
             <div
               style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "14px",
+                width: "52px",
+                height: "52px",
+                borderRadius: "15px",
                 background: "linear-gradient(135deg, #0078d4, #60a5fa)",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: "#ffffff",
-                boxShadow: "0 6px 18px rgba(0, 120, 212, 0.35)",
-                marginBottom: "12px",
+                boxShadow: "0 6px 20px rgba(0, 120, 212, 0.35)",
+                marginBottom: "14px",
               }}
             >
-              <Notebook24Filled />
+              <Notebook24Filled style={{ fontSize: "28px" }} />
             </div>
-            <Title3 style={{ fontWeight: 700, display: "block" }}>拾光手记 · 账户中心</Title3>
-            <Body1 style={{ opacity: 0.65, fontSize: "13px", marginTop: "4px" }}>
-              登录进入您的专属云端灵感手记工作台
+            <Title3 style={{ fontWeight: 700, display: "block", fontSize: "20px" }}>
+              拾光手记 · 账户中心
+            </Title3>
+            <Body1 style={{ opacity: 0.65, fontSize: "13px", marginTop: "6px", display: "block" }}>
+              请输入分配的账户凭据以登录工作台
             </Body1>
-          </div>
-
-          {/* Mode Switch Tabs */}
-          <div style={{ marginBottom: "20px" }}>
-            <TabList
-              selectedValue={mode}
-              onTabSelect={(_, data) => {
-                setMode(data.value as "login" | "register");
-                setErrorMsg(null);
-              }}
-              style={{ width: "100%", justifyContent: "center" }}
-            >
-              <Tab value="login" style={{ flex: 1 }}>
-                用户登录
-              </Tab>
-              <Tab value="register" style={{ flex: 1 }}>
-                新用户注册
-              </Tab>
-            </TabList>
           </div>
 
           {/* Error Message Bar */}
           {errorMsg && (
-            <MessageBar intent="error" style={{ marginBottom: "16px" }}>
+            <MessageBar intent="error" style={{ marginBottom: "18px" }}>
               <MessageBarBody>{errorMsg}</MessageBarBody>
             </MessageBar>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
             <Field label="账号用户名" required>
               <Input
+                name="username"
+                id="login-username"
                 contentBefore={<Person20Regular />}
-                placeholder="请输入用户名"
+                placeholder="请输入用户名 (如 tiany)"
                 value={username}
                 onChange={(_, data) => setUsername(data.value)}
                 autoComplete="username"
                 disabled={isSubmitting}
+                size="large"
               />
             </Field>
 
-            {mode === "register" && (
-              <Field label="个性昵称">
-                <Input
-                  contentBefore={<Sparkle20Regular />}
-                  placeholder="请输入您的手记昵称"
-                  value={nickname}
-                  onChange={(_, data) => setNickname(data.value)}
-                  disabled={isSubmitting}
-                />
-              </Field>
-            )}
-
-            <Field label="账户密码" required>
+            <Field label="账户登录密码" required>
               <Input
-                type="password"
+                name="password"
+                id="login-password"
+                type={showPassword ? "text" : "password"}
                 contentBefore={<LockClosed20Regular />}
-                placeholder="请输入登录密码"
+                contentAfter={
+                  <Tooltip content={showPassword ? "隐藏密码明文" : "显示密码明文"} relationship="label">
+                    <Button
+                      appearance="subtle"
+                      size="small"
+                      icon={showPassword ? <EyeOff20Regular /> : <Eye20Regular />}
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                    />
+                  </Tooltip>
+                }
+                placeholder="请输入您的登录密码"
                 value={password}
                 onChange={(_, data) => setPassword(data.value)}
-                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                autoComplete="current-password"
                 disabled={isSubmitting}
+                size="large"
               />
             </Field>
 
@@ -217,20 +193,45 @@ export const AuthPortal: React.FC = () => {
               type="submit"
               appearance="primary"
               size="large"
-              icon={isSubmitting ? <Spinner size="tiny" /> : mode === "login" ? <Person20Regular /> : <PersonAdd20Regular />}
+              icon={isSubmitting ? <Spinner size="tiny" /> : <Person20Regular />}
               disabled={isSubmitting}
               style={{
                 marginTop: "12px",
+                height: "42px",
                 background: "linear-gradient(135deg, #0078d4, #005a9e)",
                 fontWeight: 600,
                 borderRadius: "8px",
+                fontSize: "15px",
               }}
             >
-              {isSubmitting ? "正在处理中..." : mode === "login" ? "立即登录工作台" : "完成注册并进入"}
+              {isSubmitting ? "正在验证身份..." : "立即登录工作台"}
             </Button>
           </form>
+
+          {/* Registration Notice */}
+          <div
+            style={{
+              marginTop: "24px",
+              padding: "12px 14px",
+              borderRadius: "8px",
+              backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 120, 212, 0.05)",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid rgba(0, 120, 212, 0.12)",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              fontSize: "12px",
+              color: isDark ? "#a19f9d" : "#605e5c",
+            }}
+          >
+            <ShieldCheckmark20Regular style={{ color: "#0078d4", flexShrink: 0 }} />
+            <span>
+              本系统已启用总管理员邀请管理机制。如需注册或重置密码，请联系系统总管理员 <strong>tiany</strong> 分配账户。
+            </span>
+          </div>
         </Card>
       </div>
     </div>
   );
 };
+
+export default AuthPortal;

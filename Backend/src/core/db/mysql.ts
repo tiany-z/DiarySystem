@@ -2,10 +2,17 @@ import mysql from "mysql2/promise";
 import type { Pool, PoolConnection, PoolOptions, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { returnError, returnSuccess, StandardResult, tryCatchErrorToString } from "../flow/result.js";
 
-let pool: Pool | null = null;
+function getPool(): Pool | null {
+  return (globalThis as any).__diary_mysql_pool || null;
+}
+
+function setPool(p: Pool | null) {
+  (globalThis as any).__diary_mysql_pool = p;
+}
 
 export function initMysqlPool(config?: PoolOptions): StandardResult<Pool> {
   try {
+    let pool = getPool();
     if (pool) {
       return returnSuccess(pool);
     }
@@ -24,6 +31,7 @@ export function initMysqlPool(config?: PoolOptions): StandardResult<Pool> {
     };
 
     pool = mysql.createPool(dbConfig);
+    setPool(pool);
 
     return returnSuccess(pool);
   } catch (error) {
@@ -32,10 +40,11 @@ export function initMysqlPool(config?: PoolOptions): StandardResult<Pool> {
 }
 
 export function getMysqlPool(): Pool | null {
-  return pool;
+  return getPool();
 }
 
 export async function getConnection(): Promise<PoolConnection | null> {
+  const pool = getPool();
   if (!pool) return null;
   return pool.getConnection();
 }
@@ -53,7 +62,7 @@ export async function executeQuery<T = any>(
   conn?: PoolConnection
 ): Promise<StandardResult<T[]>> {
   try {
-    const targetPool = pool;
+    const targetPool = getPool();
     if (!targetPool && !conn) {
       return returnError("MySQL 数据库连接池未初始化");
     }
@@ -91,9 +100,10 @@ export async function executeQuery<T = any>(
 
 export async function closeMysqlPool(): Promise<StandardResult<boolean>> {
   try {
+    const pool = getPool();
     if (pool) {
       await pool.end();
-      pool = null;
+      setPool(null);
     }
     return returnSuccess(true);
   } catch (error) {

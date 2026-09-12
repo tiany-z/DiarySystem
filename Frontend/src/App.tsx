@@ -12,6 +12,7 @@ import { AuthPortal } from "./views/auth/AuthPortal";
 import { PublicShowcase } from "./views/public/PublicShowcase";
 import { MarkdownStudio } from "./views/workspace/MarkdownStudio";
 import { NotesManager } from "./views/workspace/NotesManager";
+import { UserManager } from "./views/workspace/UserManager";
 
 export const App: React.FC = () => {
   const { theme } = useAppTheme();
@@ -51,7 +52,7 @@ export const App: React.FC = () => {
               <Route path="/" element={<PublicShowcase />} />
               <Route path="/note/:id" element={<PublicShowcase />} />
 
-              {/* 模块二：用户登录与注册门户 */}
+              {/* 模块二：用户登录门户 */}
               <Route path="/auth" element={<AuthPortal />} />
 
               {/* 模块三：个人笔记管理工作台 (受保护路由) */}
@@ -64,7 +65,17 @@ export const App: React.FC = () => {
                 }
               />
 
-              {/* 模块四：专业 Markdown 编辑器 (新建笔记) */}
+              {/* 模块四：总管理员用户管理中枢 (受保护路由) */}
+              <Route
+                path="/workspace/users"
+                element={
+                  <ProtectedRoute>
+                    <UserManager />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 模块五：专业 Markdown 编辑器 (新建笔记) */}
               <Route
                 path="/workspace/new"
                 element={
@@ -74,7 +85,7 @@ export const App: React.FC = () => {
                 }
               />
 
-              {/* 模块四：专业 Markdown 编辑器 (编辑指定笔记) */}
+              {/* 模块五：专业 Markdown 编辑器 (编辑指定笔记) */}
               <Route
                 path="/workspace/edit/:id"
                 element={

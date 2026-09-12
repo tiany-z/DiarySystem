@@ -1,6 +1,7 @@
 import http from "http";
 import {
   closeMysqlPool,
+  ensureSuperAdminAccount,
   executeQuery,
   initMysqlPool,
   loadEnvFile,
@@ -73,6 +74,12 @@ async function main() {
     );
   } else {
     LogClient.success("✅ MySQL 数据库基础设施连通性测试通过", undefined, "DiaryBackend");
+
+    // 核心保障：在提供服务前，自愈核验并创建超级管理员总账户 (tiany / Preservezty2004)
+    const adminInitRes = await ensureSuperAdminAccount();
+    if (adminInitRes.status === 0) {
+      LogClient.error(`超级管理员初始化核验失败: ${adminInitRes.content}`, undefined, "DiaryBackend");
+    }
   }
 
   // 3. 扫描并预编译 src/api 契约目录树
