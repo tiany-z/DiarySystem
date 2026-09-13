@@ -11,6 +11,27 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      (function() {
+        try {
+          var s = localStorage.getItem("diary_wallpaper_settings_v3");
+          var cfg = s ? JSON.parse(s) : null;
+          if (cfg && cfg.enabled === false) return;
+          if (cfg && cfg.selectedWallpaperUrl && !cfg.selectedWallpaperUrl.includes("bing")) return;
+          var c = localStorage.getItem("diary_bing_wallpaper_base64_v1");
+          if (c) {
+            var rec = JSON.parse(c);
+            if (rec && rec.base64) {
+              var el = document.createElement("div");
+              el.id = "app-pre-wallpaper";
+              var blur = (cfg && typeof cfg.blur === "number") ? cfg.blur : 12;
+              el.style.cssText = "position:fixed;top:-24px;left:-24px;right:-24px;bottom:-24px;z-index:0;pointer-events:none;background-image:url('" + rec.base64 + "');background-size:cover;background-position:center;filter:blur(" + blur + "px);transform:scale(1.06);";
+              document.documentElement.appendChild(el);
+            }
+          }
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

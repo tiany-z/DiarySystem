@@ -54,13 +54,34 @@ export function getWallpaperDB(): Promise<IDBDatabase> {
   return dbPromise;
 }
 
+export const FAST_SYNC_KEY = "diary_bing_wallpaper_base64_v1";
+
+/**
+ * 同步快照读取 (0ms 瞬时直显)：在 React 首屏渲染和 HTML 加载的第 0 毫秒提供内存级 Base64
+ */
+export function getFastStoredBingWallpaper(): StoredBingWallpaper | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(FAST_SYNC_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.base64) {
+        return parsed;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 /**
  * 从 IndexedDB 读取上次缓存的 Bing 壁纸数据
  */
 export async function getStoredBingWallpaper(): Promise<StoredBingWallpaper | null> {
   try {
     const db = await getWallpaperDB();
-    return await new Promise<StoredBingWallpaper | null>((resolve, reject) => {
+    const stored = await new Promise<StoredBingWallpaper | null>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readonly");
       const store = tx.objectStore(STORE_NAME);
       const request = store.get(RECORD_ID);
@@ -73,24 +94,48 @@ export async function getStoredBingWallpaper(): Promise<StoredBingWallpaper | nu
         reject(request.error);
       };
     });
+
+    if (stored && stored.base64) {
+      // 保持同步快照处于最新
+      try {
+        localStorage.setItem(FAST_SYNC_KEY, JSON.stringify(stored));
+      } catch {}
+      return stored;
+    }
+
+    // 若 IndexedDB 暂空，尝试从同步快照回填
+    const fast = getFastStoredBingWallpaper();
+    if (fast) {
+      saveStoredBingWallpaper(fast).catch(() => {});
+      return fast;
+    }
+    return null;
   } catch (err) {
     console.warn("[WallpaperDB] Failed to read cached Bing wallpaper:", err);
-    return null;
+    return getFastStoredBingWallpaper();
   }
 }
 
 /**
- * 将获取到的 Bing 壁纸 Base64 写入 IndexedDB
+ * 将获取到的 Bing 壁纸 Base64 写入 IndexedDB，并同步写入 0ms 启动快照
  */
 export async function saveStoredBingWallpaper(data: Omit<StoredBingWallpaper, "id">): Promise<void> {
+  const record: StoredBingWallpaper = {
+    ...data,
+    id: RECORD_ID,
+    timestamp: data.timestamp || Date.now(),
+  };
+
+  // 1. 同步写入 0ms 瞬时快照，确保下次刷新第 0 毫秒即可渲染
+  try {
+    localStorage.setItem(FAST_SYNC_KEY, JSON.stringify(record));
+  } catch {
+    // ignore
+  }
+
+  // 2. 异步持久化写入底层对象存储数据库 IndexedDB
   try {
     const db = await getWallpaperDB();
-    const record: StoredBingWallpaper = {
-      ...data,
-      id: RECORD_ID,
-      timestamp: data.timestamp || Date.now(),
-    };
-
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readwrite");
       const store = tx.objectStore(STORE_NAME);

@@ -7,11 +7,20 @@ export const WallpaperLayer: React.FC = () => {
   const { enabled, blur, opacity, currentWallpaper, isSettingsLoaded } = useWallpaper();
   const { isDark } = useAppTheme();
 
-  // 当前活跃的背景图与过渡中的进场图（双图层 GPU 透明度交叉渐变，杜绝 CSS background-image 变形拉伸）
-  const [activeUrl, setActiveUrl] = useState<string | null>(null);
+  // 核心：若首屏已有 Base64，直接在初始化时作为 activeUrl，实现 0ms 瞬间直出，绝无白屏或动画延迟
+  const initialSource = currentWallpaper?.base64 || currentWallpaper?.url || null;
+  const [activeUrl, setActiveUrl] = useState<string | null>(initialSource);
   const [incomingUrl, setIncomingUrl] = useState<string | null>(null);
   const [incomingOpacity, setIncomingOpacity] = useState<number>(0);
-  const [isLayerVisible, setIsLayerVisible] = useState<boolean>(false);
+  const [isLayerVisible, setIsLayerVisible] = useState<boolean>(!!initialSource);
+
+  // 清除可能存在的 HTML 骨架级极速首屏预渲染 DOM
+  useEffect(() => {
+    const pre = document.getElementById("app-pre-wallpaper");
+    if (pre) {
+      pre.remove();
+    }
+  }, []);
 
   useEffect(() => {
     // 优先支持 Base64 秒显（IndexedDB 离线直显）：若已有 Base64，无需等待数据库异步请求完成

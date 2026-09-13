@@ -3,6 +3,7 @@ import { wallpaperApi, WallpaperItem } from "../api/wallpaper";
 import {
   getStoredBingWallpaper,
   saveStoredBingWallpaper,
+  getFastStoredBingWallpaper,
   fetchImageAsBase64,
   isBingWallpaper,
   isSameBingWallpaper,
@@ -23,8 +24,8 @@ const DEFAULT_SETTINGS: WallpaperSettings = {
   enabled: true,
   blur: 12,
   opacity: 0.4,
-  currentIndex: 1,
-  selectedWallpaperUrl: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070&auto=format&fit=crop",
+  currentIndex: 0,
+  selectedWallpaperUrl: "https://bing.biturl.top/?resolution=1920&format=image&index=0",
 };
 
 const DEFAULT_WALLPAPERS: WallpaperItem[] = [
@@ -89,14 +90,35 @@ export const WallpaperProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return DEFAULT_SETTINGS;
   });
 
-  const [wallpapers, setWallpapers] = useState<WallpaperItem[]>(DEFAULT_WALLPAPERS);
+  // 从本地快照同步初始化壁纸列表，若有 Base64 缓存则直接在第 0 毫秒注入，保障首屏瞬间直显
+  const [wallpapers, setWallpapers] = useState<WallpaperItem[]>(() => {
+    const fast = getFastStoredBingWallpaper();
+    if (fast && fast.base64) {
+      return DEFAULT_WALLPAPERS.map((w, idx) => {
+        if (idx === 0 || isSameBingWallpaper(w.url, fast.url)) {
+          return {
+            ...w,
+            url: fast.url,
+            base64: fast.base64,
+            title: fast.title || w.title,
+            copyright: fast.copyright || w.copyright,
+          };
+        }
+        return w;
+      });
+    }
+    return DEFAULT_WALLPAPERS;
+  });
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isSettingsLoaded, setIsSettingsLoaded] = useState<boolean>(false);
 
-  // 从本地低级数据库 (IndexedDB) 加载的 Bing 壁纸 Base64 缓存
-  const [cachedBingRecord, setCachedBingRecord] = useState<StoredBingWallpaper | null>(null);
+  // 从本地低级数据库 (IndexedDB) 加载的 Bing 壁纸 Base64 缓存，优先采用 0ms 同步快照直出
+  const [cachedBingRecord, setCachedBingRecord] = useState<StoredBingWallpaper | null>(() => {
+    return getFastStoredBingWallpaper();
+  });
 
   // 引用追踪最新 settings 与 wallpapers，避免定时器与异步任务闭包陈旧
   const settingsRef = useRef(settings);
