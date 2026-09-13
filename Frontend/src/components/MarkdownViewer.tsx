@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button, Tooltip } from "@fluentui/react-components";
 import { Dismiss20Regular } from "@fluentui/react-icons";
 import mermaid from "mermaid";
@@ -107,21 +108,34 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
           el.setAttribute("data-processed", "true");
           el.setAttribute("data-rendered-theme", isDark ? "dark" : "light");
 
-          // 注入包装器与控制栏 (包含图表源码复制与全屏大图预览功能)
+          // 注入包装器与控制栏 (包含三模式切换、图表源码复制与全屏大图预览功能)
+          el.setAttribute("data-chart-view", "preview");
           el.innerHTML = `
             <div class="mermaid-diagram-card">
               <div class="mermaid-diagram-toolbar">
-                <button type="button" class="mermaid-toolbar-btn btn-copy" data-index="${i}" title="复制图表代码">
-                  <span class="btn-icon">📋</span>
-                  <span class="btn-text">代码</span>
-                </button>
-                <button type="button" class="mermaid-toolbar-btn btn-zoom" data-index="${i}" title="全画幅放大查看">
-                  <span class="btn-icon">🔍</span>
-                  <span class="btn-text">全屏</span>
-                </button>
+                <div class="mermaid-view-toggle">
+                  <button type="button" class="mermaid-toolbar-btn chart-view-btn" data-view="code" data-index="${i}" title="查看源代码">代码</button>
+                  <button type="button" class="mermaid-toolbar-btn chart-view-btn active" data-view="preview" data-index="${i}" title="查看渲染预览">预览</button>
+                  <button type="button" class="mermaid-toolbar-btn chart-view-btn" data-view="split" data-index="${i}" title="代码与预览分屏">分屏</button>
+                </div>
+                <div class="mermaid-toolbar-actions">
+                  <button type="button" class="mermaid-toolbar-btn btn-copy" data-index="${i}" title="复制图表代码">
+                    <span class="btn-icon">📋</span>
+                    <span class="btn-text">复制</span>
+                  </button>
+                  <button type="button" class="mermaid-toolbar-btn btn-zoom" data-index="${i}" title="全画幅放大查看">
+                    <span class="btn-icon">🔍</span>
+                    <span class="btn-text">全屏</span>
+                  </button>
+                </div>
               </div>
-              <div class="mermaid-svg-wrapper">
-                ${svg}
+              <div class="mermaid-content-panels">
+                <div class="mermaid-code-panel">
+                  <pre><code>${escapeHtml(rawCode)}</code></pre>
+                </div>
+                <div class="mermaid-svg-wrapper">
+                  ${svg}
+                </div>
               </div>
             </div>
           `;
@@ -213,7 +227,23 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
       return;
     }
 
-    // 3. 拦截图表工具条按钮点击
+    // 3. 拦截图表视图模式切换按钮
+    const chartViewBtn = target.closest(".chart-view-btn") as HTMLElement | null;
+    if (chartViewBtn) {
+      e.stopPropagation();
+      const viewMode = chartViewBtn.getAttribute("data-view") || "preview";
+      const container = chartViewBtn.closest(".mermaid-diagram-container") as HTMLElement | null;
+      if (container) {
+        container.setAttribute("data-chart-view", viewMode);
+        // 更新激活态按钮
+        const allBtns = container.querySelectorAll(".chart-view-btn");
+        allBtns.forEach((btn) => btn.classList.remove("active"));
+        chartViewBtn.classList.add("active");
+      }
+      return;
+    }
+
+    // 4. 拦截图表工具条复制按钮
     const copyBtn = target.closest(".mermaid-toolbar-btn.btn-copy") as HTMLElement | null;
     if (copyBtn) {
       e.stopPropagation();
@@ -225,12 +255,13 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
         const textSpan = copyBtn.querySelector(".btn-text");
         if (textSpan) textSpan.textContent = "已复制";
         setTimeout(() => {
-          if (textSpan) textSpan.textContent = "代码";
+          if (textSpan) textSpan.textContent = "复制";
         }, 2000);
       }
       return;
     }
 
+    // 5. 拦截图表全屏放大按钮
     const zoomBtn = target.closest(".mermaid-toolbar-btn.btn-zoom") as HTMLElement | null;
     if (zoomBtn) {
       e.stopPropagation();
@@ -242,14 +273,19 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
       return;
     }
 
-    // 4. 点击图表本身也可以直接触发放大预览
+    // 6. 点击图表 SVG 区域触发放大预览
     const svgEl = target.closest(".mermaid-svg-wrapper");
     if (svgEl) {
-      setPreviewSvgContent(svgEl.innerHTML);
+      // 仅在非分屏/代码模式的预览区域才触发放大
+      const diagramContainer = svgEl.closest(".mermaid-diagram-container") as HTMLElement | null;
+      const currentView = diagramContainer?.getAttribute("data-chart-view");
+      if (currentView === "preview") {
+        setPreviewSvgContent(svgEl.innerHTML);
+      }
       return;
     }
 
-    // 5. 点击正文插图触发灯箱
+    // 7. 点击正文插图触发灯箱
     if (target.tagName === "IMG") {
       const img = target as HTMLImageElement;
       setPreviewImgSrc(img.src);
@@ -272,8 +308,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
         dangerouslySetInnerHTML={{ __html: html }}
       />
 
-      {/* 全屏高清图表 / 插图灯箱 (Fluent 2 亚克力毛玻璃拟态) */}
-      {(previewImgSrc || previewSvgContent) && (
+      {/* 全屏高清图表 / 插图灯箱 — 使用 Portal 渲染到 body，跳出 Dialog 层叠上下文 */}
+      {(previewImgSrc || previewSvgContent) && createPortal(
         <div
           className="image-lightbox-backdrop"
           onClick={closeLightbox}
@@ -377,7 +413,8 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
               )}
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

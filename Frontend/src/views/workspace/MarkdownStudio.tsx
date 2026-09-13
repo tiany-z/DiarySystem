@@ -74,6 +74,17 @@ import { htmlToMarkdown, markdownToHtml } from "../../utils/markdownUtils";
 import { parseMarkdownFile } from "../../components/MarkdownImportModal";
 import { useAppDialogMotion } from "../../utils/dialogMotion";
 import { formatDate } from "../../components/NoteCard";
+import mermaid from "mermaid";
+
+// 辅助函数：转义 HTML 字符串
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 export const MarkdownStudio: React.FC = () => {
   const { id: routeId } = useParams<{ id: string }>();
@@ -275,6 +286,136 @@ export const MarkdownStudio: React.FC = () => {
     }
   }, [isLoading, editorMode, routeId]);
 
+  // WYSIWYG 模式下：渲染 Mermaid 矢量图表 (与 MarkdownViewer 保持一致的三模式切换)
+  useEffect(() => {
+    if (editorMode !== "wysiwyg" || !wysiwygRef.current) return;
+    let isCancelled = false;
+
+    const renderWysiwygMermaid = async () => {
+      const container = wysiwygRef.current;
+      if (!container) return;
+
+      const diagramElements = container.querySelectorAll<HTMLDivElement>(".mermaid-diagram-container");
+      if (!diagramElements || diagramElements.length === 0) return;
+
+      try {
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: isDark ? "dark" : "default",
+          securityLevel: "loose",
+          fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, sans-serif",
+          themeVariables: isDark
+            ? {
+                darkMode: true,
+                background: "#18181f",
+                primaryColor: "#5B7B8D",
+                primaryTextColor: "#f3f4f6",
+                primaryBorderColor: "#6E90A3",
+                lineColor: "#8EAEC0",
+                secondaryColor: "#25252e",
+                tertiaryColor: "#1c1c24",
+              }
+            : {
+                darkMode: false,
+                background: "#ffffff",
+                primaryColor: "#5B7B8D",
+                primaryTextColor: "#1f2937",
+                primaryBorderColor: "#4F6D7E",
+                lineColor: "#5B7B8D",
+                secondaryColor: "#f3f4f6",
+                tertiaryColor: "#fafafa",
+              },
+        });
+      } catch (e) {
+        console.warn("Mermaid initialize warning:", e);
+      }
+
+      for (let i = 0; i < diagramElements.length; i++) {
+        if (isCancelled) break;
+        const el = diagramElements[i];
+
+        const processedTheme = el.getAttribute("data-rendered-theme");
+        if (el.getAttribute("data-processed") === "true" && processedTheme === (isDark ? "dark" : "light")) {
+          continue;
+        }
+
+        const rawCodeEncoded = el.getAttribute("data-mermaid") || "";
+        if (!rawCodeEncoded) continue;
+
+        let rawCode = "";
+        try {
+          rawCode = decodeURIComponent(rawCodeEncoded).trim();
+        } catch {
+          rawCode = rawCodeEncoded.trim();
+        }
+
+        const uniqueId = `wysiwyg-mermaid-${Math.random().toString(36).substring(2, 9)}-${i}-${Date.now()}`;
+
+        try {
+          const { svg } = await mermaid.render(uniqueId, rawCode);
+          if (isCancelled) break;
+
+          el.setAttribute("data-processed", "true");
+          el.setAttribute("data-rendered-theme", isDark ? "dark" : "light");
+          el.setAttribute("data-chart-view", "preview");
+          el.setAttribute("contenteditable", "false");
+
+          el.innerHTML = `
+            <div class="mermaid-diagram-card">
+              <div class="mermaid-diagram-toolbar">
+                <div class="mermaid-view-toggle">
+                  <button type="button" class="mermaid-toolbar-btn chart-view-btn" data-view="code" data-index="${i}" title="查看源代码">代码</button>
+                  <button type="button" class="mermaid-toolbar-btn chart-view-btn active" data-view="preview" data-index="${i}" title="查看渲染预览">预览</button>
+                  <button type="button" class="mermaid-toolbar-btn chart-view-btn" data-view="split" data-index="${i}" title="代码与预览分屏">分屏</button>
+                </div>
+                <div class="mermaid-toolbar-actions">
+                  <button type="button" class="mermaid-toolbar-btn btn-copy" data-index="${i}" title="复制图表代码">
+                    <span class="btn-icon">📋</span>
+                    <span class="btn-text">复制</span>
+                  </button>
+                </div>
+              </div>
+              <div class="mermaid-content-panels">
+                <div class="mermaid-code-panel">
+                  <pre><code>${escapeHtml(rawCode)}</code></pre>
+                </div>
+                <div class="mermaid-svg-wrapper">
+                  ${svg}
+                </div>
+              </div>
+            </div>
+          `;
+        } catch (err: any) {
+          if (isCancelled) break;
+          el.setAttribute("data-processed", "true");
+          el.setAttribute("data-rendered-theme", isDark ? "dark" : "light");
+          el.setAttribute("contenteditable", "false");
+
+          el.innerHTML = `
+            <div class="mermaid-error-card">
+              <div class="mermaid-error-header">
+                <span class="mermaid-error-icon">⚠️</span>
+                <span class="mermaid-error-title">Mermaid 图表代码解析失败</span>
+              </div>
+              <div class="mermaid-error-msg">${escapeHtml(err?.message || "语法错误，请检查图表代码结构")}</div>
+              <details class="mermaid-error-details" open>
+                <summary>查看原始图表代码</summary>
+                <pre class="mermaid-error-code"><code>${escapeHtml(rawCode)}</code></pre>
+              </details>
+            </div>
+          `;
+        }
+      }
+    };
+
+    // 延迟渲染以确保 DOM 已完成更新
+    const timer = setTimeout(() => renderWysiwygMermaid(), 100);
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [editorMode, isLoading, isDark, content, routeId]);
+
   // 当处于 Markdown 源码稿纸模式时，自适应调整 textarea 高度以撑开背景卡片，杜绝底部内容溢出
   useEffect(() => {
     if (editorMode === "sheet" && sheetTextareaRef.current) {
@@ -302,6 +443,50 @@ export const MarkdownStudio: React.FC = () => {
   // 处理待办事项选择框原生点击与图片选中
   const handleWysiwygClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
+
+    // 拦截 Mermaid 图表视图模式切换按钮
+    const chartViewBtn = target.closest(".chart-view-btn") as HTMLElement | null;
+    if (chartViewBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const viewMode = chartViewBtn.getAttribute("data-view") || "preview";
+      const container = chartViewBtn.closest(".mermaid-diagram-container") as HTMLElement | null;
+      if (container) {
+        container.setAttribute("data-chart-view", viewMode);
+        const allBtns = container.querySelectorAll(".chart-view-btn");
+        allBtns.forEach((btn) => btn.classList.remove("active"));
+        chartViewBtn.classList.add("active");
+      }
+      return;
+    }
+
+    // 拦截 Mermaid 图表复制按钮
+    const mermaidCopyBtn = target.closest(".mermaid-toolbar-btn.btn-copy") as HTMLElement | null;
+    if (mermaidCopyBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const container = mermaidCopyBtn.closest(".mermaid-diagram-container") as HTMLElement | null;
+      if (container) {
+        const rawCodeEncoded = container.getAttribute("data-mermaid") || "";
+        try {
+          const rawCode = decodeURIComponent(rawCodeEncoded);
+          navigator.clipboard.writeText(rawCode);
+        } catch {}
+        const textSpan = mermaidCopyBtn.querySelector(".btn-text");
+        if (textSpan) textSpan.textContent = "已复制";
+        setTimeout(() => {
+          if (textSpan) textSpan.textContent = "复制";
+        }, 2000);
+      }
+      return;
+    }
+
+    // 拦截 Mermaid 图表内的点击（避免在 contentEditable 中编辑图表 DOM）
+    if (target.closest(".mermaid-diagram-container")) {
+      e.stopPropagation();
+      return;
+    }
+
     if (target.tagName === "INPUT" && (target as HTMLInputElement).type === "checkbox") {
       const cb = target as HTMLInputElement;
       if (cb.checked) {
@@ -903,7 +1088,7 @@ export const MarkdownStudio: React.FC = () => {
         }}
       >
         {/* Left: Back to workspace */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: 0 }}>
           <Tooltip content="返回笔记" relationship="label">
             <Button
               appearance="subtle"
@@ -918,10 +1103,11 @@ export const MarkdownStudio: React.FC = () => {
                 navigate("/workspace");
               }}
               aria-label="返回笔记"
+              style={{ flexShrink: 0 }}
             />
           </Tooltip>
 
-          <Divider vertical className="desktop-only" style={{ height: "20px" }} />
+          <Divider vertical className="desktop-only" style={{ height: "20px", flexShrink: 0 }} />
 
           <Text
             weight="semibold"
@@ -929,10 +1115,10 @@ export const MarkdownStudio: React.FC = () => {
             style={{
               fontSize: "14px",
               opacity: 0.85,
-              maxWidth: "180px",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              minWidth: 0,
             }}
           >
             {title.trim() || (isNew ? "新建笔记" : "未命名")}
