@@ -961,7 +961,7 @@ html.dark .meta-capsule-chip {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 788px) {
   .desktop-only {
     display: none !important;
   }
@@ -1421,7 +1421,48 @@ html.dark .meta-capsule-chip {
     box-shadow: none !important;
   }
 
-  .mermaid-svg-wrapper {
+  
+/* Mermaid Content Layout & Dual Display (横向双显：左侧代码，右侧图表) */
+.mermaid-content-layout {
+  width: 100%;
+}
+
+.mermaid-content-layout.mode-both {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  gap: 16px !important;
+  width: 100% !important;
+}
+
+.mermaid-content-layout.mode-both .mermaid-code-wrapper {
+  flex: 1 1 50% !important;
+  max-width: 50% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.mermaid-content-layout.mode-both .mermaid-svg-wrapper {
+  flex: 1 1 50% !important;
+  max-width: 50% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 788px) {
+  .mermaid-content-layout.mode-both {
+    flex-direction: column !important;
+  }
+  .mermaid-content-layout.mode-both .mermaid-code-wrapper,
+  .mermaid-content-layout.mode-both .mermaid-svg-wrapper {
+    max-width: 100% !important;
+  }
+}
+
+.mermaid-svg-wrapper {
     padding: 0 !important;
     width: 100% !important;
   }
@@ -2444,7 +2485,7 @@ html.force-code-dark .hljs-formula {
 }
 
 /* 移动端代码块微调 */
-@media (max-width: 768px) {
+@media (max-width: 788px) {
   .code-block-wrapper {
     margin: 10px 0 !important;
     border-radius: 6px !important;
@@ -2466,7 +2507,7 @@ html.force-code-dark .hljs-formula {
 }
 
 /* 统一页面容器与顶栏在大中小各视口下的对称排版与内边距 */
-@media (max-width: 768px) {
+@media (max-width: 788px) {
 
   .page-content-container,
   .public-page-container,
@@ -2686,8 +2727,25 @@ html.force-code-dark .hljs-formula {
 
 /* ==========================================================================
    NoteCard Mini Markdown Preview & Fade Mask (笔记卡片 Markdown 前半部分预览与底部渐变淡出)
-   超出卡片内容范围的不需要滚动，直接用底部白色渐变过渡隐藏消失
+   卡片高度严格小于宽度，正文预览无截断贯穿至底部，由用户信息底部的渐变层自然遮罩
    ========================================================================== */
+.note-card-surface,
+.responsive-card-grid .fui-Card.hover-lift {
+  height: 220px !important;
+  min-height: 220px !important;
+  max-height: 220px !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 788px) {
+  .note-card-surface,
+  .responsive-card-grid .fui-Card.hover-lift {
+    height: 200px !important;
+    min-height: 200px !important;
+    max-height: 200px !important;
+  }
+}
+
 .note-card-preview-wrapper {
   position: relative !important;
   width: 100% !important;
@@ -2696,7 +2754,7 @@ html.force-code-dark .hljs-formula {
   user-select: none !important;
   flex: 1 1 auto !important;
   height: 100% !important;
-  max-height: none !important;
+  min-height: 0 !important;
 }
 
 .note-card-bottom-fade,
@@ -2705,25 +2763,25 @@ html.force-code-dark .hljs-formula {
   bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  height: 84px !important;
+  height: 68px !important;
   pointer-events: none !important;
   z-index: 1 !important;
   border-bottom-left-radius: 14px !important;
   border-bottom-right-radius: 14px !important;
   background: linear-gradient(to top,
       #ffffff 0px,
-      #ffffff 36px,
-      rgba(255, 255, 255, 0.92) 54px,
-      rgba(255, 255, 255, 0) 84px) !important;
+      #ffffff 26px,
+      rgba(255, 255, 255, 0.95) 42px,
+      rgba(255, 255, 255, 0) 68px) !important;
 }
 
 html.dark .note-card-bottom-fade,
 html.dark .note-card-preview-fade {
   background: linear-gradient(to top,
       #202026 0px,
-      #202026 36px,
-      rgba(32, 32, 38, 0.92) 54px,
-      rgba(32, 32, 38, 0) 84px) !important;
+      #202026 26px,
+      rgba(32, 32, 38, 0.95) 42px,
+      rgba(32, 32, 38, 0) 68px) !important;
 }
 
 .note-card-mini-markdown {
@@ -2902,7 +2960,7 @@ html.dark .note-card-mini-markdown table td {
    ========================================================================== */
 
 /* 1. 响应式窄屏 (max-width: 768px): 广场日记预览界面遮住整个网页，包括标题栏，无模糊背景 */
-@media (max-width: 768px) {
+@media (max-width: 788px) {
   .reader-modal-surface {
     position: fixed !important;
     inset: 0 !important;
@@ -3297,6 +3355,102 @@ html.dark .mermaid-code-wrapper {
   background-color: rgba(0, 0, 0, 0.25) !important;
 }
 
+/* Mermaid 图表与代码横向双显布局（左侧代码，右侧图表） */
+.mermaid-content-layout {
+  display: flex !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.mermaid-content-layout.mode-diagram {
+  flex-direction: column !important;
+}
+
+.mermaid-content-layout.mode-code {
+  flex-direction: column !important;
+}
+
+.mermaid-content-layout.mode-both {
+  flex-direction: row !important;
+  align-items: stretch !important;
+  width: 100% !important;
+}
+
+.mermaid-content-layout.mode-both .mermaid-code-wrapper {
+  flex: 1 1 50% !important;
+  width: 50% !important;
+  max-width: 50% !important;
+  min-width: 0 !important;
+  border-top: none !important;
+  border-right: 1px solid var(--code-border) !important;
+  box-sizing: border-box !important;
+}
+
+html.dark .mermaid-content-layout.mode-both .mermaid-code-wrapper {
+  border-right-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.mermaid-content-layout.mode-both .mermaid-svg-wrapper {
+  flex: 1 1 50% !important;
+  width: 50% !important;
+  max-width: 50% !important;
+  min-width: 0 !important;
+  padding: 16px 14px !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 788px) {
+  .mermaid-content-layout.mode-both {
+    flex-direction: column !important;
+  }
+
+  .mermaid-content-layout.mode-both .mermaid-code-wrapper {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--code-border) !important;
+  }
+
+  .mermaid-content-layout.mode-both .mermaid-svg-wrapper {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+/* 图片删除撤回快捷浮条 */
+.image-undo-toast {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 16px !important;
+  background-color: rgba(30, 30, 36, 0.95) !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
+  z-index: 1000 !important;
+  backdrop-filter: blur(12px) !important;
+  animation: win10TileRise 0.3s cubic-bezier(0.1, 0.9, 0.2, 1) both !important;
+}
+
+html.dark .image-undo-toast {
+  background-color: rgba(38, 38, 46, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+@media (max-width: 788px) {
+  .image-undo-toast {
+    bottom: 60px !important;
+    right: 16px !important;
+    left: 16px !important;
+    justify-content: space-between !important;
+  }
+}
+
 .mermaid-code-wrapper pre {
   margin: 0 !important;
   font-family: Consolas, Monaco, "Courier New", monospace !important;
@@ -3355,7 +3509,7 @@ html.dark .mermaid-code-wrapper {
   width: 100vw !important;
   height: 100vh !important;
   height: 100dvh !important;
-  z-index: 999999 !important;
+  z-index: 2147483640 !important;
   background-color: rgba(0, 0, 0, 0.86) !important;
   backdrop-filter: blur(20px) saturate(140%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
@@ -3363,6 +3517,6 @@ html.dark .mermaid-code-wrapper {
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  padding: 24px !important;
+  padding: 16px !important;
   animation: smartZoomEnter 0.3s cubic-bezier(0.1, 0.9, 0.2, 1) !important;
 }

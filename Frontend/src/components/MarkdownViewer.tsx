@@ -133,7 +133,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
     setPreviewSvgContent(null);
   };
 
-  // 全网页全屏高清灯箱：突破任意父级 Dialog 容器的 containing-block 阻断，直接 Portal 至 document.body
+  // 全网页全屏高清灯箱：突破任意父级 Dialog 容器的 containing-block 阻断，直接 Portal 至 document.body 并置于最高层级
   const renderLightbox = () => {
     if (!previewImgSrc && !previewSvgContent) return null;
     if (typeof document === "undefined") return null;
@@ -151,17 +151,17 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
           bottom: 0,
           width: "100vw",
           height: "100dvh",
-          backgroundColor: "rgba(0, 0, 0, 0.86)",
+          backgroundColor: "rgba(0, 0, 0, 0.88)",
           backdropFilter: "blur(20px) saturate(140%)",
           WebkitBackdropFilter: "blur(20px) saturate(140%)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          zIndex: 999999,
-          padding: "24px",
+          zIndex: 2147483640,
+          padding: "16px",
           boxSizing: "border-box",
-          animation: "fuiDialogEnter 0.25s cubic-bezier(0.1, 0.9, 0.2, 1)",
+          animation: "smartZoomEnter 0.3s cubic-bezier(0.1, 0.9, 0.2, 1)",
         }}
       >
         <div
@@ -172,7 +172,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
             display: "flex",
             alignItems: "center",
             gap: "12px",
-            zIndex: 1000000,
+            zIndex: 2147483647,
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -214,37 +214,67 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
             dangerouslySetInnerHTML={{ __html: previewSvgContent }}
           />
         ) : (
-          /* 若为普通位图图片全屏展示 */
-          <>
+          /* 若为普通位图图片全屏展示：容器撑满，图片 contain 最大面积自适应居中显示 */
+          <div
+            onClick={closeLightbox}
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              height: "100%",
+              maxWidth: "100vw",
+              maxHeight: "100dvh",
+              boxSizing: "border-box",
+              padding: "16px",
+              overflow: "hidden",
+            }}
+          >
             <img
               src={previewImgSrc!}
               alt={previewImgAlt}
               onClick={(e) => e.stopPropagation()}
               style={{
-                maxWidth: "94vw",
-                maxHeight: "90vh",
+                maxWidth: "100%",
+                maxHeight: "100%",
+                width: "auto",
+                height: "auto",
                 objectFit: "contain",
-                borderRadius: "12px",
-                boxShadow: "0 28px 80px rgba(0, 0, 0, 0.75)",
-                transition: "transform 0.2s ease",
+                borderRadius: "8px",
+                boxShadow: "0 28px 80px rgba(0, 0, 0, 0.8)",
+                userSelect: "none",
+                cursor: "default",
+                animation: "smartZoomEnter 0.3s cubic-bezier(0.1, 0.9, 0.2, 1)",
               }}
             />
             {previewImgAlt && previewImgAlt !== "图片" && (
               <div
+                onClick={(e) => e.stopPropagation()}
                 style={{
-                  marginTop: "14px",
-                  color: "rgba(255, 255, 255, 0.9)",
-                  fontSize: "14px",
+                  position: "absolute",
+                  bottom: "20px",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  backgroundColor: "rgba(0, 0, 0, 0.72)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  padding: "6px 18px",
+                  borderRadius: "20px",
+                  color: "#ffffff",
+                  fontSize: "13px",
                   fontWeight: 500,
                   textAlign: "center",
-                  maxWidth: "80vw",
-                  textShadow: "0 2px 4px rgba(0, 0, 0, 0.8)",
+                  maxWidth: "min(85vw, 680px)",
+                  pointerEvents: "none",
+                  zIndex: 2147483645,
+                  boxShadow: "0 4px 16px rgba(0, 0, 0, 0.5)",
                 }}
               >
                 {previewImgAlt}
               </div>
             )}
-          </>
+          </div>
         )}
       </div>,
       document.body

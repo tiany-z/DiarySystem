@@ -73,11 +73,11 @@ export function extractSnippet(mdText?: string | null, maxLen: number = 110): st
   return clean.length > maxLen ? clean.slice(0, maxLen) + "..." : clean;
 }
 
-// 辅助函数：提取 Markdown 内容前半部分供卡片轻量渲染预览 (过滤图片语法并去除冗余的重复 H1 标题)
+// 辅助函数：提取 Markdown 内容供卡片渲染预览 (过滤图片语法并去除冗余的重复 H1 标题，充分延展至底部渐变层)
 export function extractMarkdownPreview(
   mdText?: string | null,
   diaryTitle?: string | null,
-  maxChars: number = 420
+  maxChars: number = 2500
 ): string {
   if (!mdText || !mdText.trim()) return "";
 
@@ -92,7 +92,7 @@ export function extractMarkdownPreview(
     }
   }
 
-  // 2. 移除图片语法，卡片封面已在独立区域展示，正文预览专注文字排版
+  // 2. 移除图片语法，正文预览专注文字排版（封面已由独立缩略图呈现）
   text = text
     .replace(/!\[.*?\]\(.*?\)/g, "")
     .replace(/<img[^>]*>/gi, "")
@@ -104,16 +104,11 @@ export function extractMarkdownPreview(
     return text;
   }
 
-  // 3. 在截断点附近寻找换行或标点，避免切碎语法或词汇
+  // 3. 超长文档在安全阈值截断，防止解析过重
   let cut = maxChars;
   const nextNewline = text.indexOf("\n", maxChars);
-  if (nextNewline !== -1 && nextNewline - maxChars < 60) {
+  if (nextNewline !== -1 && nextNewline - maxChars < 120) {
     cut = nextNewline;
-  } else {
-    const prevNewline = text.lastIndexOf("\n", maxChars);
-    if (prevNewline > maxChars * 0.75) {
-      cut = prevNewline;
-    }
   }
 
   return text.slice(0, cut).trim();
@@ -182,12 +177,14 @@ export const NoteCard: React.FC<NoteCardProps> = ({
 
   return (
     <Card
-      className="hover-lift"
+      className="hover-lift note-card-surface"
       onClick={onClick}
       style={{
         cursor: onClick ? "pointer" : "default",
         borderRadius: "14px",
-        height: "100%",
+        height: "220px",
+        minHeight: "220px",
+        maxHeight: "220px",
         width: "100%",
         maxWidth: "100%",
         minWidth: 0,
@@ -200,91 +197,118 @@ export const NoteCard: React.FC<NoteCardProps> = ({
         boxShadow: isDark
           ? "0 4px 16px rgba(0, 0, 0, 0.3)"
           : "0 4px 20px rgba(91, 123, 141, 0.08)",
-        padding: "20px 22px 18px 22px",
+        padding: "16px 20px 14px 20px",
         position: "relative",
         overflow: "hidden",
         transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
       }}
     >
-      <div style={{ flex: "1 1 auto", minHeight: 0, minWidth: 0, width: "100%", maxWidth: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column" }}>
-        <CardHeader
-          style={{ padding: 0, marginBottom: "12px" }}
-          header={
-            <Body1Strong
+      <div style={{ flex: "1 1 auto", minHeight: 0, minWidth: 0, width: "100%", maxWidth: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* 顶部 Header 与封面微缩图区域 */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "10px", width: "100%", marginBottom: "8px", flexShrink: 0 }}>
+          <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+            <CardHeader
+              style={{ padding: 0 }}
+              header={
+                <Body1Strong
+                  style={{
+                    fontSize: "16px",
+                    lineHeight: 1.4,
+                    paddingBottom: "2px",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 1,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {diary.title || "无标题日记"}
+                </Body1Strong>
+              }
+              description={
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: "2px" }}>
+                  <Caption1 style={{ opacity: 0.65, fontSize: "11px" }}>
+                    {formatDate(diary.created_at)}
+                  </Caption1>
+                  {showVisibilityBadge && (
+                    isPublic ? (
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          padding: "1px 5px",
+                          borderRadius: "4px",
+                          backgroundColor: isDark ? "rgba(91, 123, 141, 0.22)" : "rgba(91, 123, 141, 0.1)",
+                          color: isDark ? "#8EAEC0" : "#5B7B8D",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "2px",
+                          fontWeight: 500,
+                        }}
+                      >
+                        <Globe20Regular style={{ fontSize: "11px" }} /> 公开
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          padding: "1px 5px",
+                          borderRadius: "4px",
+                          backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.05)",
+                          color: isDark ? "rgba(255, 255, 255, 0.65)" : "rgba(0, 0, 0, 0.6)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "2px",
+                          fontWeight: 500,
+                        }}
+                      >
+                        <LockClosed20Regular style={{ fontSize: "11px" }} /> 私密
+                      </span>
+                    )
+                  )}
+                </div>
+              }
+            />
+          </div>
+          {coverImage && previewHtml && (
+            <div
+              className="note-card-thumb-badge"
               style={{
-                fontSize: "17px",
-                lineHeight: 1.5,
-                paddingBottom: "2px",
-                display: "-webkit-box",
-                WebkitLineClamp: 1,
-                WebkitBoxOrient: "vertical",
+                width: "60px",
+                height: "46px",
+                borderRadius: "8px",
                 overflow: "hidden",
-                wordBreak: "break-word",
+                flexShrink: 0,
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.03)",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.06)",
               }}
             >
-              {diary.title || "无标题日记"}
-            </Body1Strong>
-          }
-          description={
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: "2px" }}>
-              <Caption1 style={{ opacity: 0.65 }}>
-                {formatDate(diary.created_at)}
-              </Caption1>
-              {showVisibilityBadge && (
-                isPublic ? (
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      padding: "1px 6px",
-                      borderRadius: "4px",
-                      backgroundColor: isDark ? "rgba(91, 123, 141, 0.22)" : "rgba(91, 123, 141, 0.1)",
-                      color: isDark ? "#8EAEC0" : "#5B7B8D",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "3px",
-                      fontWeight: 500,
-                    }}
-                  >
-                    <Globe20Regular style={{ fontSize: "12px" }} /> 公开
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      padding: "1px 6px",
-                      borderRadius: "4px",
-                      backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.05)",
-                      color: isDark ? "rgba(255, 255, 255, 0.65)" : "rgba(0, 0, 0, 0.6)",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "3px",
-                      fontWeight: 500,
-                    }}
-                  >
-                    <LockClosed20Regular style={{ fontSize: "12px" }} /> 私密
-                  </span>
-                )
-              )}
+              <img
+                src={coverImage}
+                alt={diary.title || "随笔插图"}
+                loading="lazy"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
             </div>
-          }
-        />
+          )}
+        </div>
 
-        {/* 随笔精选插图封面缩略图：若为纯图片笔记，则自适应延展充满正文区域并透过底部用户信息渐隐 */}
-        {coverImage && (
+        {/* 纯图片随笔（无文本预览时，图片撑满卡片主体） */}
+        {!previewHtml && coverImage && (
           <div
-            className={`note-card-cover-container ${!previewHtml ? "is-pure-image" : ""}`}
+            className="note-card-cover-container is-pure-image"
             style={{
               width: "100%",
-              height: previewHtml ? "120px" : "auto",
-              flex: previewHtml ? "0 0 120px" : "1 1 auto",
-              minHeight: previewHtml ? "120px" : "180px",
-              maxHeight: previewHtml ? "120px" : "280px",
+              flex: "1 1 auto",
+              minHeight: 0,
               borderRadius: "8px",
               overflow: "hidden",
-              marginBottom: previewHtml ? "12px" : "0px",
               backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.03)",
               border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.06)",
-              flexShrink: previewHtml ? 0 : 1,
             }}
           >
             <img
@@ -301,7 +325,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
           </div>
         )}
 
-        {/* 笔记卡片 Markdown 前半部分轻量渲染预览 (自适应卡片拉伸高度并透过底部渐变过渡隐藏) */}
+        {/* 笔记卡片 Markdown 前半部分轻量渲染预览 (无中断撑满至卡片底部，直到被底部的渐变过渡层遮住) */}
         {previewHtml ? (
           <div
             ref={previewRef}
@@ -309,15 +333,14 @@ export const NoteCard: React.FC<NoteCardProps> = ({
             style={{
               position: "relative",
               flex: "1 1 auto",
-              minHeight: coverImage ? "38px" : "56px",
+              minHeight: 0,
+              height: "100%",
               overflow: "hidden",
               marginBottom: "0px",
               width: "100%",
               maxWidth: "100%",
               minWidth: 0,
               boxSizing: "border-box",
-              display: "flex",
-              flexDirection: "column",
             }}
           >
             <div
@@ -332,7 +355,6 @@ export const NoteCard: React.FC<NoteCardProps> = ({
               fontSize: "13px",
               lineHeight: 1.6,
               marginBottom: "8px",
-              minHeight: "48px",
             }}
           >
             暂无正文内容...
@@ -340,7 +362,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
         ) : null}
       </div>
 
-      {/* 底部渐变遮罩：底边到用户信息遮住50%处为纯色遮罩，往上渐变为全透明；无论是文字溢出还是纯图片内容，均保持平滑过渡遮罩 */}
+      {/* 底部渐变遮罩：底边到用户信息遮住处为纯色遮罩，往上平滑过渡渐变到全透明 */}
       {(previewHtml || coverImage) && (
         <div
           className="note-card-bottom-fade"
@@ -351,9 +373,9 @@ export const NoteCard: React.FC<NoteCardProps> = ({
       <CardFooter
         style={{
           position: "absolute",
-          bottom: "16px",
-          left: "22px",
-          right: "22px",
+          bottom: "12px",
+          left: "20px",
+          right: "20px",
           zIndex: 2,
           padding: 0,
           borderTop: "none",

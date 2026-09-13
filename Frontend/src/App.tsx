@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { FluentProvider, Toaster } from "@fluentui/react-components";
 import { Header } from "./components/Header";
@@ -17,6 +17,13 @@ import { UserManager } from "./views/workspace/UserManager";
 
 const AppContent: React.FC = () => {
   const location = useLocation();
+
+  // 路由/页面切换时全局自动平滑/瞬间滚动重置到顶部
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [location.pathname]);
 
   return (
     <>

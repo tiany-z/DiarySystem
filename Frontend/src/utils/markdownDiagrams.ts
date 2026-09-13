@@ -133,12 +133,14 @@ export async function renderMermaidDiagrams(
             </div>
           </div>
           
-          <div class="mermaid-svg-wrapper" style="display: ${currentMode === "code" ? "none" : "flex"};">
-            ${svg}
-          </div>
-
-          <div class="mermaid-code-wrapper" style="display: ${currentMode === "diagram" ? "none" : "block"};">
-            <pre><code class="language-mermaid">${escapeHtml(rawCode)}</code></pre>
+          {/* 图表展示主体：支持横向双显（左侧代码，右侧图表） */}
+          <div class="mermaid-content-layout mode-${currentMode}">
+            <div class="mermaid-code-wrapper" style="display: ${currentMode === "diagram" ? "none" : "block"};">
+              <pre><code class="language-mermaid">${escapeHtml(rawCode)}</code></pre>
+            </div>
+            <div class="mermaid-svg-wrapper" style="display: ${currentMode === "code" ? "none" : "flex"};">
+              ${svg}
+            </div>
           </div>
         </div>
       `;
@@ -149,8 +151,9 @@ export async function renderMermaidDiagrams(
 
       // 模态切换
       const modeBtns = card.querySelectorAll<HTMLButtonElement>(".mermaid-mode-btn");
-      const svgWrapper = card.querySelector(".mermaid-svg-wrapper") as HTMLElement | null;
+      const contentLayout = card.querySelector(".mermaid-content-layout") as HTMLElement | null;
       const codeWrapper = card.querySelector(".mermaid-code-wrapper") as HTMLElement | null;
+      const svgWrapper = card.querySelector(".mermaid-svg-wrapper") as HTMLElement | null;
 
       modeBtns.forEach((btn) => {
         btn.onclick = (e) => {
@@ -162,11 +165,14 @@ export async function renderMermaidDiagrams(
           modeBtns.forEach((b) => b.classList.remove("active"));
           btn.classList.add("active");
 
-          if (svgWrapper) {
-            svgWrapper.style.display = targetMode === "code" ? "none" : "flex";
+          if (contentLayout) {
+            contentLayout.className = `mermaid-content-layout mode-${targetMode}`;
           }
           if (codeWrapper) {
             codeWrapper.style.display = targetMode === "diagram" ? "none" : "block";
+          }
+          if (svgWrapper) {
+            svgWrapper.style.display = targetMode === "code" ? "none" : "flex";
           }
         };
       });

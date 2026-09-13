@@ -50,11 +50,11 @@ export const NoteReaderModal: React.FC<NoteReaderModalProps> = ({
 
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // 监听是否为窄屏模式 (<= 768px)，窄屏全屏遮盖整个网页界面 (包括标题栏)
-  const [isNarrowScreen, setIsNarrowScreen] = useState(() => typeof window !== "undefined" && window.innerWidth <= 768);
+  // 监听是否为窄屏模式 (<= 788px)，窄屏全屏遮盖整个网页界面 (包括标题栏)
+  const [isNarrowScreen, setIsNarrowScreen] = useState(() => typeof window !== "undefined" && window.innerWidth <= 788);
   useEffect(() => {
     const handleResize = () => {
-      setIsNarrowScreen(window.innerWidth <= 768);
+      setIsNarrowScreen(window.innerWidth <= 788);
     };
     window.addEventListener("resize", handleResize);
     window.addEventListener("orientationchange", handleResize);

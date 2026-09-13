@@ -30,6 +30,8 @@ import {
 import {
   ArrowAutofitWidth20Regular,
   ArrowLeft20Regular,
+  ArrowRedo20Regular,
+  ArrowUndo20Regular,
   ArrowUpload20Regular,
   BranchFork20Regular,
   CheckmarkCircle20Regular,
@@ -60,6 +62,9 @@ import {
   TextHeader120Regular,
   TextHeader220Regular,
   TextHeader320Regular,
+  TextHeader420Regular,
+  TextHeader520Regular,
+  TextHeader620Regular,
   TextItalic20Regular,
   TextNumberListLtr20Regular,
   TextQuote20Regular,
@@ -216,6 +221,17 @@ export const MarkdownStudio: React.FC = () => {
   const [isResizingImg, setIsResizingImg] = useState<boolean>(false);
   const [resizingSizeText, setResizingSizeText] = useState<string>("");
 
+  // 已删除图片的可撤回状态管理
+  interface DeletedImageRecord {
+    element: HTMLImageElement;
+    parent: HTMLElement;
+    nextSibling: Node | null;
+    removedParentP?: HTMLElement | null;
+  }
+  const [lastDeletedImage, setLastDeletedImage] = useState<DeletedImageRecord | null>(null);
+  const [showDeletedToast, setShowDeletedToast] = useState<boolean>(false);
+  const deletedToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // 页面离开未保存确认
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -229,16 +245,30 @@ export const MarkdownStudio: React.FC = () => {
   }, [isDirty]);
 
   // 保证在文档编辑器界面下锁定页面级多余滚动，确保顶部栏与排版功能区 100% 牢牢吸顶固定
+  // 同时必须在挂载瞬间立即重置视口与文档滚动条至 (0,0)，彻底解决移动端从列表页面进入编辑器时继承滚动偏移导致顶部栏移出视口的问题
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
     const prevHtmlOverflow = document.documentElement.style.overflow;
     const prevBodyOverflow = document.body.style.overflow;
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
+
+    // 微任务确认归零，杜绝潜在的路由转场位移残留
+    const rafId = requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    });
+
     return () => {
+      cancelAnimationFrame(rafId);
       document.documentElement.style.overflow = prevHtmlOverflow;
       document.body.style.overflow = prevBodyOverflow;
     };
-  }, []);
+  }, [activeId]);
 
   // 加载已有日记或初始化
   useEffect(() => {
@@ -422,16 +452,33 @@ export const MarkdownStudio: React.FC = () => {
     };
   }, [selectedImg]);
 
-  // 按 Esc 键快速取消选中图片
+  // 按 Esc 键取消图片选中；按 Backspace / Delete 快捷删除选中的图片；Ctrl+Z 优先撤销图片删除
   useEffect(() => {
     const handleKeyDownGlobal = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && selectedImg) {
-        deselectImage();
+      if (selectedImg) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          deselectImage();
+          return;
+        }
+        if (e.key === "Backspace" || e.key === "Delete") {
+          e.preventDefault();
+          handleDeleteSelectedImage();
+          return;
+        }
+      }
+
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
+        if (lastDeletedImage && editorMode === "wysiwyg") {
+          e.preventDefault();
+          handleUndo();
+          return;
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDownGlobal);
     return () => window.removeEventListener("keydown", handleKeyDownGlobal);
-  }, [selectedImg]);
+  }, [selectedImg, lastDeletedImage, editorMode]);
 
   // 切换编辑模式时自动取消选中
   useEffect(() => {
@@ -483,18 +530,96 @@ export const MarkdownStudio: React.FC = () => {
     }, 20);
   };
 
-  // 删除当前选中的图片
+  // 删除当前选中的图片（记录撤回信息，支持 Undo 恢复原位置与样式）
   const handleDeleteSelectedImage = () => {
     if (!selectedImg) return;
     const parent = selectedImg.parentElement;
+    const nextSibling = selectedImg.nextSibling;
+    let removedParentP: HTMLElement | null = null;
+
+    const imgToSave = selectedImg;
+    imgToSave.classList.remove("selected-editable-img");
+
     selectedImg.remove();
     if (parent && parent.tagName === "P" && !parent.textContent?.trim() && !parent.children.length) {
+      removedParentP = parent;
       parent.remove();
     }
+
+    setLastDeletedImage({
+      element: imgToSave,
+      parent: parent || (wysiwygRef.current as HTMLElement),
+      nextSibling,
+      removedParentP,
+    });
+    setShowDeletedToast(true);
+    if (deletedToastTimerRef.current) clearTimeout(deletedToastTimerRef.current);
+    deletedToastTimerRef.current = setTimeout(() => {
+      setShowDeletedToast(false);
+    }, 6000);
+
     setSelectedImg(null);
     setImgOverlayPos(null);
     handleWysiwygInput();
     setIsDirty(true);
+  };
+
+  // 撤销操作（优先撤回被删除的图片，无待撤回图片时调用原生撤销）
+  const handleUndo = () => {
+    if (lastDeletedImage && editorMode === "wysiwyg") {
+      const { element, parent, nextSibling, removedParentP } = lastDeletedImage;
+      if (removedParentP) {
+        removedParentP.appendChild(element);
+        if (wysiwygRef.current) {
+          wysiwygRef.current.appendChild(removedParentP);
+        }
+      } else if (parent && wysiwygRef.current?.contains(parent)) {
+        if (nextSibling && parent.contains(nextSibling)) {
+          parent.insertBefore(element, nextSibling);
+        } else {
+          parent.appendChild(element);
+        }
+      } else if (wysiwygRef.current) {
+        wysiwygRef.current.appendChild(element);
+      }
+      setLastDeletedImage(null);
+      setShowDeletedToast(false);
+      handleWysiwygInput();
+      setIsDirty(true);
+      setTimeout(() => {
+        selectImage(element);
+      }, 50);
+      return;
+    }
+
+    if (editorMode === "wysiwyg") {
+      if (wysiwygRef.current) {
+        wysiwygRef.current.focus();
+      }
+      document.execCommand("undo", false);
+      handleWysiwygInput();
+    } else if (editorMode === "sheet") {
+      if (sheetTextareaRef.current) {
+        sheetTextareaRef.current.focus();
+      }
+      document.execCommand("undo", false);
+    }
+  };
+
+  // 重做操作
+  const handleRedo = () => {
+    if (editorMode === "wysiwyg") {
+      if (wysiwygRef.current) {
+        wysiwygRef.current.focus();
+      }
+      document.execCommand("redo", false);
+      handleWysiwygInput();
+    } else if (editorMode === "sheet") {
+      if (sheetTextareaRef.current) {
+        sheetTextareaRef.current.focus();
+      }
+      document.execCommand("redo", false);
+    }
   };
 
   // 鼠标拖拽四角拉伸图片尺寸
@@ -551,8 +676,106 @@ export const MarkdownStudio: React.FC = () => {
     return selectedImg.getAttribute("data-align") || "";
   }, [selectedImg, imgOverlayPos]);
 
-  // 富文本格式化辅助指令
+  // 稿纸模式下的 Markdown 语法包裹处理
+  const applySheetWrap = (beforeText: string, afterText: string = beforeText, defaultPlaceholder: string = "") => {
+    if (!sheetTextareaRef.current) return;
+    const ta = sheetTextareaRef.current;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const val = ta.value;
+    const selected = val.substring(start, end);
+    const targetText = selected || defaultPlaceholder;
+    const replacement = `${beforeText}${targetText}${afterText}`;
+    const nextVal = val.substring(0, start) + replacement + val.substring(end);
+    setContent(nextVal);
+    setIsDirty(true);
+    setTimeout(() => {
+      ta.focus();
+      if (!selected && defaultPlaceholder) {
+        ta.setSelectionRange(start + beforeText.length, start + beforeText.length + defaultPlaceholder.length);
+      } else {
+        ta.setSelectionRange(start + replacement.length, start + replacement.length);
+      }
+    }, 10);
+  };
+
+  // 稿纸模式下的行前缀语法（标题、引用、列表）
+  const applySheetLinePrefix = (prefix: string, stripExistingPrefixRegex?: RegExp) => {
+    if (!sheetTextareaRef.current) return;
+    const ta = sheetTextareaRef.current;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const val = ta.value;
+
+    const lineStart = val.lastIndexOf("\n", start - 1) + 1;
+    let lineEnd = val.indexOf("\n", end);
+    if (lineEnd === -1) lineEnd = val.length;
+
+    const selectedLines = val.substring(lineStart, lineEnd);
+    const lines = selectedLines.split("\n");
+    const newLines = lines.map((line, idx) => {
+      let cleaned = line;
+      if (stripExistingPrefixRegex) {
+        cleaned = cleaned.replace(stripExistingPrefixRegex, "");
+      }
+      if (prefix === "1. ") {
+        return `${idx + 1}. ${cleaned}`;
+      }
+      return `${prefix}${cleaned}`;
+    });
+
+    const replacement = newLines.join("\n");
+    const nextVal = val.substring(0, lineStart) + replacement + val.substring(lineEnd);
+    setContent(nextVal);
+    setIsDirty(true);
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(lineStart, lineStart + replacement.length);
+    }, 10);
+  };
+
+  // 富文本与 Markdown 稿纸双模态格式化辅助指令
   const executeDocCommand = (command: string, value: string | undefined = undefined) => {
+    if (editorMode === "sheet") {
+      if (command === "bold") {
+        applySheetWrap("**", "**", "加粗文本");
+      } else if (command === "italic") {
+        applySheetWrap("*", "*", "斜体文本");
+      } else if (command === "underline") {
+        applySheetWrap("<u>", "</u>", "下划线文本");
+      } else if (command === "strikeThrough") {
+        applySheetWrap("~~", "~~", "删除线文本");
+      } else if (command === "insertUnorderedList") {
+        applySheetLinePrefix("- ", /^[-*+]\s+/);
+      } else if (command === "insertOrderedList") {
+        applySheetLinePrefix("1. ", /^\d+\.\s+/);
+      } else if (command === "formatBlock") {
+        const val = value?.toLowerCase() || "";
+        if (val.includes("h1")) {
+          applySheetLinePrefix("# ", /^#{1,6}\s+/);
+        } else if (val.includes("h2")) {
+          applySheetLinePrefix("## ", /^#{1,6}\s+/);
+        } else if (val.includes("h3")) {
+          applySheetLinePrefix("### ", /^#{1,6}\s+/);
+        } else if (val.includes("h4")) {
+          applySheetLinePrefix("#### ", /^#{1,6}\s+/);
+        } else if (val.includes("h5")) {
+          applySheetLinePrefix("##### ", /^#{1,6}\s+/);
+        } else if (val.includes("h6")) {
+          applySheetLinePrefix("###### ", /^#{1,6}\s+/);
+        } else if (val.includes("blockquote")) {
+          applySheetLinePrefix("> ", /^>\s+/);
+        } else if (val.includes("p")) {
+          applySheetLinePrefix("", /^#{1,6}\s+|^>\s+|^[-*+]\s+|^\d+\.\s+/);
+        }
+      } else if (command === "undo") {
+        handleUndo();
+      } else if (command === "redo") {
+        handleRedo();
+      }
+      return;
+    }
+
     if (editorMode !== "wysiwyg") {
       setEditorMode("wysiwyg");
     }
@@ -706,8 +929,33 @@ export const MarkdownStudio: React.FC = () => {
     }
   };
 
-  // 插入表格
+  // 插入表格（支持富文本与稿纸 Markdown 源码双模态）
   const handleInsertTable = () => {
+    if (editorMode === "sheet" && sheetTextareaRef.current) {
+      const ta = sheetTextareaRef.current;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const val = ta.value;
+
+      let mdTable = "\n\n";
+      mdTable += "| " + Array.from({ length: tableCols }, (_, i) => `表头 ${i + 1}`).join(" | ") + " |\n";
+      mdTable += "| " + Array.from({ length: tableCols }, () => "---").join(" | ") + " |\n";
+      for (let r = 0; r < Math.max(1, tableRows - 1); r++) {
+        mdTable += "| " + Array.from({ length: tableCols }, (_, i) => `单元格 ${r + 1}-${i + 1}`).join(" | ") + " |\n";
+      }
+      mdTable += "\n";
+
+      const nextVal = val.substring(0, start) + mdTable + val.substring(end);
+      setContent(nextVal);
+      setIsDirty(true);
+      setTableModalOpen(false);
+      setTimeout(() => {
+        ta.focus();
+        ta.setSelectionRange(start + mdTable.length, start + mdTable.length);
+      }, 10);
+      return;
+    }
+
     let tableHtml = "<table><thead><tr>";
     for (let c = 0; c < tableCols; c++) {
       tableHtml += `<th>列标 ${c + 1}</th>`;
@@ -727,18 +975,30 @@ export const MarkdownStudio: React.FC = () => {
 
   // 插入待办事项
   const handleInsertTodoList = () => {
+    if (editorMode === "sheet" && sheetTextareaRef.current) {
+      applySheetWrap("\n- [ ] ", "\n", "待办事项内容");
+      return;
+    }
     const todoHtml = `<ul><li style="list-style: none;"><input type="checkbox" /> 待办事项...</li></ul><p><br></p>`;
     insertCustomHtml(todoHtml);
   };
 
   // 插入重点提示卡片 (Callout)
   const handleInsertCallout = () => {
+    if (editorMode === "sheet" && sheetTextareaRef.current) {
+      applySheetWrap("\n> 💡 **感悟提示：** ", "\n\n", "在此输入重点感悟或心得随想...");
+      return;
+    }
     const calloutHtml = `<div class="document-callout"><div>💡</div><div><strong>感悟提示：</strong>在此输入重点感悟或心得随想...</div></div><p><br></p>`;
     insertCustomHtml(calloutHtml);
   };
 
   // 插入代码卡片
   const handleInsertCodeCard = () => {
+    if (editorMode === "sheet" && sheetTextareaRef.current) {
+      applySheetWrap("\n```javascript\n// 请在此输入代码示例\nfunction createMoment() {\n  return \"Focus & Clarity\";\n}\n", "\n```\n\n");
+      return;
+    }
     const codeHtml = `<pre><code>// 请在此输入代码示例\nfunction createMoment() {\n  return "Focus & Clarity";\n}</code></pre><p><br></p>`;
     insertCustomHtml(codeHtml);
   };
@@ -993,185 +1253,178 @@ export const MarkdownStudio: React.FC = () => {
           </Text>
         </div>
 
-        {/* Center: Document Mode Selector & Width Mode Selector (始终全网页严格水平居中) */}
-        <div
-          style={{
-            position: "absolute",
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            pointerEvents: "auto",
-            zIndex: 10,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "2px",
-              borderRadius: "8px",
-              backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)",
-              border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
-              gap: "2px",
-            }}
-          >
-            <Tooltip content="编辑" relationship="label">
-              <Button
-                appearance={editorMode === "wysiwyg" ? "primary" : "subtle"}
-                size="small"
-                icon={<DocumentEdit20Regular />}
-                onClick={() => handleSwitchMode("wysiwyg")}
-                aria-label="编辑"
-              />
-            </Tooltip>
-            <Tooltip content="稿纸" relationship="label">
-              <Button
-                appearance={editorMode === "sheet" ? "primary" : "subtle"}
-                size="small"
-                icon={<Document20Regular />}
-                onClick={() => handleSwitchMode("sheet")}
-                aria-label="稿纸"
-              />
-            </Tooltip>
-            <Tooltip content="预览" relationship="label">
-              <Button
-                appearance={editorMode === "preview" ? "primary" : "subtle"}
-                size="small"
-                icon={<Eye20Regular />}
-                onClick={() => handleSwitchMode("preview")}
-                aria-label="预览"
-              />
-            </Tooltip>
-          </div>
-
-          {/* Width Mode Selector (标准/宽屏/全宽三档切换) */}
-          <Menu>
-            <MenuTrigger disableButtonEnhancement>
-              <Tooltip content="画布宽度调整" relationship="label">
+        {/* Right: Mode controls & Actions (Desktop & Mobile, 整体靠右对齐) */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "auto", flexShrink: 0 }}>
+          {/* Document Mode Selector (编辑/稿纸/预览) & 画布宽度调整 (Desktop) */}
+          <div className="desktop-only" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                padding: "2px",
+                borderRadius: "8px",
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
+                gap: "2px",
+              }}
+            >
+              <Tooltip content="编辑" relationship="label">
                 <Button
-                  appearance="subtle"
+                  appearance={editorMode === "wysiwyg" ? "primary" : "subtle"}
                   size="small"
-                  icon={<ArrowAutofitWidth20Regular />}
-                  aria-label="调整画布宽度"
+                  icon={<DocumentEdit20Regular />}
+                  onClick={() => handleSwitchMode("wysiwyg")}
+                  aria-label="编辑"
                 />
               </Tooltip>
-            </MenuTrigger>
-            <MenuPopover>
-              <MenuList>
-                <MenuItem
-                  icon={editorWidthMode === "default" ? <CheckmarkCircle20Regular style={{ color: "#5B7B8D" }} /> : undefined}
-                  onClick={() => handleSwitchWidthMode("default")}
-                >
-                  标准宽度
-                </MenuItem>
-                <MenuItem
-                  icon={editorWidthMode === "wider" ? <CheckmarkCircle20Regular style={{ color: "#5B7B8D" }} /> : undefined}
-                  onClick={() => handleSwitchWidthMode("wider")}
-                >
-                  宽屏模式
-                </MenuItem>
-                <MenuItem
-                  icon={editorWidthMode === "full" ? <CheckmarkCircle20Regular style={{ color: "#5B7B8D" }} /> : undefined}
-                  onClick={() => handleSwitchWidthMode("full")}
-                >
-                  全宽铺满
-                </MenuItem>
-              </MenuList>
-            </MenuPopover>
-          </Menu>
-        </div>
+              <Tooltip content="稿纸" relationship="label">
+                <Button
+                  appearance={editorMode === "sheet" ? "primary" : "subtle"}
+                  size="small"
+                  icon={<Document20Regular />}
+                  onClick={() => handleSwitchMode("sheet")}
+                  aria-label="稿纸"
+                />
+              </Tooltip>
+              <Tooltip content="预览" relationship="label">
+                <Button
+                  appearance={editorMode === "preview" ? "primary" : "subtle"}
+                  size="small"
+                  icon={<Eye20Regular />}
+                  onClick={() => handleSwitchMode("preview")}
+                  aria-label="预览"
+                />
+              </Tooltip>
+            </div>
 
-        {/* Right: Actions (Desktop) */}
-        <div className="desktop-only" style={{ alignItems: "center", gap: "8px", flexShrink: 0 }}>
-          {/* Import Local Markdown File */}
-          <input
-            type="file"
-            ref={importLocalMdRef}
-            accept=".md,.markdown,text/markdown,text/plain"
-            style={{ display: "none" }}
-            onChange={handleImportLocalMd}
-          />
-          <Tooltip content="导入 Markdown" relationship="label">
-            <Button
-              appearance="subtle"
-              size="small"
-              icon={<ArrowUpload20Regular />}
-              onClick={() => importLocalMdRef.current?.click()}
-              aria-label="导入"
+            {/* Width Mode Selector (标准/宽屏/全宽三档切换) */}
+            <Menu>
+              <MenuTrigger disableButtonEnhancement>
+                <Tooltip content="画布宽度调整" relationship="label">
+                  <Button
+                    appearance="subtle"
+                    size="small"
+                    icon={<ArrowAutofitWidth20Regular />}
+                    aria-label="调整画布宽度"
+                  />
+                </Tooltip>
+              </MenuTrigger>
+              <MenuPopover>
+                <MenuList>
+                  <MenuItem
+                    icon={editorWidthMode === "default" ? <CheckmarkCircle20Regular style={{ color: "#5B7B8D" }} /> : undefined}
+                    onClick={() => handleSwitchWidthMode("default")}
+                  >
+                    标准宽度
+                  </MenuItem>
+                  <MenuItem
+                    icon={editorWidthMode === "wider" ? <CheckmarkCircle20Regular style={{ color: "#5B7B8D" }} /> : undefined}
+                    onClick={() => handleSwitchWidthMode("wider")}
+                  >
+                    宽屏模式
+                  </MenuItem>
+                  <MenuItem
+                    icon={editorWidthMode === "full" ? <CheckmarkCircle20Regular style={{ color: "#5B7B8D" }} /> : undefined}
+                    onClick={() => handleSwitchWidthMode("full")}
+                  >
+                    全宽铺满
+                  </MenuItem>
+                </MenuList>
+              </MenuPopover>
+            </Menu>
+
+            <Divider vertical style={{ height: "20px", margin: "0 2px" }} />
+          </div>
+
+          {/* Actions (Desktop) */}
+          <div className="desktop-only" style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+            {/* Import Local Markdown File */}
+            <input
+              type="file"
+              ref={importLocalMdRef}
+              accept=".md,.markdown,text/markdown,text/plain"
+              style={{ display: "none" }}
+              onChange={handleImportLocalMd}
             />
-          </Tooltip>
-
-          {/* View Raw Markdown Source */}
-          <Tooltip content="Markdown 源码" relationship="label">
-            <Button
-              appearance="subtle"
-              size="small"
-              icon={<Code20Regular />}
-              onClick={handleOpenSourceModal}
-              aria-label="源码"
-            />
-          </Tooltip>
-
-          {/* Top Visibility Quick Toggle */}
-          <Tooltip
-            content={isPublic ? "公开" : "私密"}
-            relationship="label"
-          >
-            <Button
-              appearance="subtle"
-              size="small"
-              icon={
-                isPublic ? (
-                  <Globe20Regular style={{ color: "#5B7B8D" }} />
-                ) : (
-                  <LockClosed20Regular style={{ color: "#8a8886" }} />
-                )
-              }
-              onClick={() => {
-                setIsPublic(!isPublic);
-                setIsDirty(true);
-              }}
-              aria-label="切换可见性"
-            >
-              {isPublic ? "公开" : "私密"}
-            </Button>
-          </Tooltip>
-
-          {/* Save Button with Unsaved Dot Indicator */}
-          <div className="save-btn-container">
-            <Tooltip content={isSaving ? "正在保存..." : isDirty ? "有修改未保存，点击保存" : "保存"} relationship="label">
+            <Tooltip content="导入 Markdown" relationship="label">
               <Button
-                appearance="primary"
+                appearance="subtle"
                 size="small"
-                icon={isSaving ? undefined : <Save20Regular />}
-                onClick={() => handleSave()}
-                disabled={isSaving}
-                aria-label="保存"
-                style={{
-                  borderRadius: "8px",
-                  boxShadow: "0 2px 10px rgba(91, 123, 141, 0.28)",
-                  flexShrink: 0,
-                  minWidth: isSaving ? "64px" : "68px",
-                  height: "32px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                icon={<ArrowUpload20Regular />}
+                onClick={() => importLocalMdRef.current?.click()}
+                aria-label="导入"
+              />
+            </Tooltip>
+
+            {/* View Raw Markdown Source */}
+            <Tooltip content="Markdown 源码" relationship="label">
+              <Button
+                appearance="subtle"
+                size="small"
+                icon={<Code20Regular />}
+                onClick={handleOpenSourceModal}
+                aria-label="源码"
+              />
+            </Tooltip>
+
+            {/* Top Visibility Quick Toggle */}
+            <Tooltip
+              content={isPublic ? "公开" : "私密"}
+              relationship="label"
+            >
+              <Button
+                appearance="subtle"
+                size="small"
+                icon={
+                  isPublic ? (
+                    <Globe20Regular style={{ color: "#5B7B8D" }} />
+                  ) : (
+                    <LockClosed20Regular style={{ color: "#8a8886" }} />
+                  )
+                }
+                onClick={() => {
+                  setIsPublic(!isPublic);
+                  setIsDirty(true);
                 }}
+                aria-label="切换可见性"
               >
-                {isSaving ? (
-                  <Spinner size="tiny" style={{ margin: "0 auto" }} />
-                ) : (
-                  <span className="desktop-save-btn-text">保存</span>
-                )}
+                {isPublic ? "公开" : "私密"}
               </Button>
             </Tooltip>
-            {isDirty && !isSaving && (
-              <span className="save-btn-dirty-dot" title="有修改未保存" />
-            )}
+
+            {/* Save Button with Unsaved Dot Indicator */}
+            <div className="save-btn-container">
+              <Tooltip content={isSaving ? "正在保存..." : isDirty ? "有修改未保存，点击保存" : "保存"} relationship="label">
+                <Button
+                  appearance="primary"
+                  size="small"
+                  icon={isSaving ? undefined : <Save20Regular />}
+                  onClick={() => handleSave()}
+                  disabled={isSaving}
+                  aria-label="保存"
+                  style={{
+                    borderRadius: "8px",
+                    boxShadow: "0 2px 10px rgba(91, 123, 141, 0.28)",
+                    flexShrink: 0,
+                    minWidth: isSaving ? "64px" : "68px",
+                    height: "32px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {isSaving ? (
+                    <Spinner size="tiny" style={{ margin: "0 auto" }} />
+                  ) : (
+                    <span className="desktop-save-btn-text">保存</span>
+                  )}
+                </Button>
+              </Tooltip>
+              {isDirty && !isSaving && (
+                <span className="save-btn-dirty-dot" title="有修改未保存" />
+              )}
+            </div>
           </div>
-        </div>
 
         {/* Right: Actions (Mobile <= 768px) */}
         <div className="mobile-only" style={{ alignItems: "center", gap: "6px", flexShrink: 0 }}>
@@ -1193,16 +1446,6 @@ export const MarkdownStudio: React.FC = () => {
                   disabled={isUploadingImage}
                 >
                   {isUploadingImage ? "正在上传..." : "上传图片"}
-                </MenuItem>
-                <MenuItem
-                  icon={<ArrowAutofitWidth20Regular />}
-                  onClick={() => {
-                    const nextMode: EditorWidthMode =
-                      editorWidthMode === "default" ? "wider" : editorWidthMode === "wider" ? "full" : "default";
-                    handleSwitchWidthMode(nextMode);
-                  }}
-                >
-                  切换宽度
                 </MenuItem>
                 <MenuItem
                   icon={isPublic ? <Globe20Regular /> : <LockClosed20Regular />}
@@ -1252,6 +1495,7 @@ export const MarkdownStudio: React.FC = () => {
           </div>
         </div>
       </div>
+    </div>
 
       {/* Modern Fluent 2 Document Ribbon (文档格式功能区 - 置顶吸顶与移动端滑动) */}
       {editorMode !== "preview" && (
@@ -1273,7 +1517,29 @@ export const MarkdownStudio: React.FC = () => {
             flexShrink: 0,
           }}
         >
-          {/* Headings & Blocks - 纯图标化 */}
+          {/* 撤销与重做 */}
+          <Tooltip content="撤销" relationship="label">
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<ArrowUndo20Regular />}
+              onClick={handleUndo}
+              aria-label="撤销"
+            />
+          </Tooltip>
+          <Tooltip content="重做" relationship="label">
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<ArrowRedo20Regular />}
+              onClick={handleRedo}
+              aria-label="重做"
+            />
+          </Tooltip>
+
+          <Divider vertical style={{ height: "18px", margin: "0 4px" }} />
+
+          {/* Headings & Blocks - 纯图标化 H1~H6 全量支持 */}
           <Tooltip content="正文文本段落" relationship="label">
             <Button
               appearance="subtle"
@@ -1308,6 +1574,33 @@ export const MarkdownStudio: React.FC = () => {
               icon={<TextHeader320Regular />}
               onClick={() => executeDocCommand("formatBlock", "<h3>")}
               aria-label="三级标题"
+            />
+          </Tooltip>
+          <Tooltip content="四级标题" relationship="label">
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<TextHeader420Regular />}
+              onClick={() => executeDocCommand("formatBlock", "<h4>")}
+              aria-label="四级标题"
+            />
+          </Tooltip>
+          <Tooltip content="五级标题" relationship="label">
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<TextHeader520Regular />}
+              onClick={() => executeDocCommand("formatBlock", "<h5>")}
+              aria-label="五级标题"
+            />
+          </Tooltip>
+          <Tooltip content="六级标题" relationship="label">
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<TextHeader620Regular />}
+              onClick={() => executeDocCommand("formatBlock", "<h6>")}
+              aria-label="六级标题"
             />
           </Tooltip>
 
@@ -2399,17 +2692,17 @@ export const MarkdownStudio: React.FC = () => {
               bottom: 0,
               width: "100vw",
               height: "100dvh",
-              backgroundColor: "rgba(0, 0, 0, 0.86)",
+              backgroundColor: "rgba(0, 0, 0, 0.88)",
               backdropFilter: "blur(20px) saturate(140%)",
               WebkitBackdropFilter: "blur(20px) saturate(140%)",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              zIndex: 999999,
-              padding: "24px",
+              zIndex: 2147483640,
+              padding: "16px",
               boxSizing: "border-box",
-              animation: "fuiDialogEnter 0.25s cubic-bezier(0.1, 0.9, 0.2, 1)",
+              animation: "smartZoomEnter 0.3s cubic-bezier(0.1, 0.9, 0.2, 1)",
             }}
           >
             <div
@@ -2420,7 +2713,7 @@ export const MarkdownStudio: React.FC = () => {
                 display: "flex",
                 alignItems: "center",
                 gap: "12px",
-                zIndex: 1000000,
+                zIndex: 2147483647,
               }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -2464,40 +2757,102 @@ export const MarkdownStudio: React.FC = () => {
                 dangerouslySetInnerHTML={{ __html: fullscreenSvg }}
               />
             ) : fullscreenImg ? (
-              <>
+              /* 若为普通位图图片全屏展示：容器撑满，图片 contain 最大面积自适应居中显示 */
+              <div
+                onClick={() => {
+                  setFullscreenSvg(null);
+                  setFullscreenImg(null);
+                }}
+                style={{
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "100%",
+                  height: "100%",
+                  maxWidth: "100vw",
+                  maxHeight: "100dvh",
+                  boxSizing: "border-box",
+                  padding: "16px",
+                  overflow: "hidden",
+                }}
+              >
                 <img
                   src={fullscreenImg.src}
                   alt={fullscreenImg.alt}
                   onClick={(e) => e.stopPropagation()}
                   style={{
-                    maxWidth: "94vw",
-                    maxHeight: "90vh",
+                    maxWidth: "100%",
+                    maxHeight: "100%",
+                    width: "auto",
+                    height: "auto",
                     objectFit: "contain",
-                    borderRadius: "12px",
-                    boxShadow: "0 28px 80px rgba(0, 0, 0, 0.75)",
-                    transition: "transform 0.2s ease",
+                    borderRadius: "8px",
+                    boxShadow: "0 28px 80px rgba(0, 0, 0, 0.8)",
+                    userSelect: "none",
+                    cursor: "default",
+                    animation: "smartZoomEnter 0.3s cubic-bezier(0.1, 0.9, 0.2, 1)",
                   }}
                 />
                 {fullscreenImg.alt && fullscreenImg.alt !== "图片" && (
                   <div
+                    onClick={(e) => e.stopPropagation()}
                     style={{
-                      marginTop: "14px",
-                      color: "rgba(255, 255, 255, 0.9)",
-                      fontSize: "14px",
+                      position: "absolute",
+                      bottom: "20px",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      backgroundColor: "rgba(0, 0, 0, 0.72)",
+                      backdropFilter: "blur(12px)",
+                      WebkitBackdropFilter: "blur(12px)",
+                      padding: "6px 18px",
+                      borderRadius: "20px",
+                      color: "#ffffff",
+                      fontSize: "13px",
                       fontWeight: 500,
                       textAlign: "center",
-                      maxWidth: "80vw",
-                      textShadow: "0 2px 4px rgba(0, 0, 0, 0.8)",
+                      maxWidth: "min(85vw, 680px)",
+                      pointerEvents: "none",
+                      zIndex: 2147483645,
+                      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.5)",
                     }}
                   >
                     {fullscreenImg.alt}
                   </div>
                 )}
-              </>
+              </div>
             ) : null}
           </div>,
           document.body
         )}
+
+      {/* 删除图片快捷撤销浮条 */}
+      {showDeletedToast && lastDeletedImage && (
+        <div className="image-undo-toast">
+          <span style={{ fontSize: "13px" }}>已删除选中的图片</span>
+          <Button
+            appearance="primary"
+            size="small"
+            icon={<ArrowUndo20Regular />}
+            onClick={handleUndo}
+            style={{
+              backgroundColor: "#5B7B8D",
+              borderRadius: "6px",
+              height: "28px",
+              padding: "0 12px",
+            }}
+          >
+            撤回
+          </Button>
+          <Button
+            appearance="subtle"
+            size="small"
+            icon={<Dismiss20Regular style={{ color: "#ffffff" }} />}
+            onClick={() => setShowDeletedToast(false)}
+            style={{ minWidth: "24px", padding: "0 4px" }}
+          />
+        </div>
+      )}
     </div>
   );
 };
