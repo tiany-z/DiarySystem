@@ -1,44 +1,36 @@
 import { useEffect, useState } from "react";
-import { createPresenceComponentVariant, type PresenceMotionSlotProps } from "@fluentui/react-motion";
-import { Slide, type ScaleParams, type FadeParams } from "@fluentui/react-motion-components-preview";
+import type { DialogProps, DialogSurfaceProps } from "@fluentui/react-components";
 
 /**
  * 桌面端 / 平板端全局统一弹窗动效配置:
  * 1. 打开动画: 0.3s (300ms)，曲线 cubic-bezier(0.1, 0.9, 0.2, 1) (中心优雅微放大弹出)
  * 2. 关闭动画: 0.2s (200ms)，曲线 cubic-bezier(0.8, 0, 0.78, 1) (中心平滑渐隐缩放退出)
  */
-export const win10DialogSurfaceMotion: PresenceMotionSlotProps<ScaleParams> = {
+export const win10DialogSurfaceMotion: DialogProps["surfaceMotion"] = {
   duration: 300,
   exitDuration: 200,
   easing: "cubic-bezier(0.1, 0.9, 0.2, 1)",
   exitEasing: "cubic-bezier(0.8, 0, 0.78, 1)",
   outScale: 0.85,
-};
+} as any;
 
-export const win10DialogBackdropMotion: PresenceMotionSlotProps<FadeParams> = {
+export const win10DialogBackdropMotion: DialogSurfaceProps["backdropMotion"] = {
   duration: 300,
   exitDuration: 200,
   easing: "cubic-bezier(0.1, 0.9, 0.2, 1)",
   exitEasing: "cubic-bezier(0.8, 0, 0.78, 1)",
-};
+} as any;
 
 /**
- * 手机移动端底部抽屉滑动动效组件:
- * 从屏幕最底部向上平滑滑动滑出 (translateY: 100% -> 0px)，关闭时向下滑出 (translateY: 0px -> 100%)
+ * 手机移动端底部抽屉滑动动效配置:
+ * 配合 CSS 中的 mobileDrawerSlideUp 关键帧动效，实现从屏幕最底部向上平滑滑入全屏
  */
-export const MobileDrawerMotionComponent = createPresenceComponentVariant(Slide, {
-  outY: "100%",
-  inY: "0px",
+export const mobileDrawerSurfaceMotion: DialogProps["surfaceMotion"] = {
   duration: 300,
   exitDuration: 200,
   easing: "cubic-bezier(0.1, 0.9, 0.2, 1)",
   exitEasing: "cubic-bezier(0.8, 0, 0.78, 1)",
-});
-
-/**
- * 手机移动端底部抽屉 surfaceMotion 配置，支持直接传给 Dialog surfaceMotion 属性
- */
-export const mobileDrawerSurfaceMotion = MobileDrawerMotionComponent as any;
+} as any;
 
 /**
  * 精准判断当前是否处于平板设备 (明确区分并排除手机与桌面):
