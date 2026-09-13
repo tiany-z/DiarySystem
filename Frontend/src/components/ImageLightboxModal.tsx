@@ -29,6 +29,11 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
   const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const viewportRef = useRef<HTMLDivElement>(null);
 
+  const positionRef = useRef<{ x: number; y: number }>(position);
+  positionRef.current = position;
+  const scaleRef = useRef<number>(scale);
+  scaleRef.current = scale;
+
   // 当灯箱打开时，重置缩放和位移状态
   useEffect(() => {
     if (open) {
@@ -81,6 +86,166 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
       viewport.removeEventListener("wheel", handleNativeWheel);
     };
   }, [open]);
+
+  // 核心：触摸屏手势引擎 (支持单指平移、双指捏合缩放、手势焦点跟随、双碰复位)
+  useEffect(() => {
+    if (!open) return;
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    let touchMode: "none" | "pan" | "pinch" = "none";
+    let startTouch1 = { x: 0, y: 0 };
+    let startDist = 0;
+    let startScale = 1;
+    let startPos = { x: 0, y: 0 };
+    let startMidpoint = { x: 0, y: 0 };
+    let hasMoved = false;
+    let lastTapTime = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if ((e.target as HTMLElement)?.closest(".image-lightbox-top-bar")) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+
+      const touches = e.touches;
+      if (touches.length === 1) {
+        touchMode = "pan";
+        hasMoved = false;
+        startTouch1 = { x: touches[0].clientX, y: touches[0].clientY };
+        startPos = { ...positionRef.current };
+        setIsDragging(true);
+      } else if (touches.length >= 2) {
+        touchMode = "pinch";
+        hasMoved = true;
+        const t1 = touches[0];
+        const t2 = touches[1];
+        startDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        startScale = scaleRef.current;
+        startPos = { ...positionRef.current };
+        startMidpoint = {
+          x: (t1.clientX + t2.clientX) / 2,
+          y: (t1.clientY + t2.clientY) / 2,
+        };
+        setIsDragging(true);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if ((e.target as HTMLElement)?.closest(".image-lightbox-top-bar")) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+
+      const touches = e.touches;
+
+      if (touchMode === "pan" && touches.length === 1) {
+        const dx = touches[0].clientX - startTouch1.x;
+        const dy = touches[0].clientY - startTouch1.y;
+        if (Math.hypot(dx, dy) > 3) {
+          hasMoved = true;
+        }
+        setPosition({
+          x: Math.round(startPos.x + dx),
+          y: Math.round(startPos.y + dy),
+        });
+      } else if (touches.length >= 2) {
+        hasMoved = true;
+        const t1 = touches[0];
+        const t2 = touches[1];
+        const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        const currentMidpoint = {
+          x: (t1.clientX + t2.clientX) / 2,
+          y: (t1.clientY + t2.clientY) / 2,
+        };
+
+        if (startDist > 0) {
+          const ratio = currentDist / startDist;
+          const targetScale = Math.min(Math.max(startScale * ratio, 0.2), 25);
+          const roundedScale = Math.round(targetScale * 100) / 100;
+          setScale(roundedScale);
+
+          // 计算缩放时的指尖焦点平移补偿，使两指中心点处的图像位置在缩放时保持不动
+          const vpRect = viewport.getBoundingClientRect();
+          const vpCenterX = vpRect.left + vpRect.width / 2;
+          const vpCenterY = vpRect.top + vpRect.height / 2;
+
+          const k = targetScale / startScale;
+          const mX = startMidpoint.x - vpCenterX;
+          const mY = startMidpoint.y - vpCenterY;
+          const deltaMidX = currentMidpoint.x - startMidpoint.x;
+          const deltaMidY = currentMidpoint.y - startMidpoint.y;
+
+          const nextPosX = startPos.x * k + (1 - k) * mX + deltaMidX;
+          const nextPosY = startPos.y * k + (1 - k) * mY + deltaMidY;
+
+          setPosition({
+            x: Math.round(nextPosX * 10) / 10,
+            y: Math.round(nextPosY * 10) / 10,
+          });
+        }
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if ((e.target as HTMLElement)?.closest(".image-lightbox-top-bar")) {
+        return;
+      }
+      const touches = e.touches;
+
+      if (touches.length === 1) {
+        // 双指松开变为单指：无缝衔接单指平移，重置单指拖拽基准点
+        touchMode = "pan";
+        startTouch1 = { x: touches[0].clientX, y: touches[0].clientY };
+        startPos = { ...positionRef.current };
+      } else if (touches.length === 0) {
+        setIsDragging(false);
+        const now = Date.now();
+
+        // 若手指未显著滑动 (轻触交互)
+        if (!hasMoved) {
+          const target = e.target as HTMLElement | null;
+          const isCard = target?.closest(".lightbox-content-card");
+
+          if (now - lastTapTime < 300) {
+            // 双碰卡片：复位或放大至 2.0 倍
+            e.preventDefault();
+            if (scaleRef.current !== 1 || positionRef.current.x !== 0 || positionRef.current.y !== 0) {
+              handleReset();
+            } else {
+              setScale(2.0);
+            }
+            lastTapTime = 0;
+          } else {
+            lastTapTime = now;
+            // 若轻触外部半透明背景区域且非双碰，延迟平稳关闭
+            if (!isCard) {
+              setTimeout(() => {
+                if (Date.now() - lastTapTime >= 280 && lastTapTime !== 0) {
+                  onClose();
+                }
+              }, 290);
+            }
+          }
+        }
+        touchMode = "none";
+      }
+    };
+
+    viewport.addEventListener("touchstart", handleTouchStart, { passive: false });
+    viewport.addEventListener("touchmove", handleTouchMove, { passive: false });
+    viewport.addEventListener("touchend", handleTouchEnd, { passive: false });
+    viewport.addEventListener("touchcancel", handleTouchEnd, { passive: false });
+
+    return () => {
+      viewport.removeEventListener("touchstart", handleTouchStart);
+      viewport.removeEventListener("touchmove", handleTouchMove);
+      viewport.removeEventListener("touchend", handleTouchEnd);
+      viewport.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [open, onClose, handleReset]);
 
   // 全局键盘快捷键监听 (Esc 关闭、+/- 缩放、0 复位)
   useEffect(() => {
@@ -430,7 +595,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
             border: "1px solid rgba(255, 255, 255, 0.08)",
           }}
         >
-          💡 Ctrl + 滚轮缩放 · 鼠标拖拽平移 · 双击复位
+          💡 双指/Ctrl滚轮缩放 · 拖拽平移 · 双击复位
         </div>
       </div>
     </div>,

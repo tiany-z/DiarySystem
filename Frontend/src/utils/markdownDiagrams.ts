@@ -93,8 +93,17 @@ export async function renderMermaidDiagrams(
       rawCode = rawCodeEncoded.trim();
     }
 
+    // 触摸屏与窄屏判定：触摸屏强制仅显示图表 (diagram 模式)，不显示源码与控制菜单
+    const isTouchDevice = typeof window !== "undefined" && (
+      window.matchMedia("(pointer: coarse)").matches ||
+      window.matchMedia("(hover: none)").matches ||
+      window.innerWidth <= 788 ||
+      "ontouchstart" in window ||
+      (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)
+    );
+
     // 默认或已选模态: "diagram" (仅图表), "code" (仅代码), "both" (双显)
-    const currentMode = el.getAttribute("data-mode") || "diagram";
+    const currentMode = isTouchDevice ? "diagram" : (el.getAttribute("data-mode") || "diagram");
     const uniqueId = `mermaid-${Math.random().toString(36).substring(2, 9)}-${i}-${Date.now()}`;
 
     try {
@@ -191,13 +200,22 @@ export async function renderMermaidDiagrams(
         };
       }
 
-      // 全屏放大
+      // 全屏放大按钮
       const zoomBtn = card.querySelector(".btn-zoom") as HTMLButtonElement | null;
       if (zoomBtn && onZoom) {
         zoomBtn.onclick = (e) => {
           e.preventDefault();
           e.stopPropagation();
           const currentSvg = svgWrapper?.innerHTML;
+          if (currentSvg) onZoom(currentSvg);
+        };
+      }
+
+      // 点击或轻触矢量图表本身：直接唤起全屏高清灯箱预览
+      if (svgWrapper && onZoom) {
+        svgWrapper.onclick = (e) => {
+          if ((e.target as HTMLElement)?.closest(".mermaid-diagram-toolbar")) return;
+          const currentSvg = svgWrapper.innerHTML;
           if (currentSvg) onZoom(currentSvg);
         };
       }
