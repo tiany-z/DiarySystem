@@ -230,6 +230,16 @@ body::-webkit-scrollbar,
   transform: translateY(-3px);
 }
 
+/* 移动端界面 (<= 788px) 与触控设备：卡片 hover 不执行向上平移动画 */
+@media (max-width: 788px), (pointer: coarse), (hover: none) {
+  .hover-lift:hover,
+  .note-card-surface:hover,
+  .fui-Card.hover-lift:hover,
+  .responsive-card-grid .fui-Card.hover-lift:hover {
+    transform: none !important;
+  }
+}
+
 /* 笔记卡片微型心境与天气图标微章 */
 .note-card-meta-icon {
   display: inline-flex;
@@ -2809,6 +2819,11 @@ html.force-code-dark .hljs-formula {
     height: 200px !important;
     min-height: 200px !important;
     max-height: 200px !important;
+  }
+
+  .note-card-surface:hover,
+  .responsive-card-grid .fui-Card.hover-lift:hover {
+    transform: none !important;
   }
 }
 

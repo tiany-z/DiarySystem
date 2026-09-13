@@ -1,0 +1,18 @@
+{
+  "name": "拾光手记",
+  "short_name": "拾光手记",
+  "description": "极简现代的云端灵感随笔与日记空间，记录思维火花、日常随感与心境沉淀。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#5B7B8D",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "64x64 128x128 256x256 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
