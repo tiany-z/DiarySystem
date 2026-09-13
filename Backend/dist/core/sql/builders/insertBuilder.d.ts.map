@@ -1,0 +1,1 @@
+{"version":3,"file":"insertBuilder.d.ts","sourceRoot":"","sources":["../../../../src/core/sql/builders/insertBuilder.ts"],"names":[],"mappings":"AAAA,OAAO,EAA8B,cAAc,EAAyB,MAAM,sBAAsB,CAAC;AAEzG,OAAO,KAAK,EAAc,iBAAiB,EAAE,aAAa,EAAiB,MAAM,YAAY,CAAC;AAE9F;;;;;GAKG;AACH,wBAAgB,MAAM,CAAC,EAAE,OAAO,EAAE,KAAK,EAAE,MAAM,EAAE,EAAE,aAAa,GAAG,cAAc,CAAC,iBAAiB,CAAC,CAgEnG"}

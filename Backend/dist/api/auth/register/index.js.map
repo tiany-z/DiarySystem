@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../../src/api/auth/register/index.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,WAAW,EAAkB,MAAM,OAAO,CAAC;AAEpD,MAAM,CAAC,MAAM,GAAG,GAAG;IACjB,SAAS,EAAE,oBAAoB;IAC/B,YAAY,EAAE,KAAK;IACnB,OAAO,EAAE,KAAK,EAAE,OAAY,EAAE,IAAS,EAAgC,EAAE;QACvE,OAAO,WAAW,CAAC,6BAA6B,CAAC,CAAC;IACpD,CAAC;CACF,CAAC;AAEF,eAAe,GAAG,CAAC"}

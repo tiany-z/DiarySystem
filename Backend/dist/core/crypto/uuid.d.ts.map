@@ -1,0 +1,1 @@
+{"version":3,"file":"uuid.d.ts","sourceRoot":"","sources":["../../../src/core/crypto/uuid.ts"],"names":[],"mappings":"AAEA,MAAM,MAAM,IAAI,GAAG,MAAM,GAAG;IAAE,QAAQ,CAAC,OAAO,EAAE,OAAO,MAAM,CAAA;CAAE,CAAC;AAEhE,wBAAgB,OAAO,IAAI,IAAI,CAE9B;AAED,wBAAgB,WAAW,CAAC,IAAI,EAAE,MAAM,GAAG,OAAO,CAGjD"}
