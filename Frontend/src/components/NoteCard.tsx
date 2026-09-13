@@ -301,14 +301,14 @@ export const NoteCard: React.FC<NoteCardProps> = ({
           </div>
         )}
 
-        {/* 笔记卡片 Markdown 前半部分轻量渲染预览 (超出卡片内容范围不滚动，底部渐变过渡隐藏) */}
+        {/* 笔记卡片 Markdown 前半部分轻量渲染预览 (自适应卡片拉伸高度并透过底部渐变过渡隐藏) */}
         {previewHtml ? (
           <div
             ref={previewRef}
             className={`note-card-preview-wrapper ${coverImage ? "has-cover" : ""} ${isOverflowing ? "is-overflowing" : ""}`}
             style={{
               position: "relative",
-              maxHeight: coverImage ? "165px" : "155px",
+              flex: "1 1 auto",
               minHeight: coverImage ? "38px" : "56px",
               overflow: "hidden",
               marginBottom: "0px",
@@ -316,6 +316,8 @@ export const NoteCard: React.FC<NoteCardProps> = ({
               maxWidth: "100%",
               minWidth: 0,
               boxSizing: "border-box",
+              display: "flex",
+              flexDirection: "column",
             }}
           >
             <div

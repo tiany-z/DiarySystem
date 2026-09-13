@@ -1,9 +1,21 @@
 import DOMPurify from "dompurify";
 import hljs from "highlight.js";
+import katex from "katex";
 import { marked } from "marked";
 import TurndownService from "turndown";
 // @ts-ignore
 import { gfm } from "turndown-plugin-gfm";
+
+function renderMath(tex: string, displayMode: boolean): string {
+  try {
+    return katex.renderToString(tex, {
+      displayMode,
+      throwOnError: false,
+    });
+  } catch (err) {
+    return `<span class="katex-error">${tex}</span>`;
+  }
+}
 
 // 配置 marked Markdown -> HTML 编译器
 marked.setOptions({
@@ -13,9 +25,16 @@ marked.setOptions({
 
 const renderer = new marked.Renderer();
 renderer.code = function ({ text, lang }: { text: string; lang?: string }) {
-  if (lang && lang.trim().toLowerCase() === "mermaid") {
-    const encoded = encodeURIComponent(text.trim());
-    return `<div class="mermaid-diagram-container" data-mermaid="${encoded}"><div class="mermaid-loading-state"><span class="mermaid-loading-spinner"></span>正在绘制图表...</div></div>`;
+  if (lang) {
+    const normalizedLang = lang.trim().toLowerCase();
+    if (normalizedLang === "mermaid") {
+      const encoded = encodeURIComponent(text.trim());
+      return `<div class="mermaid-diagram-container" data-mermaid="${encoded}"><div class="mermaid-loading-state"><span class="mermaid-loading-spinner"></span>正在绘制图表...</div></div>`;
+    }
+    if (normalizedLang === "math" || normalizedLang === "katex") {
+      const rendered = renderMath(text.trim(), true);
+      return `<div class="katex-block" data-tex="${encodeURIComponent(text.trim())}">${rendered}</div>`;
+    }
   }
   const validLanguage = lang && hljs.getLanguage(lang) ? lang : "plaintext";
   const highlighted = hljs.highlight(text, { language: validLanguage }).value;
@@ -165,13 +184,122 @@ turndownService.addRule("resizableImage", {
   },
 });
 
+// 自定义 KaTeX 块级公式逆向规则 (恢复为 $$ ... $$)
+turndownService.addRule("katexBlock", {
+  filter: (node) => {
+    return (
+      node.nodeName === "DIV" &&
+      node.classList.contains("katex-block") &&
+      node.hasAttribute("data-tex")
+    );
+  },
+  replacement: (_content, node) => {
+    const el = node as HTMLElement;
+    const tex = decodeURIComponent(el.getAttribute("data-tex") || "").trim();
+    return `\n\n$$\n${tex}\n$$\n\n`;
+  },
+});
+
+// 自定义 KaTeX 行内公式逆向规则 (恢复为 $ ... $)
+turndownService.addRule("katexInline", {
+  filter: (node) => {
+    return (
+      node.nodeName === "SPAN" &&
+      node.classList.contains("katex-inline") &&
+      node.hasAttribute("data-tex")
+    );
+  },
+  replacement: (_content, node) => {
+    const el = node as HTMLElement;
+    const tex = decodeURIComponent(el.getAttribute("data-tex") || "").trim();
+    return `$${tex}$`;
+  },
+});
+
 /**
- * 将 Markdown 字符串转换为安全的 HTML
+ * 将 Markdown 字符串转换为安全的 HTML (支持 GFM、Mermaid、KaTeX 数学公式)
  */
 export function markdownToHtml(md: string): string {
   if (!md || !md.trim()) return "";
+
+  const mathMap = new Map<string, string>();
+  let mathCounter = 0;
+
+  // 1. 保护现有代码块中的内容，避免数学公式规则误判
+  const codeBlockMap = new Map<string, string>();
+  let codeCounter = 0;
+  let text = md.replace(/(```[\s\S]*?```|`[^`\n]+`)/g, (match) => {
+    const key = `%%CODE_BLOCK_${codeCounter++}%%`;
+    codeBlockMap.set(key, match);
+    return key;
+  });
+
+  // 2. 提取块级公式 $$...$$
+  text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_, tex) => {
+    const key = `%%MATH_BLOCK_${mathCounter++}%%`;
+    const rendered = `<div class="katex-block" data-tex="${encodeURIComponent(tex.trim())}">${renderMath(tex.trim(), true)}</div>`;
+    mathMap.set(key, rendered);
+    return `\n\n${key}\n\n`;
+  });
+
+  // 3. 提取行内公式 $...$ (排除转义 \$ 与纯金额如 $100)
+  text = text.replace(/(?<!\\)\$([^\$\n]+?)(?<!\\)\$/g, (match, tex) => {
+    if (/^\s*\d+(\.\d+)?\s*$/.test(tex)) {
+      return match;
+    }
+    const key = `%%MATH_INLINE_${mathCounter++}%%`;
+    const rendered = `<span class="katex-inline" data-tex="${encodeURIComponent(tex.trim())}">${renderMath(tex.trim(), false)}</span>`;
+    mathMap.set(key, rendered);
+    return key;
+  });
+
+  // 4. 恢复代码块
+  for (const [key, original] of codeBlockMap.entries()) {
+    text = text.replace(key, original);
+  }
+
+  // 5. 调用 marked 解析 Markdown 为 HTML
+  let html = "";
+  try {
+    html = marked.parse(text) as string;
+  } catch {
+    html = text;
+  }
+
+  // 6. 还原公式占位符 (处理被 marked 包装为 <p>%%MATH_BLOCK_...%%</p> 的情况)
+  for (const [key, rendered] of mathMap.entries()) {
+    html = html.replaceAll(`<p>${key}</p>`, rendered);
+    html = html.replaceAll(key, rendered);
+  }
+
+  // 7. 配置 DOMPurify (放行 MathML、SVG 与 KaTeX 相关节点和属性)
   const purifyConfig = {
-    ADD_TAGS: ["input", "button"],
+    USE_PROFILES: { html: true, mathMl: true, svg: true },
+    ADD_TAGS: [
+      "input",
+      "button",
+      "math",
+      "semantics",
+      "mrow",
+      "annotation",
+      "mo",
+      "mi",
+      "mn",
+      "msup",
+      "msub",
+      "msubsup",
+      "mfrac",
+      "msqrt",
+      "mroot",
+      "mtable",
+      "mtr",
+      "mtd",
+      "mtext",
+      "mspace",
+      "mover",
+      "munder",
+      "munderover",
+    ],
     ADD_ATTR: [
       "type",
       "checked",
@@ -185,27 +313,29 @@ export function markdownToHtml(md: string): string {
       "data-processed",
       "data-chart-id",
       "data-code",
+      "data-tex",
+      "data-mode",
       "loading",
       "alt",
       "src",
       "title",
+      "xmlns",
+      "display",
+      "aria-hidden",
     ],
   };
+
   const sanitize = (raw: string) => {
     if (typeof DOMPurify?.sanitize === "function") {
-      return DOMPurify.sanitize(raw, purifyConfig);
+      return DOMPurify.sanitize(raw, purifyConfig as any);
     }
     if (typeof (DOMPurify as any)?.default?.sanitize === "function") {
-      return (DOMPurify as any).default.sanitize(raw, purifyConfig);
+      return (DOMPurify as any).default.sanitize(raw, purifyConfig as any);
     }
     return raw;
   };
-  try {
-    const rawHtml = marked.parse(md) as string;
-    return sanitize(rawHtml);
-  } catch {
-    return sanitize(md);
-  }
+
+  return sanitize(html);
 }
 
 /**

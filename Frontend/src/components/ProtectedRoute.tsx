@@ -8,14 +8,7 @@ export const ProtectedRoute: React.FC<{ children: React.ReactElement }> = ({ chi
 
   if (isLoading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          height: "80vh",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
+      <div className="fluent-page-center-loader">
         <Spinner label="验证身份凭证中..." size="large" />
       </div>
     );

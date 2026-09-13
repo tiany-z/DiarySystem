@@ -1,5 +1,6 @@
 /* DiarySystem - Fluent 2 Global Stylesheet */
 @import "highlight.js/styles/github.css";
+@import "katex/dist/katex.min.css";
 
 :root {
   --header-height: 64px;
@@ -476,7 +477,23 @@ html.dark .document-workspace {
   align-self: flex-start !important;
   /* 关键：脱离 flex stretch 限制，完全包裹所有内容 */
   margin: 0 auto;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, max-width 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-radius 0.3s ease;
+}
+
+/* 编辑器三档宽度自适应调节模式 */
+.document-sheet.sheet-width-default {
+  max-width: 880px;
+}
+
+.document-sheet.sheet-width-wider {
+  max-width: 1240px;
+}
+
+.document-sheet.sheet-width-full {
+  max-width: 100% !important;
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
 }
 
 html.dark .document-sheet {
@@ -485,20 +502,26 @@ html.dark .document-sheet {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Document Title Input */
+/* Document Title Input (支持自动折行与多行扩展，杜绝单行横向溢出) */
 .document-title-input {
   width: 100%;
   border: none;
   outline: none;
   background: transparent;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif;
-  font-size: 34px;
+  font-size: 32px;
   font-weight: 800;
   letter-spacing: -0.6px;
   line-height: 1.4 !important;
   color: inherit;
   margin-bottom: 16px;
   padding: 2px 0 6px 0;
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
 }
 
 .document-title-input::placeholder {
@@ -1947,8 +1970,21 @@ select,
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
 }
 
-/* mermaid-diagram-toolbar styles are defined below in the 3-Mode View Toggle section */
+.mermaid-diagram-toolbar {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+  z-index: 5;
+}
 
+.mermaid-diagram-card:hover .mermaid-diagram-toolbar {
+  opacity: 1;
+}
 
 .mermaid-toolbar-btn {
   display: inline-flex;
@@ -1995,155 +2031,6 @@ select,
   height: auto;
   min-height: 80px;
   transition: transform 0.2s ease;
-}
-
-/* ======== Mermaid Chart 3-Mode View Toggle ======== */
-
-.mermaid-diagram-toolbar {
-  position: relative;
-  top: auto;
-  right: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
-  opacity: 1;
-  z-index: 5;
-}
-
-.mermaid-diagram-card:hover .mermaid-diagram-toolbar {
-  opacity: 1;
-}
-
-.mermaid-view-toggle {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  background: rgba(0, 0, 0, 0.03);
-}
-
-.mermaid-view-toggle .chart-view-btn {
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #616161;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-
-.mermaid-view-toggle .chart-view-btn:hover {
-  background: rgba(91, 123, 141, 0.1);
-  color: #5B7B8D;
-  transform: none;
-  box-shadow: none;
-}
-
-.mermaid-view-toggle .chart-view-btn.active {
-  background: #5B7B8D;
-  color: #ffffff;
-  font-weight: 600;
-}
-
-.mermaid-toolbar-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Content panels: code + SVG side-by-side or independent */
-.mermaid-content-panels {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-}
-
-.mermaid-code-panel {
-  flex: 1;
-  min-width: 0;
-  overflow: auto;
-  max-height: 400px;
-  border-radius: 8px;
-  background: #f5f7fa;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.mermaid-code-panel pre {
-  margin: 0;
-  padding: 14px 16px;
-  font-size: 13px;
-  line-height: 1.6;
-  font-family: Consolas, Monaco, "Courier New", monospace;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.mermaid-code-panel code {
-  color: #1f2937;
-}
-
-/* View mode: preview (default) — hide code, show SVG */
-.mermaid-diagram-container[data-chart-view="preview"] .mermaid-code-panel {
-  display: none;
-}
-.mermaid-diagram-container[data-chart-view="preview"] .mermaid-svg-wrapper {
-  display: flex;
-  flex: 1;
-}
-
-/* View mode: code — show code, hide SVG */
-.mermaid-diagram-container[data-chart-view="code"] .mermaid-svg-wrapper {
-  display: none;
-}
-.mermaid-diagram-container[data-chart-view="code"] .mermaid-code-panel {
-  display: block;
-  flex: 1;
-}
-
-/* View mode: split — show both side by side */
-.mermaid-diagram-container[data-chart-view="split"] .mermaid-code-panel {
-  display: block;
-  flex: 1;
-}
-.mermaid-diagram-container[data-chart-view="split"] .mermaid-svg-wrapper {
-  display: flex;
-  flex: 1;
-}
-
-/* Dark mode: chart view toggle */
-html.dark .mermaid-view-toggle {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-html.dark .mermaid-view-toggle .chart-view-btn {
-  color: #a1a1aa;
-}
-
-html.dark .mermaid-view-toggle .chart-view-btn:hover {
-  background: rgba(142, 174, 192, 0.15);
-  color: #8EAEC0;
-}
-
-html.dark .mermaid-view-toggle .chart-view-btn.active {
-  background: #5B7B8D;
-  color: #ffffff;
-}
-
-html.dark .mermaid-code-panel {
-  background: #1a1a22;
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-html.dark .mermaid-code-panel code {
-  color: #e1dfdd;
 }
 
 /* Mermaid Error Card Graceful Fallback */
@@ -2739,6 +2626,9 @@ html.force-code-dark .hljs-formula {
   box-sizing: border-box !important;
   overflow: hidden !important;
   user-select: none !important;
+  flex: 1 1 auto !important;
+  height: 100% !important;
+  max-height: none !important;
 }
 
 .note-card-bottom-fade,
@@ -3106,4 +2996,298 @@ html.r6pzz3z,
 body.r144vlu9,
 .r6pzz3z {
   scrollbar-gutter: auto !important;
+}
+
+/* ==========================================================================
+   Fluent Page Center Loader (页面与视图加载中全视口绝对水平垂直居中)
+   ========================================================================== */
+.fluent-page-center-loader {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  min-height: calc(100vh - var(--header-height, 64px)) !important;
+  min-height: calc(100dvh - var(--header-height, 64px)) !important;
+  height: 100% !important;
+  margin: auto !important;
+  padding: 32px 16px !important;
+  box-sizing: border-box !important;
+}
+
+/* ==========================================================================
+   Save Button Unsaved Dot (保存按钮未保存圆点呼吸指示器)
+   ========================================================================== */
+.save-btn-container {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.save-btn-dirty-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: #f59e0b;
+  border: 2px solid #ffffff;
+  z-index: 2;
+  pointer-events: none;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+  animation: pulseDirtyDot 2s infinite ease-in-out;
+}
+
+html.dark .save-btn-dirty-dot {
+  border-color: #1a1a20;
+}
+
+@keyframes pulseDirtyDot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.85;
+  }
+}
+
+/* ==========================================================================
+   KaTeX Mathematical Formulas Styling (数学公式全端渲染美化)
+   ========================================================================== */
+.katex-block {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  margin: 18px 0 !important;
+  padding: 16px 20px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  background-color: var(--code-bg) !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--code-border) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+}
+
+.katex-inline {
+  display: inline-block !important;
+  padding: 0 3px !important;
+  vertical-align: baseline !important;
+}
+
+.katex-error {
+  color: #ef4444 !important;
+  font-family: monospace !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+}
+
+/* ==========================================================================
+   Mermaid 3-Mode Diagrams (图表/代码/双显 三模态渲染卡片)
+   ========================================================================== */
+.mermaid-diagram-card {
+  margin: 18px 0 !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--code-border) !important;
+  background-color: var(--code-bg) !important;
+  overflow: hidden !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.dark .mermaid-diagram-card {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: #1e1e24 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+}
+
+.mermaid-diagram-toolbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 8px 14px !important;
+  background-color: rgba(0, 0, 0, 0.03) !important;
+  border-bottom: 1px solid var(--code-border) !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+html.dark .mermaid-diagram-toolbar {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.mermaid-mode-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  background-color: rgba(0, 0, 0, 0.06) !important;
+  border-radius: 8px !important;
+  padding: 2px !important;
+  gap: 2px !important;
+}
+
+html.dark .mermaid-mode-toggle {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.mermaid-mode-btn {
+  border: none !important;
+  background: transparent !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: inherit !important;
+  opacity: 0.72 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  transition: all 0.15s ease !important;
+}
+
+.mermaid-mode-btn:hover {
+  opacity: 1 !important;
+}
+
+.mermaid-mode-btn.active {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  opacity: 1 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1) !important;
+  font-weight: 600 !important;
+}
+
+html.dark .mermaid-mode-btn.active {
+  background-color: #2c2c36 !important;
+  color: #f3f4f6 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4) !important;
+}
+
+.mermaid-action-tools {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.mermaid-toolbar-btn {
+  border: none !important;
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  border-radius: 6px !important;
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+  color: inherit !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  transition: background-color 0.15s ease !important;
+}
+
+html.dark .mermaid-toolbar-btn {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.mermaid-toolbar-btn:hover {
+  background-color: rgba(91, 123, 141, 0.2) !important;
+}
+
+.mermaid-svg-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 24px 16px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+
+.mermaid-svg-wrapper svg {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.mermaid-code-wrapper {
+  padding: 14px 18px !important;
+  border-top: 1px solid var(--code-border) !important;
+  background-color: rgba(0, 0, 0, 0.02) !important;
+  overflow-x: auto !important;
+}
+
+html.dark .mermaid-code-wrapper {
+  border-top-color: rgba(255, 255, 255, 0.06) !important;
+  background-color: rgba(0, 0, 0, 0.25) !important;
+}
+
+.mermaid-code-wrapper pre {
+  margin: 0 !important;
+  font-family: Consolas, Monaco, "Courier New", monospace !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+}
+
+.mermaid-error-card {
+  padding: 16px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  background-color: rgba(239, 68, 68, 0.06) !important;
+  margin: 14px 0 !important;
+}
+
+.mermaid-error-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-weight: 600 !important;
+  color: #ef4444 !important;
+  margin-bottom: 6px !important;
+}
+
+.mermaid-error-msg {
+  font-size: 13px !important;
+  color: #dc2626 !important;
+  margin-bottom: 8px !important;
+}
+
+.mermaid-error-details summary {
+  cursor: pointer !important;
+  font-size: 12px !important;
+  color: #6b7280 !important;
+}
+
+.mermaid-error-code {
+  margin-top: 8px !important;
+  background-color: rgba(0, 0, 0, 0.06) !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  overflow-x: auto !important;
+}
+
+/* ==========================================================================
+   Full Webpage Lightbox Portal (跨越一切弹窗的全网页全屏高清灯箱)
+   ========================================================================== */
+.image-lightbox-portal {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 999999 !important;
+  background-color: rgba(0, 0, 0, 0.86) !important;
+  backdrop-filter: blur(20px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 24px !important;
+  box-sizing: border-box !important;
+  animation: fuiDialogEnter 0.25s cubic-bezier(0.1, 0.9, 0.2, 1) !important;
 }

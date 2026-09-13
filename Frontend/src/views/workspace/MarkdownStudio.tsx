@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Badge,
@@ -27,6 +28,7 @@ import {
   Tooltip,
 } from "@fluentui/react-components";
 import {
+  ArrowAutofitWidth20Regular,
   ArrowLeft20Regular,
   ArrowUpload20Regular,
   BranchFork20Regular,
@@ -41,6 +43,7 @@ import {
   Eye20Regular,
   Flowchart20Regular,
   Folder20Regular,
+  FullScreenMaximize20Regular,
   Globe20Regular,
   History20Regular,
   Image20Regular,
@@ -74,17 +77,7 @@ import { htmlToMarkdown, markdownToHtml } from "../../utils/markdownUtils";
 import { parseMarkdownFile } from "../../components/MarkdownImportModal";
 import { useAppDialogMotion } from "../../utils/dialogMotion";
 import { formatDate } from "../../components/NoteCard";
-import mermaid from "mermaid";
-
-// 辅助函数：转义 HTML 字符串
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+import { renderMermaidDiagrams } from "../../utils/markdownDiagrams";
 
 export const MarkdownStudio: React.FC = () => {
   const { id: routeId } = useParams<{ id: string }>();
@@ -118,6 +111,20 @@ export const MarkdownStudio: React.FC = () => {
   // 文档视图模式: "wysiwyg" (所见即所得文档画布 - 推荐默认), "sheet" (即时排版稿纸模式), "preview" (纯享演示阅读)
   const [editorMode, setEditorMode] = useState<"wysiwyg" | "sheet" | "preview">("wysiwyg");
 
+  // 编辑器画布宽度模式: "default" (880px), "wider" (1240px), "full" (100% 全宽)
+  type EditorWidthMode = "default" | "wider" | "full";
+  const [editorWidthMode, setEditorWidthMode] = useState<EditorWidthMode>(() => {
+    return (localStorage.getItem("diary_editor_width_mode") as EditorWidthMode) || "default";
+  });
+  const handleSwitchWidthMode = (mode: EditorWidthMode) => {
+    setEditorWidthMode(mode);
+    localStorage.setItem("diary_editor_width_mode", mode);
+  };
+
+  // 全网页全屏灯箱放大状态 (包含图表与图片)
+  const [fullscreenSvg, setFullscreenSvg] = useState<string | null>(null);
+  const [fullscreenImg, setFullscreenImg] = useState<{ src: string; alt: string } | null>(null);
+
   // 源码抽屉/弹窗状态
   const [sourceModalOpen, setSourceModalOpen] = useState<boolean>(false);
   const [rawSourceBuffer, setRawSourceBuffer] = useState<string>("");
@@ -149,7 +156,21 @@ export const MarkdownStudio: React.FC = () => {
     };
   }, [isDirty]);
 
+  // 全屏灯箱开启时监听 Esc 键快速关闭
+  useEffect(() => {
+    if (!fullscreenSvg && !fullscreenImg) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setFullscreenSvg(null);
+        setFullscreenImg(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [fullscreenSvg, fullscreenImg]);
+
   // DOM 引用
+  const titleTextareaRef = useRef<HTMLTextAreaElement>(null);
   const wysiwygRef = useRef<HTMLDivElement>(null);
   const sheetTextareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -286,135 +307,13 @@ export const MarkdownStudio: React.FC = () => {
     }
   }, [isLoading, editorMode, routeId]);
 
-  // WYSIWYG 模式下：渲染 Mermaid 矢量图表 (与 MarkdownViewer 保持一致的三模式切换)
+  // 标题输入框根据文字多行自动自适应高度，杜绝单行横向溢出
   useEffect(() => {
-    if (editorMode !== "wysiwyg" || !wysiwygRef.current) return;
-    let isCancelled = false;
-
-    const renderWysiwygMermaid = async () => {
-      const container = wysiwygRef.current;
-      if (!container) return;
-
-      const diagramElements = container.querySelectorAll<HTMLDivElement>(".mermaid-diagram-container");
-      if (!diagramElements || diagramElements.length === 0) return;
-
-      try {
-        mermaid.initialize({
-          startOnLoad: false,
-          theme: isDark ? "dark" : "default",
-          securityLevel: "loose",
-          fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, sans-serif",
-          themeVariables: isDark
-            ? {
-                darkMode: true,
-                background: "#18181f",
-                primaryColor: "#5B7B8D",
-                primaryTextColor: "#f3f4f6",
-                primaryBorderColor: "#6E90A3",
-                lineColor: "#8EAEC0",
-                secondaryColor: "#25252e",
-                tertiaryColor: "#1c1c24",
-              }
-            : {
-                darkMode: false,
-                background: "#ffffff",
-                primaryColor: "#5B7B8D",
-                primaryTextColor: "#1f2937",
-                primaryBorderColor: "#4F6D7E",
-                lineColor: "#5B7B8D",
-                secondaryColor: "#f3f4f6",
-                tertiaryColor: "#fafafa",
-              },
-        });
-      } catch (e) {
-        console.warn("Mermaid initialize warning:", e);
-      }
-
-      for (let i = 0; i < diagramElements.length; i++) {
-        if (isCancelled) break;
-        const el = diagramElements[i];
-
-        const processedTheme = el.getAttribute("data-rendered-theme");
-        if (el.getAttribute("data-processed") === "true" && processedTheme === (isDark ? "dark" : "light")) {
-          continue;
-        }
-
-        const rawCodeEncoded = el.getAttribute("data-mermaid") || "";
-        if (!rawCodeEncoded) continue;
-
-        let rawCode = "";
-        try {
-          rawCode = decodeURIComponent(rawCodeEncoded).trim();
-        } catch {
-          rawCode = rawCodeEncoded.trim();
-        }
-
-        const uniqueId = `wysiwyg-mermaid-${Math.random().toString(36).substring(2, 9)}-${i}-${Date.now()}`;
-
-        try {
-          const { svg } = await mermaid.render(uniqueId, rawCode);
-          if (isCancelled) break;
-
-          el.setAttribute("data-processed", "true");
-          el.setAttribute("data-rendered-theme", isDark ? "dark" : "light");
-          el.setAttribute("data-chart-view", "preview");
-          el.setAttribute("contenteditable", "false");
-
-          el.innerHTML = `
-            <div class="mermaid-diagram-card">
-              <div class="mermaid-diagram-toolbar">
-                <div class="mermaid-view-toggle">
-                  <button type="button" class="mermaid-toolbar-btn chart-view-btn" data-view="code" data-index="${i}" title="查看源代码">代码</button>
-                  <button type="button" class="mermaid-toolbar-btn chart-view-btn active" data-view="preview" data-index="${i}" title="查看渲染预览">预览</button>
-                  <button type="button" class="mermaid-toolbar-btn chart-view-btn" data-view="split" data-index="${i}" title="代码与预览分屏">分屏</button>
-                </div>
-                <div class="mermaid-toolbar-actions">
-                  <button type="button" class="mermaid-toolbar-btn btn-copy" data-index="${i}" title="复制图表代码">
-                    <span class="btn-icon">📋</span>
-                    <span class="btn-text">复制</span>
-                  </button>
-                </div>
-              </div>
-              <div class="mermaid-content-panels">
-                <div class="mermaid-code-panel">
-                  <pre><code>${escapeHtml(rawCode)}</code></pre>
-                </div>
-                <div class="mermaid-svg-wrapper">
-                  ${svg}
-                </div>
-              </div>
-            </div>
-          `;
-        } catch (err: any) {
-          if (isCancelled) break;
-          el.setAttribute("data-processed", "true");
-          el.setAttribute("data-rendered-theme", isDark ? "dark" : "light");
-          el.setAttribute("contenteditable", "false");
-
-          el.innerHTML = `
-            <div class="mermaid-error-card">
-              <div class="mermaid-error-header">
-                <span class="mermaid-error-icon">⚠️</span>
-                <span class="mermaid-error-title">Mermaid 图表代码解析失败</span>
-              </div>
-              <div class="mermaid-error-msg">${escapeHtml(err?.message || "语法错误，请检查图表代码结构")}</div>
-              <details class="mermaid-error-details" open>
-                <summary>查看原始图表代码</summary>
-                <pre class="mermaid-error-code"><code>${escapeHtml(rawCode)}</code></pre>
-              </details>
-            </div>
-          `;
-        }
-      }
-    };
-
-    // 延迟渲染以确保 DOM 已完成更新
-    const timer = setTimeout(() => renderWysiwygMermaid(), 100);
-    return () => {
-      isCancelled = true;
-      clearTimeout(timer);
-    };
-  }, [editorMode, isLoading, isDark, content, routeId]);
+    if (titleTextareaRef.current) {
+      titleTextareaRef.current.style.height = "auto";
+      titleTextareaRef.current.style.height = `${titleTextareaRef.current.scrollHeight}px`;
+    }
+  }, [title]);
 
   // 当处于 Markdown 源码稿纸模式时，自适应调整 textarea 高度以撑开背景卡片，杜绝底部内容溢出
   useEffect(() => {
@@ -423,6 +322,13 @@ export const MarkdownStudio: React.FC = () => {
       sheetTextareaRef.current.style.height = `${Math.max(sheetTextareaRef.current.scrollHeight, 480)}px`;
     }
   }, [content, editorMode]);
+
+  // 所见即所得模式下调度 Mermaid 矢量图表渲染引擎 (支持图表/代码/双显三模态)
+  useEffect(() => {
+    if (!isLoading && editorMode === "wysiwyg" && wysiwygRef.current) {
+      renderMermaidDiagrams(wysiwygRef.current, isDark, (svg) => setFullscreenSvg(svg));
+    }
+  }, [isLoading, editorMode, isDark, content]);
 
   // 文档字数与阅读耗时预估
   const stats = useMemo(() => {
@@ -443,50 +349,6 @@ export const MarkdownStudio: React.FC = () => {
   // 处理待办事项选择框原生点击与图片选中
   const handleWysiwygClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-
-    // 拦截 Mermaid 图表视图模式切换按钮
-    const chartViewBtn = target.closest(".chart-view-btn") as HTMLElement | null;
-    if (chartViewBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const viewMode = chartViewBtn.getAttribute("data-view") || "preview";
-      const container = chartViewBtn.closest(".mermaid-diagram-container") as HTMLElement | null;
-      if (container) {
-        container.setAttribute("data-chart-view", viewMode);
-        const allBtns = container.querySelectorAll(".chart-view-btn");
-        allBtns.forEach((btn) => btn.classList.remove("active"));
-        chartViewBtn.classList.add("active");
-      }
-      return;
-    }
-
-    // 拦截 Mermaid 图表复制按钮
-    const mermaidCopyBtn = target.closest(".mermaid-toolbar-btn.btn-copy") as HTMLElement | null;
-    if (mermaidCopyBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const container = mermaidCopyBtn.closest(".mermaid-diagram-container") as HTMLElement | null;
-      if (container) {
-        const rawCodeEncoded = container.getAttribute("data-mermaid") || "";
-        try {
-          const rawCode = decodeURIComponent(rawCodeEncoded);
-          navigator.clipboard.writeText(rawCode);
-        } catch {}
-        const textSpan = mermaidCopyBtn.querySelector(".btn-text");
-        if (textSpan) textSpan.textContent = "已复制";
-        setTimeout(() => {
-          if (textSpan) textSpan.textContent = "复制";
-        }, 2000);
-      }
-      return;
-    }
-
-    // 拦截 Mermaid 图表内的点击（避免在 contentEditable 中编辑图表 DOM）
-    if (target.closest(".mermaid-diagram-container")) {
-      e.stopPropagation();
-      return;
-    }
-
     if (target.tagName === "INPUT" && (target as HTMLInputElement).type === "checkbox") {
       const cb = target as HTMLInputElement;
       if (cb.checked) {
@@ -913,6 +775,11 @@ export const MarkdownStudio: React.FC = () => {
     const encoded = encodeURIComponent(mermaidCode.trim());
     const mermaidHtml = `<div class="mermaid-diagram-container" data-mermaid="${encoded}"><div class="mermaid-loading-state"><span class="mermaid-loading-spinner"></span>正在绘制图表...</div></div><p><br></p>`;
     insertCustomHtml(mermaidHtml);
+    setTimeout(() => {
+      if (wysiwygRef.current) {
+        renderMermaidDiagrams(wysiwygRef.current, isDark, (svg) => setFullscreenSvg(svg));
+      }
+    }, 60);
   };
 
   // 插入当前时间戳
@@ -1088,7 +955,7 @@ export const MarkdownStudio: React.FC = () => {
         }}
       >
         {/* Left: Back to workspace */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, flex: "0 1 auto" }}>
           <Tooltip content="返回笔记" relationship="label">
             <Button
               appearance="subtle"
@@ -1103,11 +970,10 @@ export const MarkdownStudio: React.FC = () => {
                 navigate("/workspace");
               }}
               aria-label="返回笔记"
-              style={{ flexShrink: 0 }}
             />
           </Tooltip>
 
-          <Divider vertical className="desktop-only" style={{ height: "20px", flexShrink: 0 }} />
+          <Divider vertical className="desktop-only" style={{ height: "20px" }} />
 
           <Text
             weight="semibold"
@@ -1115,56 +981,95 @@ export const MarkdownStudio: React.FC = () => {
             style={{
               fontSize: "14px",
               opacity: 0.85,
+              minWidth: 0,
+              maxWidth: "clamp(200px, 38vw, 680px)",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
-              minWidth: 0,
             }}
+            title={title.trim() || (isNew ? "新建笔记" : "未命名")}
           >
             {title.trim() || (isNew ? "新建笔记" : "未命名")}
           </Text>
         </div>
 
-        {/* Center: Document Mode Selector (图标化模式切换) */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            padding: "2px",
-            borderRadius: "8px",
-            backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)",
-            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
-            flexShrink: 0,
-            gap: "2px",
-          }}
-        >
-          <Tooltip content="编辑" relationship="label">
-            <Button
-              appearance={editorMode === "wysiwyg" ? "primary" : "subtle"}
-              size="small"
-              icon={<DocumentEdit20Regular />}
-              onClick={() => handleSwitchMode("wysiwyg")}
-              aria-label="编辑"
-            />
-          </Tooltip>
-          <Tooltip content="稿纸" relationship="label">
-            <Button
-              appearance={editorMode === "sheet" ? "primary" : "subtle"}
-              size="small"
-              icon={<Document20Regular />}
-              onClick={() => handleSwitchMode("sheet")}
-              aria-label="稿纸"
-            />
-          </Tooltip>
-          <Tooltip content="预览" relationship="label">
-            <Button
-              appearance={editorMode === "preview" ? "primary" : "subtle"}
-              size="small"
-              icon={<Eye20Regular />}
-              onClick={() => handleSwitchMode("preview")}
-              aria-label="预览"
-            />
-          </Tooltip>
+        {/* Center: Document Mode Selector & Width Mode Selector */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              padding: "2px",
+              borderRadius: "8px",
+              backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
+              gap: "2px",
+            }}
+          >
+            <Tooltip content="编辑" relationship="label">
+              <Button
+                appearance={editorMode === "wysiwyg" ? "primary" : "subtle"}
+                size="small"
+                icon={<DocumentEdit20Regular />}
+                onClick={() => handleSwitchMode("wysiwyg")}
+                aria-label="编辑"
+              />
+            </Tooltip>
+            <Tooltip content="稿纸" relationship="label">
+              <Button
+                appearance={editorMode === "sheet" ? "primary" : "subtle"}
+                size="small"
+                icon={<Document20Regular />}
+                onClick={() => handleSwitchMode("sheet")}
+                aria-label="稿纸"
+              />
+            </Tooltip>
+            <Tooltip content="预览" relationship="label">
+              <Button
+                appearance={editorMode === "preview" ? "primary" : "subtle"}
+                size="small"
+                icon={<Eye20Regular />}
+                onClick={() => handleSwitchMode("preview")}
+                aria-label="预览"
+              />
+            </Tooltip>
+          </div>
+
+          {/* Width Mode Selector (标准/更宽/全宽三档切换) */}
+          <Menu>
+            <MenuTrigger disableButtonEnhancement>
+              <Tooltip content="画布宽度调整" relationship="label">
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  icon={<ArrowAutofitWidth20Regular />}
+                  aria-label="调整画布宽度"
+                />
+              </Tooltip>
+            </MenuTrigger>
+            <MenuPopover>
+              <MenuList>
+                <MenuItem
+                  icon={editorWidthMode === "default" ? <CheckmarkCircle20Regular style={{ color: "#5B7B8D" }} /> : undefined}
+                  onClick={() => handleSwitchWidthMode("default")}
+                >
+                  标准宽度 (880px)
+                </MenuItem>
+                <MenuItem
+                  icon={editorWidthMode === "wider" ? <CheckmarkCircle20Regular style={{ color: "#5B7B8D" }} /> : undefined}
+                  onClick={() => handleSwitchWidthMode("wider")}
+                >
+                  宽屏模式 (1240px)
+                </MenuItem>
+                <MenuItem
+                  icon={editorWidthMode === "full" ? <CheckmarkCircle20Regular style={{ color: "#5B7B8D" }} /> : undefined}
+                  onClick={() => handleSwitchWidthMode("full")}
+                >
+                  全宽铺满 (100%)
+                </MenuItem>
+              </MenuList>
+            </MenuPopover>
+          </Menu>
         </div>
 
         {/* Right: Actions (Desktop) */}
@@ -1198,38 +1103,6 @@ export const MarkdownStudio: React.FC = () => {
             />
           </Tooltip>
 
-          {/* Save Status Dot */}
-          {saveSuccessNotice ? (
-            <Tooltip content="已同步保存" relationship="label">
-              <Badge
-                appearance="tint"
-                color="success"
-                icon={<CheckmarkCircle20Regular style={{ fontSize: "16px" }} />}
-                style={{ padding: "4px 8px", borderRadius: "999px" }}
-              />
-            </Tooltip>
-          ) : isDirty ? (
-            <Tooltip content="有修改未保存" relationship="label">
-              <Badge
-                appearance="tint"
-                color="warning"
-                style={{ padding: "4px 8px", borderRadius: "999px", fontSize: "12px", fontWeight: 700 }}
-              >
-                ●
-              </Badge>
-            </Tooltip>
-          ) : (
-            <Tooltip content="已就绪" relationship="label">
-              <Badge
-                appearance="tint"
-                color="informative"
-                style={{ padding: "4px 8px", borderRadius: "999px", fontSize: "12px" }}
-              >
-                ✓
-              </Badge>
-            </Tooltip>
-          )}
-
           {/* Top Visibility Quick Toggle */}
           <Tooltip
             content={isPublic ? "公开" : "私密"}
@@ -1255,24 +1128,38 @@ export const MarkdownStudio: React.FC = () => {
             </Button>
           </Tooltip>
 
-          {/* Save Button */}
-          <Tooltip content="保存" relationship="label">
-            <Button
-              appearance="primary"
-              size="small"
-              icon={isSaving ? <Spinner size="tiny" /> : <Save20Regular />}
-              onClick={() => handleSave()}
-              disabled={isSaving}
-              aria-label="保存"
-              style={{
-                borderRadius: "8px",
-                boxShadow: "0 2px 10px rgba(91, 123, 141, 0.28)",
-                flexShrink: 0,
-              }}
-            >
-              <span className="desktop-save-btn-text">{isSaving ? "..." : "保存"}</span>
-            </Button>
-          </Tooltip>
+          {/* Save Button with Unsaved Dot Indicator */}
+          <div className="save-btn-container">
+            <Tooltip content={isSaving ? "正在保存..." : isDirty ? "有修改未保存，点击保存" : "保存"} relationship="label">
+              <Button
+                appearance="primary"
+                size="small"
+                icon={isSaving ? undefined : <Save20Regular />}
+                onClick={() => handleSave()}
+                disabled={isSaving}
+                aria-label="保存"
+                style={{
+                  borderRadius: "8px",
+                  boxShadow: "0 2px 10px rgba(91, 123, 141, 0.28)",
+                  flexShrink: 0,
+                  minWidth: isSaving ? "64px" : "68px",
+                  height: "32px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {isSaving ? (
+                  <Spinner size="tiny" style={{ margin: "0 auto" }} />
+                ) : (
+                  <span className="desktop-save-btn-text">保存</span>
+                )}
+              </Button>
+            </Tooltip>
+            {isDirty && !isSaving && (
+              <span className="save-btn-dirty-dot" title="有修改未保存" />
+            )}
+          </div>
         </div>
 
         {/* Right: Actions (Mobile <= 768px) */}
@@ -1297,6 +1184,16 @@ export const MarkdownStudio: React.FC = () => {
                   {isUploadingImage ? "正在上传..." : "上传图片"}
                 </MenuItem>
                 <MenuItem
+                  icon={<ArrowAutofitWidth20Regular />}
+                  onClick={() => {
+                    const nextMode: EditorWidthMode =
+                      editorWidthMode === "default" ? "wider" : editorWidthMode === "wider" ? "full" : "default";
+                    handleSwitchWidthMode(nextMode);
+                  }}
+                >
+                  切换宽度 ({editorWidthMode === "default" ? "标准" : editorWidthMode === "wider" ? "宽屏" : "全宽"})
+                </MenuItem>
+                <MenuItem
                   icon={isPublic ? <Globe20Regular /> : <LockClosed20Regular />}
                   onClick={() => {
                     setIsPublic(!isPublic);
@@ -1312,29 +1209,36 @@ export const MarkdownStudio: React.FC = () => {
             </MenuPopover>
           </Menu>
 
-          {/* Save Button (Mobile - 窄模式下仅显示纯图标，无文字挤压) */}
-          <Tooltip content={isSaving ? "正在保存..." : "保存"} relationship="label">
-            <Button
-              appearance="primary"
-              size="small"
-              icon={isSaving ? <Spinner size="tiny" /> : <Save20Regular />}
-              onClick={() => handleSave()}
-              disabled={isSaving}
-              aria-label="保存"
-              style={{
-                borderRadius: "8px",
-                flexShrink: 0,
-                width: "32px",
-                height: "32px",
-                minWidth: "32px",
-                padding: 0,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 2px 8px rgba(91, 123, 141, 0.28)",
-              }}
-            />
-          </Tooltip>
+          {/* Save Button (Mobile) */}
+          <div className="save-btn-container">
+            <Tooltip content={isSaving ? "正在保存..." : isDirty ? "有修改未保存，点击保存" : "保存"} relationship="label">
+              <Button
+                appearance="primary"
+                size="small"
+                icon={isSaving ? undefined : <Save20Regular />}
+                onClick={() => handleSave()}
+                disabled={isSaving}
+                aria-label="保存"
+                style={{
+                  borderRadius: "8px",
+                  flexShrink: 0,
+                  width: "32px",
+                  height: "32px",
+                  minWidth: "32px",
+                  padding: 0,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 2px 8px rgba(91, 123, 141, 0.28)",
+                }}
+              >
+                {isSaving ? <Spinner size="tiny" style={{ margin: "0 auto" }} /> : null}
+              </Button>
+            </Tooltip>
+            {isDirty && !isSaving && (
+              <span className="save-btn-dirty-dot" title="有修改未保存" />
+            )}
+          </div>
         </div>
       </div>
 
@@ -1592,14 +1496,28 @@ export const MarkdownStudio: React.FC = () => {
 
       {/* Main Document Scroll Viewport (居中文档稿纸画布) */}
       <div className="document-scroll-viewport" onKeyDown={handleKeyDown}>
-        <div ref={sheetRef} className="document-sheet win10-tile-rise win10-delay-3">
-          {/* Document Header: Title Input (巨幅无边框优雅文档大标题) */}
-          <input
+        <div ref={sheetRef} className={`document-sheet sheet-width-${editorWidthMode} win10-tile-rise win10-delay-3`}>
+          {/* Document Header: Title Input (巨幅无边框优雅多行自适应大标题，按 Enter 键聚焦正文) */}
+          <textarea
+            ref={titleTextareaRef}
             className="document-title-input"
+            rows={1}
             value={title}
             onChange={(e) => {
               setTitle(e.target.value);
               setIsDirty(true);
+              e.target.style.height = "auto";
+              e.target.style.height = `${e.target.scrollHeight}px`;
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (editorMode === "wysiwyg" && wysiwygRef.current) {
+                  wysiwygRef.current.focus();
+                } else if (editorMode === "sheet" && sheetTextareaRef.current) {
+                  sheetTextareaRef.current.focus();
+                }
+              }
             }}
             placeholder="在此键入随笔或文档大标题..."
           />
@@ -1840,6 +1758,19 @@ export const MarkdownStudio: React.FC = () => {
                   </button>
 
                   <span className="image-toolbar-divider" />
+
+                  <button
+                    type="button"
+                    className="image-toolbar-btn"
+                    onClick={() => {
+                      if (selectedImg) {
+                        setFullscreenImg({ src: selectedImg.src, alt: selectedImg.alt || "随笔插图" });
+                      }
+                    }}
+                    title="全屏放大查看"
+                  >
+                    放大
+                  </button>
 
                   <button
                     type="button"
@@ -2437,6 +2368,125 @@ export const MarkdownStudio: React.FC = () => {
           </span>
         </div>
       </footer>
+
+      {/* 全网页全屏高清灯箱：突破任意父级容器限制，Portal 至 document.body */}
+      {(fullscreenSvg || fullscreenImg) &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="image-lightbox-portal"
+            onClick={() => {
+              setFullscreenSvg(null);
+              setFullscreenImg(null);
+            }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: "100vw",
+              height: "100dvh",
+              backgroundColor: "rgba(0, 0, 0, 0.86)",
+              backdropFilter: "blur(20px) saturate(140%)",
+              WebkitBackdropFilter: "blur(20px) saturate(140%)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 999999,
+              padding: "24px",
+              boxSizing: "border-box",
+              animation: "fuiDialogEnter 0.25s cubic-bezier(0.1, 0.9, 0.2, 1)",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: "20px",
+                right: "24px",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                zIndex: 1000000,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Tooltip content="关闭全屏预览 (Esc)" relationship="label">
+                <Button
+                  appearance="subtle"
+                  icon={<Dismiss20Regular style={{ color: "#ffffff", fontSize: "20px" }} />}
+                  onClick={() => {
+                    setFullscreenSvg(null);
+                    setFullscreenImg(null);
+                  }}
+                  aria-label="关闭预览"
+                  style={{
+                    backgroundColor: "rgba(255, 255, 255, 0.2)",
+                    borderRadius: "50%",
+                    width: "40px",
+                    height: "40px",
+                    minWidth: "40px",
+                  }}
+                />
+              </Tooltip>
+            </div>
+
+            {fullscreenSvg ? (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="lightbox-svg-wrapper"
+                style={{
+                  maxWidth: "95vw",
+                  maxHeight: "90vh",
+                  overflow: "auto",
+                  backgroundColor: isDark ? "rgba(26, 26, 34, 0.98)" : "rgba(255, 255, 255, 0.98)",
+                  borderRadius: "16px",
+                  padding: "40px 32px",
+                  boxShadow: "0 28px 80px rgba(0, 0, 0, 0.75)",
+                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                dangerouslySetInnerHTML={{ __html: fullscreenSvg }}
+              />
+            ) : fullscreenImg ? (
+              <>
+                <img
+                  src={fullscreenImg.src}
+                  alt={fullscreenImg.alt}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    maxWidth: "94vw",
+                    maxHeight: "90vh",
+                    objectFit: "contain",
+                    borderRadius: "12px",
+                    boxShadow: "0 28px 80px rgba(0, 0, 0, 0.75)",
+                    transition: "transform 0.2s ease",
+                  }}
+                />
+                {fullscreenImg.alt && fullscreenImg.alt !== "图片" && (
+                  <div
+                    style={{
+                      marginTop: "14px",
+                      color: "rgba(255, 255, 255, 0.9)",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      textAlign: "center",
+                      maxWidth: "80vw",
+                      textShadow: "0 2px 4px rgba(0, 0, 0, 0.8)",
+                    }}
+                  >
+                    {fullscreenImg.alt}
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

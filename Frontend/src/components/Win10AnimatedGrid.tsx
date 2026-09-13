@@ -23,12 +23,12 @@ export function Win10AnimatedGrid<T>({
   className = "",
 }: Win10AnimatedGridProps<T>) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const prevPositionsRef = useRef<Map<string, { left: number; top: number }>>(new Map());
+  const prevPositionsRef = useRef<Map<string, { left: number; top: number; height: number }>>(new Map());
   const timeoutsRef = useRef<number[]>([]);
   const isInitialMount = useRef<boolean>(true);
   const prevKeysRef = useRef<string>("");
 
-  // 监听窗口尺寸变化，静默同步最新坐标，避免窗口缩放引发错误的位移动画
+  // 监听窗口尺寸变化，静默同步最新坐标与尺寸，避免窗口缩放引发错误的位移动画
   useEffect(() => {
     const handleResize = () => {
       const container = containerRef.current;
@@ -44,6 +44,7 @@ export function Win10AnimatedGrid<T>({
         prevPositionsRef.current.set(id, {
           left: rect.left - containerRect.left,
           top: rect.top - containerRect.top,
+          height: rect.height,
         });
       });
     };
@@ -85,7 +86,7 @@ export function Win10AnimatedGrid<T>({
     // 1. 初次挂载或无旧坐标记录：所有卡片依序错峰弹出
     if (isInitialMount.current || prevPositionsRef.current.size === 0) {
       isInitialMount.current = false;
-      const nextPositions = new Map<string, { left: number; top: number }>();
+      const nextPositions = new Map<string, { left: number; top: number; height: number }>();
 
       itemElements.forEach((el, index) => {
         const id = el.getAttribute("data-flip-id");
@@ -94,6 +95,7 @@ export function Win10AnimatedGrid<T>({
         nextPositions.set(id, {
           left: rect.left - containerRect.left,
           top: rect.top - containerRect.top,
+          height: rect.height,
         });
 
         if (!prefersReducedMotion) {
@@ -105,10 +107,9 @@ export function Win10AnimatedGrid<T>({
       return;
     }
 
-    // 若 items 的 key 序列完全未发生变化 (例如点击卡片打开/关闭弹窗、父组件其他 state 变更重渲染)，
-    // 绝不触发 FLIP 动画，仅静默同步最新坐标
-    if (!keysChanged) {
-      const nextPositions = new Map<string, { left: number; top: number }>();
+    // 若 items 的 key 序列完全未发生变化，仅静默同步最新坐标
+    if (!keysChanged || prefersReducedMotion) {
+      const nextPositions = new Map<string, { left: number; top: number; height: number }>();
       itemElements.forEach((el) => {
         const id = el.getAttribute("data-flip-id");
         if (!id) return;
@@ -116,33 +117,25 @@ export function Win10AnimatedGrid<T>({
         nextPositions.set(id, {
           left: rect.left - containerRect.left,
           top: rect.top - containerRect.top,
+          height: rect.height,
         });
       });
       prevPositionsRef.current = nextPositions;
       return;
     }
 
-    if (prefersReducedMotion) {
-      const nextPositions = new Map<string, { left: number; top: number }>();
-      itemElements.forEach((el) => {
-        const id = el.getAttribute("data-flip-id");
-        if (!id) return;
-        const rect = el.getBoundingClientRect();
-        nextPositions.set(id, {
-          left: rect.left - containerRect.left,
-          top: rect.top - containerRect.top,
-        });
-      });
-      prevPositionsRef.current = nextPositions;
-      return;
-    }
-
-    // 2. 界面/Tab 过滤切换：执行 FLIP 动效
-    const nextPositions = new Map<string, { left: number; top: number }>();
-    const movingItems: { el: HTMLElement; deltaX: number; deltaY: number }[] = [];
+    // 2. 界面/Tab 过滤切换：执行包含坐标与高度平滑过渡的 FLIP 动效
+    const nextPositions = new Map<string, { left: number; top: number; height: number }>();
+    const movingItems: {
+      el: HTMLElement;
+      deltaX: number;
+      deltaY: number;
+      prevHeight: number;
+      currentHeight: number;
+    }[] = [];
     const newItems: HTMLElement[] = [];
 
-    // 阶段 A: 获取每个节点在当前最新 DOM 布局下的真实无变换位置 (Last)
+    // 阶段 A: 获取每个节点在当前最新 DOM 布局下的真实无变换位置与高度 (Last)
     itemElements.forEach((el) => {
       const id = el.getAttribute("data-flip-id");
       if (!id) return;
@@ -150,22 +143,25 @@ export function Win10AnimatedGrid<T>({
       el.style.transition = "none";
       el.style.transform = "none";
       el.style.animation = "none";
+      el.style.height = "";
 
       const rect = el.getBoundingClientRect();
       const currentLeft = rect.left - containerRect.left;
       const currentTop = rect.top - containerRect.top;
+      const currentHeight = rect.height;
 
-      nextPositions.set(id, { left: currentLeft, top: currentTop });
+      nextPositions.set(id, { left: currentLeft, top: currentTop, height: currentHeight });
 
       const prev = prevPositionsRef.current.get(id);
       if (prev) {
         const deltaX = prev.left - currentLeft;
         const deltaY = prev.top - currentTop;
-        // 允许 1px 以内的浮点误差，若位移显著则判定为发生位移的卡片
-        if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
-          movingItems.push({ el, deltaX, deltaY });
+        const deltaH = prev.height - currentHeight;
+
+        // 允许 1px 以内的浮点误差，若位移或高度变化显著则判定为动画卡片
+        if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1 || Math.abs(deltaH) > 2) {
+          movingItems.push({ el, deltaX, deltaY, prevHeight: prev.height, currentHeight });
         } else {
-          // 原地保留无位移的卡片：直接维持原样
           el.style.opacity = "1";
           el.style.transform = "";
           el.style.animation = "";
@@ -180,11 +176,12 @@ export function Win10AnimatedGrid<T>({
     prevPositionsRef.current = nextPositions;
 
     if (movingItems.length > 0) {
-      // 阶段 B: Invert (将移动卡片瞬间定位至旧坐标，同时隐藏新卡片)
-      movingItems.forEach(({ el, deltaX, deltaY }) => {
+      // 阶段 B: Invert (将移动卡片瞬间定位至旧坐标并还原旧高度，同时隐藏新卡片)
+      movingItems.forEach(({ el, deltaX, deltaY, prevHeight }) => {
         el.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+        el.style.height = `${prevHeight}px`;
         el.style.opacity = "1";
-        el.style.zIndex = "3"; // 确保平移过程中的卡片层级高，不被遮挡
+        el.style.zIndex = "3";
       });
 
       newItems.forEach((el) => {
@@ -196,11 +193,12 @@ export function Win10AnimatedGrid<T>({
       // 强制触发重排 (Reflow)
       void container.offsetHeight;
 
-      // 阶段 C: Play (使用 Win10 曲线将卡片平移至新位置)
+      // 阶段 C: Play (使用 Win10 曲线将卡片平移并平滑伸缩至新高度)
       requestAnimationFrame(() => {
-        movingItems.forEach(({ el }) => {
-          el.style.transition = `transform ${MOVE_DURATION_MS}ms cubic-bezier(0.1, 0.9, 0.2, 1)`;
+        movingItems.forEach(({ el, currentHeight }) => {
+          el.style.transition = `transform ${MOVE_DURATION_MS}ms cubic-bezier(0.1, 0.9, 0.2, 1), height ${MOVE_DURATION_MS}ms cubic-bezier(0.1, 0.9, 0.2, 1)`;
           el.style.transform = "translate(0px, 0px)";
+          el.style.height = `${currentHeight}px`;
         });
 
         // 阶段 D: 移动动画完成 40% (140ms) 的时候，立刻开始执行新卡片的出现依次弹出动效
@@ -223,11 +221,12 @@ export function Win10AnimatedGrid<T>({
 
         timeoutsRef.current.push(newItemsPopTimer);
 
-        // 阶段 E: 移动动画完全执行完成 (350ms) 后，清理 movingItems 的 transition 和 zIndex
+        // 阶段 E: 动画完全执行完成 (350ms) 后，清理 movingItems 的 transition, height 与 zIndex
         const cleanupMoveTimer = window.setTimeout(() => {
           movingItems.forEach(({ el }) => {
             el.style.transition = "";
             el.style.transform = "";
+            el.style.height = "";
             el.style.zIndex = "";
           });
         }, MOVE_DURATION_MS);
@@ -235,7 +234,7 @@ export function Win10AnimatedGrid<T>({
         timeoutsRef.current.push(cleanupMoveTimer);
       });
     } else {
-      // 若没有卡片需要平移 (例如全都是新卡片，或者保留卡片都在原位未位移)，新卡片立刻依次弹出
+      // 若没有卡片需要平移，新卡片立刻依次弹出
       newItems.forEach((el, idx) => {
         el.style.pointerEvents = "";
         el.style.animation = `win10TileRise 0.42s cubic-bezier(0.1, 0.9, 0.2, 1) both ${idx * 45}ms`;
