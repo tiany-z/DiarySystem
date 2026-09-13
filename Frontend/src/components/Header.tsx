@@ -73,8 +73,8 @@ export const Header: React.FC = () => {
       themeMode === "auto"
         ? "自动"
         : themeMode === "dark"
-        ? "深色"
-        : "浅色";
+          ? "深色"
+          : "浅色";
 
     return (
       <Menu>
@@ -205,8 +205,8 @@ export const Header: React.FC = () => {
           <Button
             appearance={
               location.pathname.startsWith("/workspace") &&
-              !location.pathname.startsWith("/workspace/users") &&
-              location.pathname !== "/workspace/new"
+                !location.pathname.startsWith("/workspace/users") &&
+                location.pathname !== "/workspace/new"
                 ? "primary"
                 : "subtle"
             }
@@ -216,8 +216,8 @@ export const Header: React.FC = () => {
               borderRadius: "8px",
               fontWeight:
                 location.pathname.startsWith("/workspace") &&
-                !location.pathname.startsWith("/workspace/users") &&
-                location.pathname !== "/workspace/new"
+                  !location.pathname.startsWith("/workspace/users") &&
+                  location.pathname !== "/workspace/new"
                   ? 600
                   : 500,
             }}
@@ -376,12 +376,6 @@ export const Header: React.FC = () => {
                       背景设置
                     </MenuItem>
                   )}
-                  <MenuItem
-                    icon={<Code20Regular />}
-                    onClick={toggleForceCodeDark}
-                  >
-                    代码块深色模式: {forceCodeDark ? "开" : "关"}
-                  </MenuItem>
                   <MenuItem
                     icon={<SignOut20Regular />}
                     onClick={handleLogout}
@@ -543,9 +537,6 @@ export const Header: React.FC = () => {
                       背景设置
                     </MenuItem>
                   )}
-                  <MenuItem icon={<Code20Regular />} onClick={toggleForceCodeDark}>
-                    代码块深色模式: {forceCodeDark ? "开" : "关"}
-                  </MenuItem>
                   <MenuItem icon={<SignOut20Regular />} onClick={handleLogout}>
                     退出登录
                   </MenuItem>
@@ -556,19 +547,27 @@ export const Header: React.FC = () => {
         ) : (
           <>
             {renderThemeMenu("small")}
-            <Button
-              appearance="primary"
-              size="small"
-              icon={<Person20Regular />}
-              onClick={() => handleNav("/auth")}
-              style={{
-                backgroundColor: "#5B7B8D",
-                borderRadius: "6px",
-                fontWeight: 600,
-              }}
-            >
-              登录
-            </Button>
+            <Tooltip content="登录" relationship="label">
+              <Button
+                appearance="primary"
+                size="small"
+                icon={<Person20Regular />}
+                onClick={() => handleNav("/auth")}
+                aria-label="登录"
+                style={{
+                  backgroundColor: "#5B7B8D",
+                  borderRadius: "6px",
+                  fontWeight: 600,
+                  width: "32px",
+                  height: "32px",
+                  minWidth: "32px",
+                  padding: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              />
+            </Tooltip>
           </>
         )}
       </div>
