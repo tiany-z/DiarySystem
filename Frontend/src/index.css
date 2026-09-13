@@ -392,6 +392,8 @@ html.dark .hero-gradient-title {
 
 .markdown-body img {
   max-width: 100%;
+  max-height: 200vh !important;
+  object-fit: contain;
   border-radius: 8px;
   margin: 1em 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -678,7 +680,9 @@ html.dark .document-wysiwyg-content blockquote {
 /* Document WYSIWYG Image Resizing & Interaction */
 .document-wysiwyg-content img {
   max-width: 100%;
+  max-height: 200vh !important;
   height: auto;
+  object-fit: contain;
   border-radius: 8px;
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
@@ -2030,6 +2034,16 @@ select,
    Mermaid Diagrams & Vector Charts Styling (Fluent 2 Aesthetic)
    ========================================================================== */
 
+/* 代码生图硬性高度约束：任何前端渲染的代码生图（Mermaid 矢量图表、KaTeX 块级公式等）高度均不得超过网页高度的 2 倍 (200vh) */
+.mermaid-diagram-container,
+.mermaid-diagram-card,
+.mermaid-content-layout,
+.mermaid-svg-wrapper,
+.katex-block {
+  max-height: 200vh !important;
+  box-sizing: border-box;
+}
+
 .mermaid-diagram-container {
   margin: 20px auto;
   width: 100%;
@@ -2117,18 +2131,22 @@ select,
 
 .mermaid-svg-wrapper {
   width: 100%;
+  max-height: 200vh !important;
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow-x: auto;
+  overflow: auto;
   padding: 4px 0;
   cursor: zoom-in;
 }
 
 .mermaid-svg-wrapper svg {
   max-width: 100%;
+  max-height: 200vh !important;
   height: auto;
+  width: auto;
   min-height: 80px;
+  object-fit: contain;
   transition: transform 0.2s ease;
 }
 
@@ -3509,7 +3527,7 @@ html.dark .image-undo-toast {
   width: 100vw !important;
   height: 100vh !important;
   height: 100dvh !important;
-  z-index: 2147483640 !important;
+  z-index: 2147483647 !important;
   background-color: rgba(0, 0, 0, 0.86) !important;
   backdrop-filter: blur(20px) saturate(140%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
@@ -3517,6 +3535,23 @@ html.dark .image-undo-toast {
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  padding: 16px !important;
-  animation: smartZoomEnter 0.3s cubic-bezier(0.1, 0.9, 0.2, 1) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  animation: smartZoomEnter 0.25s cubic-bezier(0.1, 0.9, 0.2, 1) !important;
+}
+
+.image-lightbox-top-bar button {
+  transition: transform 0.15s ease, background-color 0.15s ease !important;
+}
+
+.image-lightbox-top-bar button:hover {
+  background-color: rgba(255, 255, 255, 0.24) !important;
+  transform: scale(1.08) !important;
+}
+
+.image-lightbox-top-bar button:active {
+  transform: scale(0.95) !important;
 }

@@ -1,10 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { Button, Tooltip } from "@fluentui/react-components";
-import { Dismiss20Regular } from "@fluentui/react-icons";
 import { useAppTheme } from "../context/ThemeContext";
 import { markdownToHtml } from "../utils/markdownUtils";
 import { renderMermaidDiagrams } from "../utils/markdownDiagrams";
+import { ImageLightboxModal } from "./ImageLightboxModal";
 
 interface MarkdownViewerProps {
   content: string;
@@ -62,18 +60,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
     });
   }, [html, forceCodeDark]);
 
-  // 全屏灯箱开启时监听 Esc 键快速关闭
-  useEffect(() => {
-    if (!previewImgSrc && !previewSvgContent) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setPreviewImgSrc(null);
-        setPreviewSvgContent(null);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [previewImgSrc, previewSvgContent]);
+
 
   // 代理点击事件：图片、图表、代码块按钮交互
   const handleClick = (e: React.MouseEvent) => {
@@ -133,154 +120,6 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
     setPreviewSvgContent(null);
   };
 
-  // 全网页全屏高清灯箱：突破任意父级 Dialog 容器的 containing-block 阻断，直接 Portal 至 document.body 并置于最高层级
-  const renderLightbox = () => {
-    if (!previewImgSrc && !previewSvgContent) return null;
-    if (typeof document === "undefined") return null;
-
-    return createPortal(
-      <div
-        className="image-lightbox-portal"
-        onClick={closeLightbox}
-        style={{
-          position: "fixed",
-          inset: 0,
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: "100vw",
-          height: "100dvh",
-          backgroundColor: "rgba(0, 0, 0, 0.88)",
-          backdropFilter: "blur(20px) saturate(140%)",
-          WebkitBackdropFilter: "blur(20px) saturate(140%)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 2147483640,
-          padding: "16px",
-          boxSizing: "border-box",
-          animation: "smartZoomEnter 0.3s cubic-bezier(0.1, 0.9, 0.2, 1)",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            top: "20px",
-            right: "24px",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            zIndex: 2147483647,
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Tooltip content="关闭全屏预览" relationship="label">
-            <Button
-              appearance="subtle"
-              icon={<Dismiss20Regular style={{ color: "#ffffff", fontSize: "20px" }} />}
-              onClick={closeLightbox}
-              aria-label="关闭预览"
-              style={{
-                backgroundColor: "rgba(255, 255, 255, 0.2)",
-                borderRadius: "50%",
-                width: "40px",
-                height: "40px",
-                minWidth: "40px",
-              }}
-            />
-          </Tooltip>
-        </div>
-
-        {/* 若为 SVG 图表全屏展示 */}
-        {previewSvgContent ? (
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="lightbox-svg-wrapper"
-            style={{
-              maxWidth: "95vw",
-              maxHeight: "90vh",
-              overflow: "auto",
-              backgroundColor: isDark ? "rgba(26, 26, 34, 0.98)" : "rgba(255, 255, 255, 0.98)",
-              borderRadius: "16px",
-              padding: "40px 32px",
-              boxShadow: "0 28px 80px rgba(0, 0, 0, 0.75)",
-              border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-            dangerouslySetInnerHTML={{ __html: previewSvgContent }}
-          />
-        ) : (
-          /* 若为普通位图图片全屏展示：容器撑满，图片 contain 最大面积自适应居中显示 */
-          <div
-            onClick={closeLightbox}
-            style={{
-              position: "relative",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "100%",
-              height: "100%",
-              maxWidth: "100vw",
-              maxHeight: "100dvh",
-              boxSizing: "border-box",
-              padding: "16px",
-              overflow: "hidden",
-            }}
-          >
-            <img
-              src={previewImgSrc!}
-              alt={previewImgAlt}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                maxWidth: "100%",
-                maxHeight: "100%",
-                width: "auto",
-                height: "auto",
-                objectFit: "contain",
-                borderRadius: "8px",
-                boxShadow: "0 28px 80px rgba(0, 0, 0, 0.8)",
-                userSelect: "none",
-                cursor: "default",
-                animation: "smartZoomEnter 0.3s cubic-bezier(0.1, 0.9, 0.2, 1)",
-              }}
-            />
-            {previewImgAlt && previewImgAlt !== "图片" && (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  position: "absolute",
-                  bottom: "20px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  backgroundColor: "rgba(0, 0, 0, 0.72)",
-                  backdropFilter: "blur(12px)",
-                  WebkitBackdropFilter: "blur(12px)",
-                  padding: "6px 18px",
-                  borderRadius: "20px",
-                  color: "#ffffff",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  textAlign: "center",
-                  maxWidth: "min(85vw, 680px)",
-                  pointerEvents: "none",
-                  zIndex: 2147483645,
-                  boxShadow: "0 4px 16px rgba(0, 0, 0, 0.5)",
-                }}
-              >
-                {previewImgAlt}
-              </div>
-            )}
-          </div>
-        )}
-      </div>,
-      document.body
-    );
-  };
-
   return (
     <>
       <div
@@ -290,7 +129,13 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
         onClick={handleClick}
         dangerouslySetInnerHTML={{ __html: html }}
       />
-      {renderLightbox()}
+      <ImageLightboxModal
+        open={Boolean(previewImgSrc || previewSvgContent)}
+        onClose={closeLightbox}
+        imageSrc={previewImgSrc}
+        imageAlt={previewImgAlt}
+        svgHtml={previewSvgContent}
+      />
     </>
   );
 };

@@ -83,6 +83,7 @@ import { parseMarkdownFile } from "../../components/MarkdownImportModal";
 import { useAppDialogMotion } from "../../utils/dialogMotion";
 import { formatDate } from "../../components/NoteCard";
 import { renderMermaidDiagrams } from "../../utils/markdownDiagrams";
+import { ImageLightboxModal } from "../../components/ImageLightboxModal";
 
 export const MarkdownStudio: React.FC = () => {
   const { id: routeId } = useParams<{ id: string }>();
@@ -428,6 +429,266 @@ export const MarkdownStudio: React.FC = () => {
       selectedImg.classList.remove("selected-editable-img");
       setSelectedImg(null);
       setImgOverlayPos(null);
+    }
+  };
+
+  // 检查某个块级元素是否为空（无任何有效文本且无图片/公式/绘图）
+  const isBlockEmpty = (block: HTMLElement): boolean => {
+    // 1. 代码块容器或 pre
+    if (block.classList.contains("code-block-wrapper") || block.tagName === "PRE") {
+      const code = block.querySelector("code");
+      return !code || !code.textContent?.trim();
+    }
+    // 2. Mermaid 矢量图容器
+    if (block.classList.contains("mermaid-diagram-container")) {
+      const rawCode = block.getAttribute("data-mermaid");
+      return !rawCode || !rawCode.trim();
+    }
+    // 3. KaTeX 公式块
+    if (block.classList.contains("katex-block")) {
+      const tex = block.getAttribute("data-tex");
+      return !tex || !tex.trim();
+    }
+    // 4. 重点提示 Callout
+    if (block.classList.contains("document-callout")) {
+      const contentDiv = block.querySelector("div:last-child");
+      const text = (contentDiv || block).textContent || "";
+      const cleanText = text.replace(/💡|感悟提示：/g, "").replace(/[\u200B\u00A0\s]/g, "");
+      return cleanText.length === 0;
+    }
+    // 5. 若包含插图/Canvas/SVG，不视为空
+    if (block.querySelector("img, canvas, svg:not(.mermaid-loading-spinner)")) {
+      return false;
+    }
+    // 6. 普通块过滤零宽空格与空白字符
+    const text = block.textContent?.replace(/[\u200B\u00A0\s\r\n]/g, "") || "";
+    return text.length === 0;
+  };
+
+  // 寻找指定节点内最深层的最后一个文本节点（避开工具条和按钮）
+  const findDeepestLastTextNode = (node: Node): { node: Node; offset: number } | null => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return { node, offset: (node as Text).length };
+    }
+    for (let i = node.childNodes.length - 1; i >= 0; i--) {
+      const child = node.childNodes[i];
+      if (child instanceof HTMLElement) {
+        if (
+          child.classList.contains("code-block-header") ||
+          child.classList.contains("mermaid-diagram-toolbar") ||
+          child.classList.contains("image-resizer-handle")
+        ) {
+          continue;
+        }
+      }
+      const res = findDeepestLastTextNode(child);
+      if (res) return res;
+    }
+    return null;
+  };
+
+  // 将光标定位至目标块内部文本的最末尾
+  const setCursorAtEndOfBlock = (targetBlock: HTMLElement) => {
+    let target: HTMLElement = targetBlock;
+    if (targetBlock.classList.contains("code-block-wrapper")) {
+      const code = targetBlock.querySelector("code");
+      if (code) target = code;
+    } else if (targetBlock.classList.contains("document-callout")) {
+      const content = targetBlock.querySelector("div:last-child");
+      if (content instanceof HTMLElement) target = content;
+    }
+
+    targetBlock.focus();
+    const sel = window.getSelection();
+    if (!sel) return;
+
+    const pos = findDeepestLastTextNode(target);
+    const newRange = document.createRange();
+    if (pos) {
+      newRange.setStart(pos.node, pos.offset);
+      newRange.collapse(true);
+    } else {
+      newRange.selectNodeContents(target);
+      newRange.collapse(false);
+    }
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+  };
+
+  // 将光标定位至目标块的最开头
+  const setCursorAtStartOfBlock = (targetBlock: HTMLElement) => {
+    let target: HTMLElement = targetBlock;
+    if (targetBlock.classList.contains("code-block-wrapper")) {
+      const code = targetBlock.querySelector("code");
+      if (code) target = code;
+    } else if (targetBlock.classList.contains("document-callout")) {
+      const content = targetBlock.querySelector("div:last-child");
+      if (content instanceof HTMLElement) target = content;
+    }
+
+    targetBlock.focus();
+    const sel = window.getSelection();
+    if (!sel) return;
+
+    const newRange = document.createRange();
+    newRange.selectNodeContents(target);
+    newRange.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+  };
+
+  // 判定当前光标是否处于目标块的起始位置
+  const isCursorAtStartOfBlock = (block: HTMLElement, range: Range): boolean => {
+    try {
+      let target: HTMLElement = block;
+      if (block.classList.contains("code-block-wrapper")) {
+        const code = block.querySelector("code");
+        if (code) target = code;
+      } else if (block.classList.contains("document-callout")) {
+        const content = block.querySelector("div:last-child");
+        if (content instanceof HTMLElement) target = content;
+      }
+
+      const preRange = document.createRange();
+      preRange.setStart(target, 0);
+      preRange.setEnd(range.startContainer, range.startOffset);
+      const textBefore = preRange.toString().replace(/[\u200B\u00A0\r\n]/g, "");
+      const fragment = preRange.cloneContents();
+      if (fragment.querySelector("img, svg, canvas, hr, table, input")) {
+        return false;
+      }
+      return textBefore.length === 0;
+    } catch {
+      return false;
+    }
+  };
+
+  // 获取挂载在根容器下的顶级块元素
+  const getTopLevelBlock = (node: Node | null, root: HTMLElement): HTMLElement | null => {
+    let curr: Node | null = node;
+    while (curr && curr.parentNode !== root) {
+      curr = curr.parentNode;
+    }
+    return curr instanceof HTMLElement ? curr : null;
+  };
+
+  // WYSIWYG 编辑器核心 Backspace 智能块删除与光标回退逻辑
+  const handleWysiwygKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Backspace") return;
+
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !wysiwygRef.current) return;
+    const range = sel.getRangeAt(0);
+
+    // 仅接管折叠光标（未圈选高亮文本时），圈选删除仍交由原生安全处理
+    if (!range.collapsed) return;
+
+    const root = wysiwygRef.current;
+    const anchor = sel.anchorNode;
+    if (!anchor || !root.contains(anchor)) return;
+
+    // 找到当前所在的最近语义块级元素与顶级块元素
+    const nearestBlock = (
+      anchor instanceof HTMLElement ? anchor : anchor.parentElement
+    )?.closest(
+      "p, h1, h2, h3, h4, h5, h6, li, blockquote, .document-callout, .code-block-wrapper, .mermaid-diagram-container, .katex-block, table, pre"
+    ) as HTMLElement | null;
+
+    const topBlock = getTopLevelBlock(anchor, root);
+    const currentBlock = nearestBlock || topBlock;
+    if (!currentBlock) return;
+
+    // 场景 B: 用户在块内删除，一直按 Backspace 直到块内已无任何文本内容
+    if (isBlockEmpty(currentBlock)) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      // 确定块删除之前的前一个元素
+      let prevBlock = currentBlock.previousElementSibling as HTMLElement | null;
+
+      // 特殊情况：如果是 li 且没有前一个 li，则向上寻找 ul/ol 的前一个元素
+      if (currentBlock.tagName === "LI" && !prevBlock) {
+        const listParent = currentBlock.closest("ul, ol");
+        if (listParent) {
+          prevBlock = listParent.previousElementSibling as HTMLElement | null;
+        }
+      }
+
+      // 彻底清除当前空块
+      const parentContainer = currentBlock.parentElement;
+      currentBlock.remove();
+
+      // 如果是列表且列表项全部清空了，一并移除父级 ul/ol
+      if (
+        parentContainer &&
+        (parentContainer.tagName === "UL" || parentContainer.tagName === "OL") &&
+        parentContainer.children.length === 0
+      ) {
+        parentContainer.remove();
+      }
+
+      // 光标走到块删除之前的位置开始往前删除
+      if (prevBlock && root.contains(prevBlock)) {
+        setCursorAtEndOfBlock(prevBlock);
+      } else {
+        // 若前面无任何块，确保编辑器根部保留一个干净的空段落
+        if (!root.firstElementChild) {
+          const p = document.createElement("p");
+          p.innerHTML = "<br>";
+          root.appendChild(p);
+          setCursorAtEndOfBlock(p);
+        } else {
+          setCursorAtEndOfBlock(root.firstElementChild as HTMLElement);
+        }
+      }
+
+      handleWysiwygInput();
+      return;
+    }
+
+    // 场景 A: 光标处于当前块的最开头位置，检查前面紧邻的块
+    if (isCursorAtStartOfBlock(currentBlock, range)) {
+      let prevBlock = currentBlock.previousElementSibling as HTMLElement | null;
+      if (currentBlock.tagName === "LI" && !prevBlock) {
+        const listParent = currentBlock.closest("ul, ol");
+        if (listParent) {
+          prevBlock = listParent.previousElementSibling as HTMLElement | null;
+        }
+      }
+
+      if (prevBlock && root.contains(prevBlock)) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // 子场景 A1: 如果前面的块没有内容，则直接把前面的块删掉
+        if (isBlockEmpty(prevBlock)) {
+          prevBlock.remove();
+          setCursorAtStartOfBlock(currentBlock);
+          handleWysiwygInput();
+          return;
+        }
+
+        // 子场景 A2: 如果前面的块有内容，则进入前面块的内部文本后面开始删除
+        // 如果当前行是多余空段落，则先行移除当前空行
+        if (currentBlock.tagName === "P" && isBlockEmpty(currentBlock)) {
+          currentBlock.remove();
+        }
+
+        // 进入前方块内部文本的末尾
+        setCursorAtEndOfBlock(prevBlock);
+        handleWysiwygInput();
+        return;
+      }
+    }
+  };
+
+  // 双击图片直接唤起全网页高清灯箱
+  const handleWysiwygDoubleClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === "IMG") {
+      e.stopPropagation();
+      const img = target as HTMLImageElement;
+      setFullscreenImg({ src: img.src, alt: img.alt || "随笔插图" });
     }
   };
 
@@ -1919,6 +2180,8 @@ export const MarkdownStudio: React.FC = () => {
               suppressContentEditableWarning
               onInput={handleWysiwygInput}
               onClick={handleWysiwygClick}
+              onDoubleClick={handleWysiwygDoubleClick}
+              onKeyDown={handleWysiwygKeyDown}
               onPaste={handlePaste}
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
@@ -2673,158 +2936,17 @@ export const MarkdownStudio: React.FC = () => {
         </div>
       </footer>
 
-      {/* 全网页全屏高清灯箱：突破任意父级容器限制，Portal 至 document.body */}
-      {(fullscreenSvg || fullscreenImg) &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div
-            className="image-lightbox-portal"
-            onClick={() => {
-              setFullscreenSvg(null);
-              setFullscreenImg(null);
-            }}
-            style={{
-              position: "fixed",
-              inset: 0,
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              width: "100vw",
-              height: "100dvh",
-              backgroundColor: "rgba(0, 0, 0, 0.88)",
-              backdropFilter: "blur(20px) saturate(140%)",
-              WebkitBackdropFilter: "blur(20px) saturate(140%)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 2147483640,
-              padding: "16px",
-              boxSizing: "border-box",
-              animation: "smartZoomEnter 0.3s cubic-bezier(0.1, 0.9, 0.2, 1)",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                top: "20px",
-                right: "24px",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                zIndex: 2147483647,
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Tooltip content="关闭全屏预览" relationship="label">
-                <Button
-                  appearance="subtle"
-                  icon={<Dismiss20Regular style={{ color: "#ffffff", fontSize: "20px" }} />}
-                  onClick={() => {
-                    setFullscreenSvg(null);
-                    setFullscreenImg(null);
-                  }}
-                  aria-label="关闭预览"
-                  style={{
-                    backgroundColor: "rgba(255, 255, 255, 0.2)",
-                    borderRadius: "50%",
-                    width: "40px",
-                    height: "40px",
-                    minWidth: "40px",
-                  }}
-                />
-              </Tooltip>
-            </div>
-
-            {fullscreenSvg ? (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="lightbox-svg-wrapper"
-                style={{
-                  maxWidth: "95vw",
-                  maxHeight: "90vh",
-                  overflow: "auto",
-                  backgroundColor: isDark ? "rgba(26, 26, 34, 0.98)" : "rgba(255, 255, 255, 0.98)",
-                  borderRadius: "16px",
-                  padding: "40px 32px",
-                  boxShadow: "0 28px 80px rgba(0, 0, 0, 0.75)",
-                  border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                dangerouslySetInnerHTML={{ __html: fullscreenSvg }}
-              />
-            ) : fullscreenImg ? (
-              /* 若为普通位图图片全屏展示：容器撑满，图片 contain 最大面积自适应居中显示 */
-              <div
-                onClick={() => {
-                  setFullscreenSvg(null);
-                  setFullscreenImg(null);
-                }}
-                style={{
-                  position: "relative",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: "100%",
-                  height: "100%",
-                  maxWidth: "100vw",
-                  maxHeight: "100dvh",
-                  boxSizing: "border-box",
-                  padding: "16px",
-                  overflow: "hidden",
-                }}
-              >
-                <img
-                  src={fullscreenImg.src}
-                  alt={fullscreenImg.alt}
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    maxWidth: "100%",
-                    maxHeight: "100%",
-                    width: "auto",
-                    height: "auto",
-                    objectFit: "contain",
-                    borderRadius: "8px",
-                    boxShadow: "0 28px 80px rgba(0, 0, 0, 0.8)",
-                    userSelect: "none",
-                    cursor: "default",
-                    animation: "smartZoomEnter 0.3s cubic-bezier(0.1, 0.9, 0.2, 1)",
-                  }}
-                />
-                {fullscreenImg.alt && fullscreenImg.alt !== "图片" && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      position: "absolute",
-                      bottom: "20px",
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      backgroundColor: "rgba(0, 0, 0, 0.72)",
-                      backdropFilter: "blur(12px)",
-                      WebkitBackdropFilter: "blur(12px)",
-                      padding: "6px 18px",
-                      borderRadius: "20px",
-                      color: "#ffffff",
-                      fontSize: "13px",
-                      fontWeight: 500,
-                      textAlign: "center",
-                      maxWidth: "min(85vw, 680px)",
-                      pointerEvents: "none",
-                      zIndex: 2147483645,
-                      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.5)",
-                    }}
-                  >
-                    {fullscreenImg.alt}
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>,
-          document.body
-        )}
+      {/* 全网页全屏高清灯箱：支持 Ctrl+滚轮无污染缩放与鼠标拖拽平移 */}
+      <ImageLightboxModal
+        open={Boolean(fullscreenSvg || fullscreenImg)}
+        onClose={() => {
+          setFullscreenSvg(null);
+          setFullscreenImg(null);
+        }}
+        imageSrc={fullscreenImg?.src}
+        imageAlt={fullscreenImg?.alt}
+        svgHtml={fullscreenSvg}
+      />
 
       {/* 删除图片快捷撤销浮条 */}
       {showDeletedToast && lastDeletedImage && (
