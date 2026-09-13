@@ -30,25 +30,25 @@ export function initMermaid(isDark: boolean) {
       fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, sans-serif",
       themeVariables: isDark
         ? {
-            darkMode: true,
-            background: "#18181f",
-            primaryColor: "#5B7B8D",
-            primaryTextColor: "#f3f4f6",
-            primaryBorderColor: "#6E90A3",
-            lineColor: "#8EAEC0",
-            secondaryColor: "#25252e",
-            tertiaryColor: "#1c1c24",
-          }
+          darkMode: true,
+          background: "#18181f",
+          primaryColor: "#5B7B8D",
+          primaryTextColor: "#f3f4f6",
+          primaryBorderColor: "#6E90A3",
+          lineColor: "#8EAEC0",
+          secondaryColor: "#25252e",
+          tertiaryColor: "#1c1c24",
+        }
         : {
-            darkMode: false,
-            background: "#ffffff",
-            primaryColor: "#5B7B8D",
-            primaryTextColor: "#1f2937",
-            primaryBorderColor: "#4F6D7E",
-            lineColor: "#5B7B8D",
-            secondaryColor: "#f3f4f6",
-            tertiaryColor: "#fafafa",
-          },
+          darkMode: false,
+          background: "#ffffff",
+          primaryColor: "#5B7B8D",
+          primaryTextColor: "#1f2937",
+          primaryBorderColor: "#4F6D7E",
+          lineColor: "#5B7B8D",
+          secondaryColor: "#f3f4f6",
+          tertiaryColor: "#fafafa",
+        },
     });
     mermaidInitializedTheme = currentTheme;
   } catch (e) {
@@ -133,7 +133,6 @@ export async function renderMermaidDiagrams(
             </div>
           </div>
           
-          {/* 图表展示主体：支持横向双显（左侧代码，右侧图表） */}
           <div class="mermaid-content-layout mode-${currentMode}">
             <div class="mermaid-code-wrapper" style="display: ${currentMode === "diagram" ? "none" : "block"};">
               <pre><code class="language-mermaid">${escapeHtml(rawCode)}</code></pre>

@@ -337,16 +337,27 @@ export const PublicShowcase: React.FC = () => {
     );
   }
 
+  // 依据当前呈现的卡片数量动态决定底部空白滚动空间（卡片较少时彻底消除长空白，卡片多时提供自然的底部收口）
+  const cardCount = filteredNotes.length;
+  const dynamicBottomPadding =
+    cardCount === 0 ? "20px" : cardCount <= 3 ? "24px" : cardCount <= 6 ? "36px" : "48px";
+
   return (
     <div
-      className="win10-page-transition-host public-page-container page-content-container"
+      className="public-page-container page-content-container"
       style={{
         width: "100%",
         maxWidth: "1280px",
         margin: "0 auto",
-        padding: "32px 24px 80px 24px",
+        paddingTop: "32px",
+        paddingLeft: "24px",
+        paddingRight: "24px",
+        paddingBottom: dynamicBottomPadding,
+        ['--page-bottom-padding' as any]: dynamicBottomPadding,
         boxSizing: "border-box",
         minWidth: 0,
+        flex: "0 1 auto",
+        minHeight: "auto",
       }}
     >
       {/* Top Header Bar */}
