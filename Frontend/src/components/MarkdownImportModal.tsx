@@ -29,6 +29,7 @@ import {
 } from "@fluentui/react-icons";
 import { diaryApi } from "../api/diary";
 import { useAppTheme } from "../context/ThemeContext";
+import { useAppDialogMotion } from "../utils/dialogMotion";
 
 export interface ParsedMarkdownItem {
   id: string;
@@ -147,6 +148,7 @@ export const MarkdownImportModal: React.FC<MarkdownImportModalProps> = ({
   initialFiles,
 }) => {
   const { isDark } = useAppTheme();
+  const { surfaceMotion, backdropMotion, isMobile } = useAppDialogMotion();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [items, setItems] = useState<ParsedMarkdownItem[]>([]);
@@ -296,41 +298,61 @@ export const MarkdownImportModal: React.FC<MarkdownImportModalProps> = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(_, data) => !data.open && handleModalClose()}>
+    <Dialog
+      open={open}
+      onOpenChange={(_, data) => !data.open && handleModalClose()}
+      surfaceMotion={surfaceMotion}
+    >
       <DialogSurface
+        backdropMotion={backdropMotion}
         backdrop={{
           style: {
-            backdropFilter: "blur(14px) saturate(135%)",
-            WebkitBackdropFilter: "blur(14px) saturate(135%)",
-            backgroundColor: isDark ? "rgba(0, 0, 0, 0.6)" : "rgba(15, 23, 42, 0.45)",
+            backdropFilter: "none",
+            WebkitBackdropFilter: "none",
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
           },
         }}
         style={{
-          maxWidth: "800px",
-          width: "92vw",
-          maxHeight: "88vh",
+          position: isMobile ? "fixed" : undefined,
+          inset: isMobile ? 0 : undefined,
+          top: isMobile ? 0 : undefined,
+          left: isMobile ? 0 : undefined,
+          right: isMobile ? 0 : undefined,
+          bottom: isMobile ? 0 : undefined,
+          margin: isMobile ? 0 : undefined,
+          zIndex: isMobile ? 2000 : undefined,
+          maxWidth: isMobile ? "100vw" : "800px",
+          minWidth: isMobile ? "100vw" : undefined,
+          width: isMobile ? "100vw" : "92vw",
+          maxHeight: isMobile ? "100dvh" : "88vh",
+          height: isMobile ? "100dvh" : undefined,
           display: "flex",
           flexDirection: "column",
-          borderRadius: "18px",
-          padding: "24px 28px",
-          backgroundColor: isDark ? "rgba(28, 28, 35, 0.95)" : "rgba(255, 255, 255, 0.97)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)",
-          boxShadow: isDark
-            ? "0 28px 72px rgba(0, 0, 0, 0.65), 0 6px 24px rgba(0, 0, 0, 0.4)"
-            : "0 24px 64px rgba(0, 0, 0, 0.2), 0 4px 18px rgba(0, 120, 212, 0.08)",
+          overflow: "hidden",
+          borderRadius: isMobile ? 0 : "18px",
+          padding: isMobile ? "max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) 16px" : "24px 28px",
+          backgroundColor: isDark ? "#1c1c23" : "#ffffff",
+          backdropFilter: "none",
+          WebkitBackdropFilter: "none",
+          border: isMobile ? "none" : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)"),
+          boxShadow: isMobile
+            ? "none"
+            : (isDark
+              ? "0 28px 72px rgba(0, 0, 0, 0.65), 0 6px 24px rgba(0, 0, 0, 0.4)"
+              : "0 24px 64px rgba(0, 0, 0, 0.2), 0 4px 18px rgba(91, 123, 141, 0.1)"),
         }}
       >
-        <DialogBody style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
-          {/* Header */}
-          <div
+        <DialogBody style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0, overflow: "hidden", height: "100%" }}>
+          {/* Header - 固定顶部 */}
+          <header
+            className="dialog-header-row"
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               width: "100%",
               marginBottom: "16px",
+              flexShrink: 0,
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -339,12 +361,12 @@ export const MarkdownImportModal: React.FC<MarkdownImportModalProps> = ({
                   width: "36px",
                   height: "36px",
                   borderRadius: "10px",
-                  background: "linear-gradient(135deg, #0078d4, #60a5fa)",
+                  background: "linear-gradient(135deg, #5B7B8D, #8EAEC0)",
                   color: "#ffffff",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  boxShadow: "0 4px 12px rgba(0, 120, 212, 0.25)",
+                  boxShadow: "0 4px 12px rgba(91, 123, 141, 0.28)",
                 }}
               >
                 <DocumentArrowUp20Regular />
@@ -361,18 +383,21 @@ export const MarkdownImportModal: React.FC<MarkdownImportModalProps> = ({
 
             <Tooltip content="关闭" relationship="label">
               <Button
+                className="dialog-close-btn"
                 appearance="subtle"
                 icon={<Dismiss20Regular />}
                 onClick={handleModalClose}
                 disabled={isImporting}
                 aria-label="关闭"
+                style={{ marginLeft: "auto", flexShrink: 0 }}
               />
             </Tooltip>
-          </div>
+          </header>
 
           <DialogContent
             style={{
-              flex: 1,
+              flex: "1 1 auto",
+              minHeight: 0,
               overflowY: "auto",
               overflowX: "hidden",
               margin: 0,
@@ -404,16 +429,16 @@ export const MarkdownImportModal: React.FC<MarkdownImportModalProps> = ({
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 style={{
-                  border: "2px dashed rgba(0, 120, 212, 0.35)",
+                  border: "2px dashed rgba(91, 123, 141, 0.35)",
                   borderRadius: "14px",
                   padding: "40px 24px",
                   textAlign: "center",
                   cursor: "pointer",
-                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 120, 212, 0.02)",
+                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(91, 123, 141, 0.04)",
                   transition: "all 0.2s ease",
                 }}
               >
-                <ArrowUpload20Regular style={{ fontSize: "40px", color: "#0078d4", marginBottom: "12px" }} />
+                <ArrowUpload20Regular style={{ fontSize: "40px", color: "#5B7B8D", marginBottom: "12px" }} />
                 <Subtitle2 style={{ fontWeight: 700, display: "block", marginBottom: "6px" }}>
                   点击选择或将 Markdown 文件拖拽至此处
                 </Subtitle2>
@@ -484,8 +509,8 @@ export const MarkdownImportModal: React.FC<MarkdownImportModalProps> = ({
                         onChange={(_, data) => setDefaultIsPublic(data.value === "public")}
                         style={{ minWidth: "90px" }}
                       >
-                        <option value="private">仅自己可见 (私密)</option>
-                        <option value="public">发布至公共广场 (公开)</option>
+                        <option value="private">私密</option>
+                        <option value="public">公开</option>
                       </Select>
                     </div>
                   </div>
@@ -506,10 +531,10 @@ export const MarkdownImportModal: React.FC<MarkdownImportModalProps> = ({
                   <Checkbox
                     checked={stripLeadingHeading}
                     onChange={(_, data) => setStripLeadingHeading(!!data.checked)}
-                    label="正文中自动去除已作为日记标题的首行 H 标题（避免正文开头重复大标题）"
+                    label="去除正文首行标题"
                     disabled={isImporting}
                   />
-                  <Caption1 style={{ opacity: 0.65 }}>共 {items.length} 篇待导入</Caption1>
+                  <Caption1 style={{ opacity: 0.65 }}>共 {items.length} 篇</Caption1>
                 </div>
 
                 {/* 进度条 (导入中展示) */}
@@ -517,9 +542,9 @@ export const MarkdownImportModal: React.FC<MarkdownImportModalProps> = ({
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
                       <Caption1 style={{ fontWeight: 600 }}>
-                        正在批量导入日记... ({progressIndex} / {items.length})
+                        正在导入... ({progressIndex} / {items.length})
                       </Caption1>
-                      <Caption1 style={{ color: "#0078d4", fontWeight: 600 }}>
+                      <Caption1 style={{ color: "#5B7B8D", fontWeight: 600 }}>
                         {Math.round((progressIndex / items.length) * 100)}%
                       </Caption1>
                     </div>
@@ -602,7 +627,7 @@ export const MarkdownImportModal: React.FC<MarkdownImportModalProps> = ({
                           <span>·</span>
                           <span>约 {item.charCount} 字符</span>
                           {item.status === "uploading" && (
-                            <span style={{ color: "#0078d4", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <span style={{ color: "#5B7B8D", display: "inline-flex", alignItems: "center", gap: "4px" }}>
                               <Spinner size="tiny" /> 导入中...
                             </span>
                           )}
@@ -632,37 +657,39 @@ export const MarkdownImportModal: React.FC<MarkdownImportModalProps> = ({
             )}
           </DialogContent>
 
-          {/* Footer Actions */}
-          <DialogActions style={{ marginTop: "16px", display: "flex", justifyContent: "space-between", width: "100%" }}>
-            <div>
-              {items.length > 0 && !isImporting && (
-                <Button appearance="subtle" onClick={handleClearAll}>
-                  清空列表
-                </Button>
-              )}
-            </div>
+          {/* Footer Actions - 固定底部 */}
+          <footer className="dialog-footer-row" style={{ flexShrink: 0, width: "100%" }}>
+            <DialogActions style={{ marginTop: "16px", display: "flex", justifyContent: "space-between", width: "100%", flexShrink: 0 }}>
+              <div>
+                {items.length > 0 && !isImporting && (
+                  <Button appearance="subtle" onClick={handleClearAll}>
+                    清空列表
+                  </Button>
+                )}
+              </div>
 
-            <div style={{ display: "flex", gap: "8px" }}>
-              <Button appearance="secondary" onClick={handleModalClose} disabled={isImporting}>
-                {importNotice ? "完成" : "取消"}
-              </Button>
-              <Button
-                appearance="primary"
-                icon={isImporting ? <Spinner size="tiny" /> : <Sparkle20Regular />}
-                onClick={handleStartImport}
-                disabled={items.length === 0 || isImporting || isReadingFiles}
-                style={{
-                  background: "linear-gradient(135deg, #0078d4, #005a9e)",
-                  fontWeight: 600,
-                  borderRadius: "8px",
-                }}
-              >
-                {isImporting
-                  ? `正在导入 (${progressIndex}/${items.length})...`
-                  : `开始导入 (${items.length} 篇)`}
-              </Button>
-            </div>
-          </DialogActions>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <Button appearance="secondary" onClick={handleModalClose} disabled={isImporting}>
+                  {importNotice ? "完成" : "取消"}
+                </Button>
+                <Button
+                  appearance="primary"
+                  icon={isImporting ? <Spinner size="tiny" /> : <Sparkle20Regular />}
+                  onClick={handleStartImport}
+                  disabled={items.length === 0 || isImporting || isReadingFiles}
+                  style={{
+                    backgroundColor: "#5B7B8D",
+                    fontWeight: 600,
+                    borderRadius: "8px",
+                  }}
+                >
+                  {isImporting
+                    ? `正在导入 (${progressIndex}/${items.length})...`
+                    : "开始导入"}
+                </Button>
+              </div>
+            </DialogActions>
+          </footer>
         </DialogBody>
       </DialogSurface>
     </Dialog>

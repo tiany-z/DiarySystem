@@ -4,6 +4,7 @@ export interface AuthUserInfo {
   userId: string;
   username: string;
   nickname?: string;
+  avatar?: string | null;
   token: string;
 }
 
@@ -11,6 +12,7 @@ export interface AdminUserInfo {
   id: string;
   username: string;
   nickname?: string;
+  avatar?: string | null;
   created_at: string;
   note_count: number;
 }
@@ -65,3 +67,14 @@ export const adminApi = {
     );
   },
 };
+
+export const userApi = {
+  updateAvatar: async (avatar: string | null): Promise<ApiResponse<{ avatar: string | null; user?: any }>> => {
+    return apiClient.post<{ avatar: string | null; user?: any }>("/api/user/avatar", { avatar });
+  },
+
+  getProfile: async (): Promise<ApiResponse<any>> => {
+    return apiClient.get<any>("/api/user/profile");
+  },
+};
+

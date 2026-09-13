@@ -10,6 +10,9 @@ export interface DiaryItem {
   is_public?: boolean | number;
   created_at: string;
   createdAt?: string;
+  username?: string;
+  nickname?: string;
+  avatar?: string | null;
 }
 
 export const diaryApi = {

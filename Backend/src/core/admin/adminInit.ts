@@ -82,3 +82,27 @@ export async function ensureSuperAdminAccount(): Promise<StandardResult<{ id: st
     return returnError(`初始化超级管理员账户异常: ${String(error)}`);
   }
 }
+
+/**
+ * 确保 users 表具备 avatar 头像字段，支持在线裁剪上传与自愈迁移
+ */
+export async function ensureUserAvatarColumn(): Promise<StandardResult<boolean>> {
+  try {
+    const checkSql = "SHOW COLUMNS FROM users LIKE 'avatar';";
+    const checkRes = await executeQuery<any>(checkSql);
+    if (checkRes.status === 1 && checkRes.data && checkRes.data.length > 0) {
+      return returnSuccess(true);
+    }
+
+    const alterSql = "ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT NULL;";
+    const alterRes = await executeQuery(alterSql);
+    if (alterRes.status === 0) {
+      return returnError(`自愈迁移 users.avatar 字段失败: ${alterRes.content}`);
+    }
+
+    LogClient.success("👤 users 表已自愈补充 avatar 头像字段", undefined, "AdminInit");
+    return returnSuccess(true);
+  } catch (err) {
+    return returnError(`自愈迁移 avatar 字段异常: ${String(err)}`);
+  }
+}

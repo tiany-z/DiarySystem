@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Body1,
@@ -17,17 +17,29 @@ import {
   Eye20Regular,
   EyeOff20Regular,
   LockClosed20Regular,
-  Notebook24Filled,
   Person20Regular,
   ShieldCheckmark20Regular,
 } from "@fluentui/react-icons";
 import { useAuth } from "../../context/AuthContext";
+import { usePageCache } from "../../context/PageCacheContext";
 import { useAppTheme } from "../../context/ThemeContext";
+import { BrandLogo } from "../../components/BrandLogo";
 
 export const AuthPortal: React.FC = () => {
   const { isDark } = useAppTheme();
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const { hasPageLoaded, markPageLoaded } = usePageCache();
+  const PAGE_KEY = "auth_portal";
+  const alreadyLoaded = hasPageLoaded(PAGE_KEY);
+  const [shouldAnimate] = useState<boolean>(!alreadyLoaded);
+
+  useEffect(() => {
+    if (!alreadyLoaded) {
+      markPageLoaded(PAGE_KEY);
+    }
+  }, []);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -84,26 +96,26 @@ export const AuthPortal: React.FC = () => {
         justifyContent: "center",
         padding: "32px 16px",
         background: isDark
-          ? "radial-gradient(ellipse at 50% 30%, rgba(0, 120, 212, 0.15) 0%, transparent 70%)"
-          : "radial-gradient(ellipse at 50% 30%, rgba(0, 120, 212, 0.08) 0%, transparent 70%)",
+          ? "radial-gradient(ellipse at 50% 30%, rgba(91, 123, 141, 0.18) 0%, transparent 70%)"
+          : "radial-gradient(ellipse at 50% 30%, rgba(91, 123, 141, 0.1) 0%, transparent 70%)",
       }}
     >
       <div style={{ width: "100%", maxWidth: "420px" }}>
         {/* Back Link */}
-        <div style={{ marginBottom: "20px" }}>
+        <div className="win10-tile-rise win10-delay-1" style={{ marginBottom: "20px" }}>
           <Button
             onClick={() => navigate("/")}
             appearance="subtle"
             icon={<ArrowLeft20Regular />}
             size="small"
           >
-            返回公开广场
+            返回广场
           </Button>
         </div>
 
         {/* Auth Card */}
         <Card
-          className="auth-portal-card"
+          className="auth-portal-card win10-tile-rise win10-delay-2"
           style={{
             borderRadius: "16px",
             padding: "36px 32px",
@@ -111,32 +123,17 @@ export const AuthPortal: React.FC = () => {
             border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
             boxShadow: isDark
               ? "0 16px 48px rgba(0, 0, 0, 0.5)"
-              : "0 16px 48px rgba(0, 120, 212, 0.12)",
+              : "0 16px 48px rgba(91, 123, 141, 0.12)",
           }}
         >
           {/* Logo & Header */}
           <div style={{ textAlign: "center", marginBottom: "28px" }}>
-            <div
-              style={{
-                width: "52px",
-                height: "52px",
-                borderRadius: "15px",
-                background: "linear-gradient(135deg, #0078d4, #60a5fa)",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#ffffff",
-                boxShadow: "0 6px 20px rgba(0, 120, 212, 0.35)",
-                marginBottom: "14px",
-              }}
-            >
-              <Notebook24Filled style={{ fontSize: "28px" }} />
-            </div>
+            <BrandLogo size={52} style={{ marginBottom: "14px", boxShadow: "0 6px 20px rgba(91, 123, 141, 0.35)" }} />
             <Title3 style={{ fontWeight: 700, display: "block", fontSize: "20px" }}>
-              拾光手记 · 账户中心
+              账户登录
             </Title3>
             <Body1 style={{ opacity: 0.65, fontSize: "13px", marginTop: "6px", display: "block" }}>
-              请输入分配的账户凭据以登录工作台
+              输入用户名与密码以登录
             </Body1>
           </div>
 
@@ -149,12 +146,12 @@ export const AuthPortal: React.FC = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-            <Field label="账号用户名" required>
+            <Field label="用户名" required>
               <Input
                 name="username"
                 id="login-username"
                 contentBefore={<Person20Regular />}
-                placeholder="请输入用户名 (如 tiany)"
+                placeholder="请输入用户名"
                 value={username}
                 onChange={(_, data) => setUsername(data.value)}
                 autoComplete="username"
@@ -163,14 +160,14 @@ export const AuthPortal: React.FC = () => {
               />
             </Field>
 
-            <Field label="账户登录密码" required>
+            <Field label="密码" required>
               <Input
                 name="password"
                 id="login-password"
                 type={showPassword ? "text" : "password"}
                 contentBefore={<LockClosed20Regular />}
                 contentAfter={
-                  <Tooltip content={showPassword ? "隐藏密码明文" : "显示密码明文"} relationship="label">
+                  <Tooltip content={showPassword ? "隐藏密码" : "显示密码"} relationship="label">
                     <Button
                       appearance="subtle"
                       size="small"
@@ -180,7 +177,7 @@ export const AuthPortal: React.FC = () => {
                     />
                   </Tooltip>
                 }
-                placeholder="请输入您的登录密码"
+                placeholder="请输入密码"
                 value={password}
                 onChange={(_, data) => setPassword(data.value)}
                 autoComplete="current-password"
@@ -198,13 +195,13 @@ export const AuthPortal: React.FC = () => {
               style={{
                 marginTop: "12px",
                 height: "42px",
-                background: "linear-gradient(135deg, #0078d4, #005a9e)",
+                backgroundColor: "#5B7B8D",
                 fontWeight: 600,
                 borderRadius: "8px",
                 fontSize: "15px",
               }}
             >
-              {isSubmitting ? "正在验证身份..." : "立即登录工作台"}
+              {isSubmitting ? "正在登录..." : "登录"}
             </Button>
           </form>
 
@@ -214,8 +211,8 @@ export const AuthPortal: React.FC = () => {
               marginTop: "24px",
               padding: "12px 14px",
               borderRadius: "8px",
-              backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 120, 212, 0.05)",
-              border: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid rgba(0, 120, 212, 0.12)",
+              backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(91, 123, 141, 0.06)",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid rgba(91, 123, 141, 0.15)",
               display: "flex",
               alignItems: "center",
               gap: "10px",
@@ -223,9 +220,9 @@ export const AuthPortal: React.FC = () => {
               color: isDark ? "#a19f9d" : "#605e5c",
             }}
           >
-            <ShieldCheckmark20Regular style={{ color: "#0078d4", flexShrink: 0 }} />
+            <ShieldCheckmark20Regular style={{ color: "#5B7B8D", flexShrink: 0 }} />
             <span>
-              本系统已启用总管理员邀请管理机制。如需注册或重置密码，请联系系统总管理员 <strong>tiany</strong> 分配账户。
+              如需账号或重置密码，请联系管理员 <strong>tiany</strong>。
             </span>
           </div>
         </Card>

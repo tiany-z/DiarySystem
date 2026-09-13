@@ -17,11 +17,12 @@ export const api = {
       }
 
       const sql = `
-        SELECT u.id, u.username, u.nickname, u.created_at,
+        SELECT u.id, u.username, u.nickname, u.avatar,
+               u.created_at,
                COUNT(d.id) AS note_count
         FROM users u
         LEFT JOIN diaries d ON u.id = d.user_id AND d.deleted_at IS NULL
-        GROUP BY u.id, u.username, u.nickname, u.created_at
+        GROUP BY u.id, u.username, u.nickname, u.avatar, u.created_at
         ORDER BY (u.username = '${SUPER_ADMIN_USERNAME}') DESC, u.created_at DESC;
       `;
 

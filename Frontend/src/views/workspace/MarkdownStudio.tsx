@@ -29,14 +29,17 @@ import {
 import {
   ArrowLeft20Regular,
   ArrowUpload20Regular,
+  BranchFork20Regular,
   CheckmarkCircle20Regular,
   Code20Regular,
   Copy20Regular,
+  DataPie20Regular,
   Dismiss20Regular,
   DividerShort20Regular,
   Document20Regular,
   DocumentEdit20Regular,
   Eye20Regular,
+  Flowchart20Regular,
   Folder20Regular,
   Globe20Regular,
   History20Regular,
@@ -69,13 +72,21 @@ import { WeatherPicker } from "../../components/WeatherBadge";
 import { useAppTheme } from "../../context/ThemeContext";
 import { htmlToMarkdown, markdownToHtml } from "../../utils/markdownUtils";
 import { parseMarkdownFile } from "../../components/MarkdownImportModal";
+import { useAppDialogMotion } from "../../utils/dialogMotion";
+import { formatDate } from "../../components/NoteCard";
 
 export const MarkdownStudio: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const isNew = !id;
+  const { id: routeId } = useParams<{ id: string }>();
+  const [activeId, setActiveId] = useState<string | undefined>(routeId);
+  const isNew = !activeId;
   const navigate = useNavigate();
   const { isDark } = useAppTheme();
   const location = useLocation();
+  const { surfaceMotion, backdropMotion, isMobile } = useAppDialogMotion();
+
+  useEffect(() => {
+    setActiveId(routeId);
+  }, [routeId]);
 
   // 文档核心状态
   const [title, setTitle] = useState<string>("");
@@ -199,15 +210,15 @@ export const MarkdownStudio: React.FC = () => {
 
   // 加载已有日记或初始化
   useEffect(() => {
-    if (!isNew && id) {
-      if (justSavedIdRef.current === id) {
+    if (routeId) {
+      if (justSavedIdRef.current === routeId) {
         justSavedIdRef.current = null;
         return;
       }
       const loadDiary = async () => {
         setIsLoading(true);
         try {
-          const res = await diaryApi.detail(id);
+          const res = await diaryApi.detail(routeId);
           if (res.status === 1 && res.data) {
             setTitle(res.data.title || "");
             const md = res.data.content || "";
@@ -231,7 +242,7 @@ export const MarkdownStudio: React.FC = () => {
         }
       };
       loadDiary();
-    } else if (isNew) {
+    } else {
       const state = location.state as any;
       const initialTitle = state?.templateTitle || "";
       const initialContent = state?.templateContent || "";
@@ -252,7 +263,7 @@ export const MarkdownStudio: React.FC = () => {
       }
       setIsLoading(false);
     }
-  }, [id, isNew, location.state]);
+  }, [routeId, location.state]);
 
   // 当加载完成 (isLoading 变为 false) 或进入 WYSIWYG 模式时，将最新 content 同步进 innerHTML
   useEffect(() => {
@@ -262,7 +273,7 @@ export const MarkdownStudio: React.FC = () => {
         wysiwygRef.current.innerHTML = markdownToHtml(content);
       }
     }
-  }, [isLoading, editorMode, id]);
+  }, [isLoading, editorMode, routeId]);
 
   // 当处于 Markdown 源码稿纸模式时，自适应调整 textarea 高度以撑开背景卡片，杜绝底部内容溢出
   useEffect(() => {
@@ -685,6 +696,40 @@ export const MarkdownStudio: React.FC = () => {
     insertCustomHtml(codeHtml);
   };
 
+  // 插入 Mermaid 代码矢量图表
+  const handleInsertMermaid = (chartType: "flowchart" | "sequence" | "pie" | "gantt") => {
+    let mermaidCode = "";
+    if (chartType === "flowchart") {
+      mermaidCode = `graph TD\n    A[开始灵感] --> B{方案可行性评估}\n    B -->|通过| C[编写代码与实现]\n    B -->|待优化| D[深度反思与调整]\n    C --> E[交付并沉淀手记]\n    D --> B`;
+    } else if (chartType === "sequence") {
+      mermaidCode = `sequenceDiagram\n    autonumber\n    actor 用户 as 👤 用户\n    participant 前端 as 💻 前端界面\n    participant 服务 as ⚡ 后端核心\n    participant 数据库 as 🗄️ MySQL\n\n    用户->>前端: 编写日记并提交保存\n    前端->>服务: POST /api/diaries (JWT 鉴权)\n    服务->>数据库: 写入 diaries 记录\n    数据库-->>服务: 返回成功\n    服务-->>前端: 200 OK\n    前端-->>用户: 呈现保存成功提示`;
+    } else if (chartType === "pie") {
+      mermaidCode = `pie title 今日精力与专注分布\n    "深度编码" : 45\n    "技术复盘与写作" : 25\n    "架构设计" : 15\n    "生活与漫步" : 15`;
+    } else if (chartType === "gantt") {
+      mermaidCode = `gantt\n    title 项目开发与写作节奏规划\n    dateFormat YYYY-MM-DD\n    section 核心开发\n    架构设计与演进 :done, des1, 2026-09-10, 2026-09-12\n    图表渲染与预览 :active, des2, 2026-09-13, 2026-09-15\n    section 沉淀与发布\n    撰写系统设计手记 : 2026-09-16, 3d`;
+    }
+
+    if (editorMode === "sheet" && sheetTextareaRef.current) {
+      const textarea = sheetTextareaRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const prev = textarea.value;
+      const snippet = `\n\n\`\`\`mermaid\n${mermaidCode}\n\`\`\`\n\n`;
+      const next = prev.slice(0, start) + snippet + prev.slice(end);
+      setContent(next);
+      setRawSourceBuffer(next);
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + snippet.length, start + snippet.length);
+      }, 50);
+      return;
+    }
+
+    const encoded = encodeURIComponent(mermaidCode.trim());
+    const mermaidHtml = `<div class="mermaid-diagram-container" data-mermaid="${encoded}"><div class="mermaid-loading-state"><span class="mermaid-loading-spinner"></span>正在绘制图表...</div></div><p><br></p>`;
+    insertCustomHtml(mermaidHtml);
+  };
+
   // 插入当前时间戳
   const handleInsertTimestamp = () => {
     const now = new Date();
@@ -741,14 +786,17 @@ export const MarkdownStudio: React.FC = () => {
           is_public: isPublic ? 1 : 0,
         });
         if (res.status === 1 && res.data) {
+          const newId = String(res.data.id);
+          setActiveId(newId);
           setIsDirty(false);
           setSaveSuccessNotice(true);
           setTimeout(() => setSaveSuccessNotice(false), 3000);
-          justSavedIdRef.current = res.data.id;
+          justSavedIdRef.current = newId;
           if (redirectUrl) {
             navigate(redirectUrl);
           } else {
-            navigate(`/workspace/edit/${res.data.id}`, { replace: true });
+            // 使用 replaceState 更新浏览器地址栏，不触发 React Router 路由重载和页面进入动画，保持滚动位置
+            window.history.replaceState(null, "", `/workspace/edit/${newId}`);
           }
           return true;
         } else {
@@ -759,7 +807,7 @@ export const MarkdownStudio: React.FC = () => {
         }
       } else {
         const res = await diaryApi.update({
-          id: id!,
+          id: (activeId || routeId)!,
           title: title.trim(),
           content: latestContent,
           weather,
@@ -826,17 +874,8 @@ export const MarkdownStudio: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "calc(100vh - var(--header-height, 64px))",
-          gap: "16px",
-        }}
-      >
-        <Spinner size="large" label="正在展开您的日记文档空间..." />
+      <div className="fluent-page-center-loader">
+        <Spinner size="large" label="正在加载文档..." />
       </div>
     );
   }
@@ -845,7 +884,7 @@ export const MarkdownStudio: React.FC = () => {
     <div className="document-workspace">
       {/* Top Document Studio Navigation Bar (Fluent 2 现代顶栏 - 响应式适配与绝对吸顶) */}
       <div
-        className="glass-panel studio-topbar"
+        className="glass-panel studio-topbar win10-tile-rise win10-delay-1"
         style={{
           position: "sticky",
           top: 0,
@@ -865,7 +904,7 @@ export const MarkdownStudio: React.FC = () => {
       >
         {/* Left: Back to workspace */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-          <Tooltip content="返回笔记库" relationship="label">
+          <Tooltip content="返回笔记" relationship="label">
             <Button
               appearance="subtle"
               icon={<ArrowLeft20Regular />}
@@ -878,7 +917,7 @@ export const MarkdownStudio: React.FC = () => {
                 }
                 navigate("/workspace");
               }}
-              aria-label="返回笔记库"
+              aria-label="返回笔记"
             />
           </Tooltip>
 
@@ -896,7 +935,7 @@ export const MarkdownStudio: React.FC = () => {
               whiteSpace: "nowrap",
             }}
           >
-            {isNew ? "新建随笔" : title || "未命名文档"}
+            {title.trim() || (isNew ? "新建笔记" : "未命名")}
           </Text>
         </div>
 
@@ -913,31 +952,31 @@ export const MarkdownStudio: React.FC = () => {
             gap: "2px",
           }}
         >
-          <Tooltip content="文档编辑" relationship="label">
+          <Tooltip content="编辑" relationship="label">
             <Button
               appearance={editorMode === "wysiwyg" ? "primary" : "subtle"}
               size="small"
               icon={<DocumentEdit20Regular />}
               onClick={() => handleSwitchMode("wysiwyg")}
-              aria-label="文档编辑"
+              aria-label="编辑"
             />
           </Tooltip>
-          <Tooltip content="稿纸排版模式" relationship="label">
+          <Tooltip content="稿纸" relationship="label">
             <Button
               appearance={editorMode === "sheet" ? "primary" : "subtle"}
               size="small"
               icon={<Document20Regular />}
               onClick={() => handleSwitchMode("sheet")}
-              aria-label="稿纸排版"
+              aria-label="稿纸"
             />
           </Tooltip>
-          <Tooltip content="纯享阅读演示" relationship="label">
+          <Tooltip content="预览" relationship="label">
             <Button
               appearance={editorMode === "preview" ? "primary" : "subtle"}
               size="small"
               icon={<Eye20Regular />}
               onClick={() => handleSwitchMode("preview")}
-              aria-label="纯享阅读"
+              aria-label="预览"
             />
           </Tooltip>
         </div>
@@ -952,24 +991,24 @@ export const MarkdownStudio: React.FC = () => {
             style={{ display: "none" }}
             onChange={handleImportLocalMd}
           />
-          <Tooltip content="导入本地 Markdown 文件到当前编辑器" relationship="label">
+          <Tooltip content="导入 Markdown" relationship="label">
             <Button
               appearance="subtle"
               size="small"
               icon={<ArrowUpload20Regular />}
               onClick={() => importLocalMdRef.current?.click()}
-              aria-label="导入 Markdown"
+              aria-label="导入"
             />
           </Tooltip>
 
           {/* View Raw Markdown Source */}
-          <Tooltip content="检视 Markdown 源码" relationship="label">
+          <Tooltip content="Markdown 源码" relationship="label">
             <Button
               appearance="subtle"
               size="small"
               icon={<Code20Regular />}
               onClick={handleOpenSourceModal}
-              aria-label="Markdown 源码"
+              aria-label="源码"
             />
           </Tooltip>
 
@@ -1007,7 +1046,7 @@ export const MarkdownStudio: React.FC = () => {
 
           {/* Top Visibility Quick Toggle */}
           <Tooltip
-            content={isPublic ? "公开笔记 (点击设为私密)" : "私密笔记 (点击公开到广场)"}
+            content={isPublic ? "公开" : "私密"}
             relationship="label"
           >
             <Button
@@ -1015,7 +1054,7 @@ export const MarkdownStudio: React.FC = () => {
               size="small"
               icon={
                 isPublic ? (
-                  <Globe20Regular style={{ color: "#0078d4" }} />
+                  <Globe20Regular style={{ color: "#5B7B8D" }} />
                 ) : (
                   <LockClosed20Regular style={{ color: "#8a8886" }} />
                 )
@@ -1035,16 +1074,17 @@ export const MarkdownStudio: React.FC = () => {
             <Button
               appearance="primary"
               size="small"
-              icon={<Save20Regular />}
+              icon={isSaving ? <Spinner size="tiny" /> : <Save20Regular />}
               onClick={() => handleSave()}
               disabled={isSaving}
               aria-label="保存"
               style={{
                 borderRadius: "8px",
-                boxShadow: "0 2px 10px rgba(0, 120, 212, 0.25)",
+                boxShadow: "0 2px 10px rgba(91, 123, 141, 0.28)",
+                flexShrink: 0,
               }}
             >
-              {isSaving ? "..." : "保存"}
+              <span className="desktop-save-btn-text">{isSaving ? "..." : "保存"}</span>
             </Button>
           </Tooltip>
         </div>
@@ -1068,7 +1108,7 @@ export const MarkdownStudio: React.FC = () => {
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploadingImage}
                 >
-                  {isUploadingImage ? "正在上传图片..." : "上传插入图片"}
+                  {isUploadingImage ? "正在上传..." : "上传图片"}
                 </MenuItem>
                 <MenuItem
                   icon={isPublic ? <Globe20Regular /> : <LockClosed20Regular />}
@@ -1077,36 +1117,45 @@ export const MarkdownStudio: React.FC = () => {
                     setIsDirty(true);
                   }}
                 >
-                  {isPublic ? "设为私密笔记" : "设为公开笔记"}
+                  {isPublic ? "设为私密" : "设为公开"}
                 </MenuItem>
                 <MenuItem icon={<Code20Regular />} onClick={handleOpenSourceModal}>
-                  Markdown 源码检视
+                  Markdown 源码
                 </MenuItem>
               </MenuList>
             </MenuPopover>
           </Menu>
 
-          {/* Save Button (Mobile) */}
-          <Button
-            appearance="primary"
-            size="small"
-            icon={<Save20Regular />}
-            onClick={() => handleSave()}
-            disabled={isSaving}
-            style={{
-              fontWeight: 600,
-              borderRadius: "8px",
-            }}
-          >
-            {isSaving ? "..." : "保存"}
-          </Button>
+          {/* Save Button (Mobile - 窄模式下仅显示纯图标，无文字挤压) */}
+          <Tooltip content={isSaving ? "正在保存..." : "保存"} relationship="label">
+            <Button
+              appearance="primary"
+              size="small"
+              icon={isSaving ? <Spinner size="tiny" /> : <Save20Regular />}
+              onClick={() => handleSave()}
+              disabled={isSaving}
+              aria-label="保存"
+              style={{
+                borderRadius: "8px",
+                flexShrink: 0,
+                width: "32px",
+                height: "32px",
+                minWidth: "32px",
+                padding: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 2px 8px rgba(91, 123, 141, 0.28)",
+              }}
+            />
+          </Tooltip>
         </div>
       </div>
 
       {/* Modern Fluent 2 Document Ribbon (文档格式功能区 - 置顶吸顶与移动端滑动) */}
       {editorMode !== "preview" && (
         <div
-          className="glass-panel studio-ribbon"
+          className="glass-panel studio-ribbon win10-tile-rise win10-delay-2"
           style={{
             position: "sticky",
             top: "56px",
@@ -1281,6 +1330,47 @@ export const MarkdownStudio: React.FC = () => {
               aria-label="代码卡片"
             />
           </Tooltip>
+          {/* 插入代码图表 (Mermaid) 下拉菜单 */}
+          <Menu>
+            <MenuTrigger disableButtonEnhancement>
+              <Tooltip content="插入图表" relationship="label">
+                <Button
+                  appearance="subtle"
+                  size="small"
+                  icon={<Flowchart20Regular />}
+                  aria-label="插入图表"
+                />
+              </Tooltip>
+            </MenuTrigger>
+            <MenuPopover>
+              <MenuList>
+                <MenuItem
+                  icon={<Flowchart20Regular />}
+                  onClick={() => handleInsertMermaid("flowchart")}
+                >
+                  流程图
+                </MenuItem>
+                <MenuItem
+                  icon={<BranchFork20Regular />}
+                  onClick={() => handleInsertMermaid("sequence")}
+                >
+                  时序图
+                </MenuItem>
+                <MenuItem
+                  icon={<DataPie20Regular />}
+                  onClick={() => handleInsertMermaid("pie")}
+                >
+                  饼图
+                </MenuItem>
+                <MenuItem
+                  icon={<History20Regular />}
+                  onClick={() => handleInsertMermaid("gantt")}
+                >
+                  甘特图
+                </MenuItem>
+              </MenuList>
+            </MenuPopover>
+          </Menu>
           <Tooltip content="插入分割线" relationship="label">
             <Button
               appearance="subtle"
@@ -1316,7 +1406,7 @@ export const MarkdownStudio: React.FC = () => {
 
       {/* Main Document Scroll Viewport (居中文档稿纸画布) */}
       <div className="document-scroll-viewport" onKeyDown={handleKeyDown}>
-        <div ref={sheetRef} className="document-sheet">
+        <div ref={sheetRef} className="document-sheet win10-tile-rise win10-delay-3">
           {/* Document Header: Title Input (巨幅无边框优雅文档大标题) */}
           <input
             className="document-title-input"
@@ -1328,8 +1418,8 @@ export const MarkdownStudio: React.FC = () => {
             placeholder="在此键入随笔或文档大标题..."
           />
 
-          {/* Document Header: Meta Attributes Bar (天气、心境、字数、阅读时长) */}
-          <div className="document-meta-row">
+          {/* Document Header: Meta Attributes Bar (仅在桌面端正文顶部显示，移动端移至固定底部栏) */}
+          <div className="document-meta-row desktop-only">
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
               <WeatherPicker
                 value={weather}
@@ -1369,18 +1459,18 @@ export const MarkdownStudio: React.FC = () => {
                     alignItems: "center",
                     gap: "6px",
                     border: isPublic
-                      ? "1px solid rgba(0, 120, 212, 0.35)"
+                      ? "1px solid rgba(91, 123, 141, 0.35)"
                       : isDark
                       ? "1px solid rgba(255, 255, 255, 0.14)"
                       : "1px solid rgba(0, 0, 0, 0.14)",
                     background: isPublic
                       ? isDark
-                        ? "rgba(0, 120, 212, 0.2)"
-                        : "rgba(0, 120, 212, 0.08)"
+                        ? "rgba(91, 123, 141, 0.22)"
+                        : "rgba(91, 123, 141, 0.1)"
                       : isDark
                       ? "rgba(255, 255, 255, 0.06)"
                       : "rgba(0, 0, 0, 0.04)",
-                    color: isPublic ? "#0078d4" : isDark ? "rgba(255, 255, 255, 0.75)" : "#605e5c",
+                    color: isPublic ? (isDark ? "#8EAEC0" : "#5B7B8D") : isDark ? "rgba(255, 255, 255, 0.75)" : "#605e5c",
                     borderRadius: "16px",
                     padding: "4px 10px",
                     fontSize: "12px",
@@ -1390,7 +1480,7 @@ export const MarkdownStudio: React.FC = () => {
                   aria-label="切换笔记公开或私密状态"
                 >
                   {isPublic ? (
-                    <Globe20Regular style={{ fontSize: "14px", color: "#0078d4" }} />
+                    <Globe20Regular style={{ fontSize: "14px", color: isDark ? "#8EAEC0" : "#5B7B8D" }} />
                   ) : (
                     <LockClosed20Regular style={{ fontSize: "14px" }} />
                   )}
@@ -1400,7 +1490,7 @@ export const MarkdownStudio: React.FC = () => {
 
               {createdAt && (
                 <span className="meta-capsule-chip">
-                  📅 {createdAt}
+                  📅 {formatDate(createdAt)}
                 </span>
               )}
             </div>
@@ -1408,9 +1498,6 @@ export const MarkdownStudio: React.FC = () => {
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <Tooltip content={`总计 ${stats.chars} 字符`} relationship="label">
                 <span className="meta-capsule-chip">📝 {stats.chars}</span>
-              </Tooltip>
-              <Tooltip content={`预计阅读 ${stats.minutes} 分钟`} relationship="label">
-                <span className="meta-capsule-chip">⏱️ {stats.minutes}m</span>
               </Tooltip>
             </div>
           </div>
@@ -1474,106 +1561,109 @@ export const MarkdownStudio: React.FC = () => {
                 style={{
                   width: "100%",
                   height: "100%",
-                  border: "2px solid #0078d4",
+                  border: "2px solid #5B7B8D",
                   borderRadius: "8px",
                   boxSizing: "border-box",
                   boxShadow: "0 0 0 1px rgba(255, 255, 255, 0.4)",
                 }}
               />
 
-              {/* 浮动快捷排版工具栏 */}
+              {/* 浮动快捷排版工具栏 (两行布局：第一行百分比，第二行其他文字按钮) */}
               <div
                 className="image-floating-toolbar"
                 style={{
-                  top: "-42px",
+                  bottom: "calc(100% + 8px)",
                   left: "50%",
                   transform: "translateX(-50%)",
                   pointerEvents: "auto",
-                  backgroundColor: isDark ? "rgba(28, 28, 35, 0.95)" : "rgba(255, 255, 255, 0.96)",
+                  backgroundColor: isDark ? "rgba(28, 28, 35, 0.96)" : "rgba(255, 255, 255, 0.98)",
                   backdropFilter: "blur(20px)",
                   border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)",
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                <button
-                  type="button"
-                  className={`image-toolbar-btn ${currentPreset === "25%" ? "active" : ""}`}
-                  onClick={() => applyImageWidth("25%")}
-                  title="25% 微缩尺寸"
-                >
-                  25%
-                </button>
-                <button
-                  type="button"
-                  className={`image-toolbar-btn ${currentPreset === "50%" ? "active" : ""}`}
-                  onClick={() => applyImageWidth("50%")}
-                  title="50% 半宽尺寸"
-                >
-                  50%
-                </button>
-                <button
-                  type="button"
-                  className={`image-toolbar-btn ${currentPreset === "75%" ? "active" : ""}`}
-                  onClick={() => applyImageWidth("75%")}
-                  title="75% 中宽尺寸"
-                >
-                  75%
-                </button>
-                <button
-                  type="button"
-                  className={`image-toolbar-btn ${currentPreset === "100%" ? "active" : ""}`}
-                  onClick={() => applyImageWidth("100%")}
-                  title="100% 全宽尺寸"
-                >
-                  100%
-                </button>
-                <button
-                  type="button"
-                  className={`image-toolbar-btn ${currentPreset === "auto" ? "active" : ""}`}
-                  onClick={() => applyImageWidth("auto")}
-                  title="原始自适应尺寸"
-                >
-                  自适应
-                </button>
+                {/* 第一行：百分比尺寸选项 */}
+                <div className="image-toolbar-row">
+                  <button
+                    type="button"
+                    className={`image-toolbar-btn ${currentPreset === "25%" ? "active" : ""}`}
+                    onClick={() => applyImageWidth("25%")}
+                    title="25% 微缩尺寸"
+                  >
+                    25%
+                  </button>
+                  <button
+                    type="button"
+                    className={`image-toolbar-btn ${currentPreset === "50%" ? "active" : ""}`}
+                    onClick={() => applyImageWidth("50%")}
+                    title="50% 半宽尺寸"
+                  >
+                    50%
+                  </button>
+                  <button
+                    type="button"
+                    className={`image-toolbar-btn ${currentPreset === "75%" ? "active" : ""}`}
+                    onClick={() => applyImageWidth("75%")}
+                    title="75% 中宽尺寸"
+                  >
+                    75%
+                  </button>
+                  <button
+                    type="button"
+                    className={`image-toolbar-btn ${currentPreset === "100%" ? "active" : ""}`}
+                    onClick={() => applyImageWidth("100%")}
+                    title="100% 全宽尺寸"
+                  >
+                    100%
+                  </button>
+                  <button
+                    type="button"
+                    className={`image-toolbar-btn ${currentPreset === "auto" ? "active" : ""}`}
+                    onClick={() => applyImageWidth("auto")}
+                    title="原始自适应尺寸"
+                  >
+                    自适应
+                  </button>
+                </div>
 
-                <span style={{ width: "1px", height: "14px", backgroundColor: "rgba(128, 128, 128, 0.25)", margin: "0 3px" }} />
+                {/* 第二行：其他文字按钮 (对齐与操作) */}
+                <div className="image-toolbar-row">
+                  <button
+                    type="button"
+                    className={`image-toolbar-btn ${currentAlign === "left" ? "active" : ""}`}
+                    onClick={() => applyImageAlign("left")}
+                    title="居左对齐"
+                  >
+                    居左
+                  </button>
+                  <button
+                    type="button"
+                    className={`image-toolbar-btn ${currentAlign === "center" ? "active" : ""}`}
+                    onClick={() => applyImageAlign("center")}
+                    title="居中对齐"
+                  >
+                    居中
+                  </button>
+                  <button
+                    type="button"
+                    className={`image-toolbar-btn ${currentAlign === "right" ? "active" : ""}`}
+                    onClick={() => applyImageAlign("right")}
+                    title="居右对齐"
+                  >
+                    居右
+                  </button>
 
-                <button
-                  type="button"
-                  className={`image-toolbar-btn ${currentAlign === "left" ? "active" : ""}`}
-                  onClick={() => applyImageAlign("left")}
-                  title="居左对齐"
-                >
-                  居左
-                </button>
-                <button
-                  type="button"
-                  className={`image-toolbar-btn ${currentAlign === "center" ? "active" : ""}`}
-                  onClick={() => applyImageAlign("center")}
-                  title="居中对齐"
-                >
-                  居中
-                </button>
-                <button
-                  type="button"
-                  className={`image-toolbar-btn ${currentAlign === "right" ? "active" : ""}`}
-                  onClick={() => applyImageAlign("right")}
-                  title="居右对齐"
-                >
-                  居右
-                </button>
+                  <span className="image-toolbar-divider" />
 
-                <span style={{ width: "1px", height: "14px", backgroundColor: "rgba(128, 128, 128, 0.25)", margin: "0 3px" }} />
-
-                <button
-                  type="button"
-                  className="image-toolbar-btn"
-                  onClick={handleDeleteSelectedImage}
-                  style={{ color: "#e74c3c" }}
-                  title="删除图片"
-                >
-                  删除
-                </button>
+                  <button
+                    type="button"
+                    className="image-toolbar-btn image-toolbar-btn-delete"
+                    onClick={handleDeleteSelectedImage}
+                    title="删除图片"
+                  >
+                    删除
+                  </button>
+                </div>
               </div>
 
               {/* 右下角拖拽拉伸控柄 */}
@@ -1627,35 +1717,57 @@ export const MarkdownStudio: React.FC = () => {
       />
 
       {/* Table Insertion Modal */}
-      <Dialog open={tableModalOpen} onOpenChange={(_, d) => setTableModalOpen(d.open)}>
+      <Dialog
+        open={tableModalOpen}
+        onOpenChange={(_, d) => setTableModalOpen(d.open)}
+        surfaceMotion={surfaceMotion}
+      >
         <DialogSurface
+          backdropMotion={backdropMotion}
           backdrop={{
             style: {
-              backdropFilter: "blur(12px) saturate(135%)",
-              WebkitBackdropFilter: "blur(12px) saturate(135%)",
-              backgroundColor: isDark ? "rgba(0, 0, 0, 0.55)" : "rgba(15, 23, 42, 0.4)",
+              backdropFilter: "none",
+              WebkitBackdropFilter: "none",
+              backgroundColor: "rgba(0, 0, 0, 0.4)",
             },
           }}
           style={{
-            maxWidth: "440px",
-            width: "90vw",
-            borderRadius: "16px",
-            padding: "24px",
-            backgroundColor: isDark ? "rgba(28, 28, 35, 0.95)" : "rgba(255, 255, 255, 0.96)",
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
-            border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)",
-            boxShadow: isDark
-              ? "0 28px 72px rgba(0, 0, 0, 0.65), 0 6px 24px rgba(0, 0, 0, 0.4)"
-              : "0 24px 64px rgba(0, 0, 0, 0.22), 0 4px 18px rgba(0, 0, 0, 0.08)",
+            position: isMobile ? "fixed" : undefined,
+            inset: isMobile ? 0 : undefined,
+            top: isMobile ? 0 : undefined,
+            left: isMobile ? 0 : undefined,
+            right: isMobile ? 0 : undefined,
+            bottom: isMobile ? 0 : undefined,
+            margin: isMobile ? 0 : undefined,
+            zIndex: isMobile ? 2000 : undefined,
+            maxWidth: isMobile ? "100vw" : "440px",
+            minWidth: isMobile ? "100vw" : undefined,
+            width: isMobile ? "100vw" : "90vw",
+            maxHeight: isMobile ? "100dvh" : "88vh",
+            height: isMobile ? "100dvh" : undefined,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            borderRadius: isMobile ? 0 : "16px",
+            padding: isMobile ? "max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) 16px" : "24px",
+            backgroundColor: isDark ? "#1c1c23" : "#ffffff",
+            backdropFilter: "none",
+            WebkitBackdropFilter: "none",
+            border: isMobile ? "none" : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)"),
+            boxShadow: isMobile
+              ? "none"
+              : (isDark
+                ? "0 28px 72px rgba(0, 0, 0, 0.65), 0 6px 24px rgba(0, 0, 0, 0.4)"
+                : "0 24px 64px rgba(0, 0, 0, 0.22), 0 4px 18px rgba(0, 0, 0, 0.08)"),
           }}
         >
-          <DialogBody style={{ display: "flex", flexDirection: "column", width: "100%" }}>
-            <div className="dialog-header-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: "16px" }}>
+          <DialogBody style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0, overflow: "hidden", width: "100%" }}>
+            {/* Header - 固定顶部 */}
+            <header className="dialog-header-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: "16px", flexShrink: 0 }}>
               <div className="dialog-header-title" style={{ flex: 1, minWidth: 0 }}>
                 <DialogTitle style={{ padding: 0, margin: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <Table20Regular style={{ color: "#0078d4" }} />
+                    <Table20Regular style={{ color: "#5B7B8D" }} />
                     <Title3 style={{ fontWeight: 600, fontSize: "18px" }}>
                       插入表格
                     </Title3>
@@ -1672,9 +1784,9 @@ export const MarkdownStudio: React.FC = () => {
                   style={{ marginLeft: "auto", flexShrink: 0 }}
                 />
               </Tooltip>
-            </div>
+            </header>
 
-            <DialogContent style={{ display: "flex", flexDirection: "column", gap: "18px", padding: 0 }}>
+            <DialogContent style={{ display: "flex", flexDirection: "column", gap: "18px", padding: 0, flex: "1 1 auto", minHeight: 0, overflowY: "auto" }}>
               {/* Quick Presets */}
               <div>
                 <Caption1 style={{ opacity: 0.65, marginBottom: "8px", display: "block" }}>
@@ -1734,55 +1846,86 @@ export const MarkdownStudio: React.FC = () => {
                 <Caption1 style={{ opacity: 0.65 }}>
                   包含 1 行表头 + {Math.max(1, tableRows - 1)} 行数据
                 </Caption1>
-                <Caption1 style={{ fontWeight: 600, color: "#0078d4" }}>
+                <Caption1 style={{ fontWeight: 600, color: "#5B7B8D" }}>
                   共 {tableRows * tableCols} 个单元格
                 </Caption1>
               </div>
             </DialogContent>
 
-            {/* Footer Actions - 原生 Fluent 2 按钮，无多余线条 */}
-            <DialogActions style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "24px", padding: 0 }}>
-              <Button appearance="secondary" onClick={() => setTableModalOpen(false)}>
-                取消
-              </Button>
-              <Button appearance="primary" onClick={handleInsertTable}>
-                插入表格
-              </Button>
-            </DialogActions>
+            {/* Footer Actions - 固定底部 */}
+            <footer className="dialog-footer-row" style={{ flexShrink: 0, width: "100%" }}>
+              <DialogActions style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "24px", padding: 0, flexShrink: 0 }}>
+                <Button appearance="secondary" onClick={() => setTableModalOpen(false)}>
+                  取消
+                </Button>
+                <Button
+                  appearance="primary"
+                  onClick={handleInsertTable}
+                  style={{
+                    backgroundColor: "#5B7B8D",
+                    fontWeight: 600,
+                  }}
+                >
+                  插入表格
+                </Button>
+              </DialogActions>
+            </footer>
           </DialogBody>
         </DialogSurface>
       </Dialog>
 
       {/* Markdown Source Inspector Dialog (源码检视弹窗) */}
-      <Dialog open={sourceModalOpen} onOpenChange={(_, d) => setSourceModalOpen(d.open)}>
+      <Dialog
+        open={sourceModalOpen}
+        onOpenChange={(_, d) => setSourceModalOpen(d.open)}
+        surfaceMotion={surfaceMotion}
+      >
         <DialogSurface
+          backdropMotion={backdropMotion}
           backdrop={{
             style: {
-              backdropFilter: "blur(12px) saturate(135%)",
-              WebkitBackdropFilter: "blur(12px) saturate(135%)",
-              backgroundColor: isDark ? "rgba(0, 0, 0, 0.55)" : "rgba(15, 23, 42, 0.4)",
+              backdropFilter: "none",
+              WebkitBackdropFilter: "none",
+              backgroundColor: "rgba(0, 0, 0, 0.4)",
             },
           }}
           style={{
-            maxWidth: "840px",
-            width: "92vw",
-            borderRadius: "16px",
-            padding: "24px",
-            backgroundColor: isDark ? "rgba(28, 28, 35, 0.95)" : "rgba(255, 255, 255, 0.96)",
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
-            border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)",
-            boxShadow: isDark
-              ? "0 28px 72px rgba(0, 0, 0, 0.65), 0 6px 24px rgba(0, 0, 0, 0.4)"
-              : "0 24px 64px rgba(0, 0, 0, 0.22), 0 4px 18px rgba(0, 0, 0, 0.08)",
+            position: isMobile ? "fixed" : undefined,
+            inset: isMobile ? 0 : undefined,
+            top: isMobile ? 0 : undefined,
+            left: isMobile ? 0 : undefined,
+            right: isMobile ? 0 : undefined,
+            bottom: isMobile ? 0 : undefined,
+            margin: isMobile ? 0 : undefined,
+            zIndex: isMobile ? 2000 : undefined,
+            maxWidth: isMobile ? "100vw" : "840px",
+            minWidth: isMobile ? "100vw" : undefined,
+            width: isMobile ? "100vw" : "92vw",
+            maxHeight: isMobile ? "100dvh" : "88vh",
+            height: isMobile ? "100dvh" : undefined,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            borderRadius: isMobile ? 0 : "16px",
+            padding: isMobile ? "max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) 16px" : "24px",
+            backgroundColor: isDark ? "#1c1c23" : "#ffffff",
+            backdropFilter: "none",
+            WebkitBackdropFilter: "none",
+            border: isMobile ? "none" : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)"),
+            boxShadow: isMobile
+              ? "none"
+              : (isDark
+                ? "0 28px 72px rgba(0, 0, 0, 0.65), 0 6px 24px rgba(0, 0, 0, 0.4)"
+                : "0 24px 64px rgba(0, 0, 0, 0.22), 0 4px 18px rgba(0, 0, 0, 0.08)"),
           }}
         >
-          <DialogBody style={{ display: "flex", flexDirection: "column", width: "100%" }}>
-            <div className="dialog-header-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: "16px" }}>
+          <DialogBody style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0, overflow: "hidden", width: "100%" }}>
+            {/* Header - 固定顶部 */}
+            <header className="dialog-header-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: "16px", flexShrink: 0 }}>
               <div className="dialog-header-title" style={{ flex: 1, minWidth: 0 }}>
                 <DialogTitle style={{ padding: 0, margin: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <Code20Regular style={{ color: "#0078d4" }} />
+                    <Code20Regular style={{ color: "#5B7B8D" }} />
                     <Title3 style={{ fontWeight: 600, fontSize: "18px" }}>
                       Markdown 源码
                     </Title3>
@@ -1802,9 +1945,9 @@ export const MarkdownStudio: React.FC = () => {
                   style={{ marginLeft: "auto", flexShrink: 0 }}
                 />
               </Tooltip>
-            </div>
+            </header>
 
-            <DialogContent style={{ display: "flex", flexDirection: "column", gap: "12px", padding: 0 }}>
+            <DialogContent style={{ display: "flex", flexDirection: "column", gap: "12px", padding: 0, flex: "1 1 auto", minHeight: 0, overflowY: "auto" }}>
               <textarea
                 value={rawSourceBuffer}
                 onChange={(e) => setRawSourceBuffer(e.target.value)}
@@ -1827,28 +1970,37 @@ export const MarkdownStudio: React.FC = () => {
               />
             </DialogContent>
 
-            {/* Footer Actions - 原生 Fluent 2 按钮，无多余线条 */}
-            <DialogActions style={{ display: "flex", justifyContent: "space-between", marginTop: "20px", padding: 0 }}>
-              <Button
-                appearance="subtle"
-                icon={<Copy20Regular />}
-                onClick={() => {
-                  navigator.clipboard.writeText(rawSourceBuffer);
-                  setCopiedNotice(true);
-                  setTimeout(() => setCopiedNotice(false), 2000);
-                }}
-              >
-                {copiedNotice ? "已复制！" : "复制源码"}
-              </Button>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <Button appearance="secondary" onClick={() => setSourceModalOpen(false)}>
-                  取消
+            {/* Footer Actions - 固定底部 */}
+            <footer className="dialog-footer-row" style={{ flexShrink: 0, width: "100%" }}>
+              <DialogActions style={{ display: "flex", justifyContent: "space-between", marginTop: "20px", padding: 0, flexShrink: 0 }}>
+                <Button
+                  appearance="subtle"
+                  icon={<Copy20Regular />}
+                  onClick={() => {
+                    navigator.clipboard.writeText(rawSourceBuffer);
+                    setCopiedNotice(true);
+                    setTimeout(() => setCopiedNotice(false), 2000);
+                  }}
+                >
+                  {copiedNotice ? "已复制！" : "复制源码"}
                 </Button>
-                <Button appearance="primary" onClick={handleApplySourceModal}>
-                  应用修改
-                </Button>
-              </div>
-            </DialogActions>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <Button appearance="secondary" onClick={() => setSourceModalOpen(false)}>
+                    取消
+                  </Button>
+                  <Button
+                    appearance="primary"
+                    onClick={handleApplySourceModal}
+                    style={{
+                      backgroundColor: "#5B7B8D",
+                      fontWeight: 600,
+                    }}
+                  >
+                    应用修改
+                  </Button>
+                </div>
+              </DialogActions>
+            </footer>
           </DialogBody>
         </DialogSurface>
       </Dialog>
@@ -1861,31 +2013,50 @@ export const MarkdownStudio: React.FC = () => {
             setShowUnsavedModal(false);
           }
         }}
+        surfaceMotion={surfaceMotion}
       >
         <DialogSurface
+          backdropMotion={backdropMotion}
           backdrop={{
             style: {
-              backdropFilter: "blur(12px) saturate(135%)",
-              WebkitBackdropFilter: "blur(12px) saturate(135%)",
-              backgroundColor: isDark ? "rgba(0, 0, 0, 0.55)" : "rgba(15, 23, 42, 0.4)",
+              backdropFilter: "none",
+              WebkitBackdropFilter: "none",
+              backgroundColor: "rgba(0, 0, 0, 0.4)",
             },
           }}
           style={{
-            maxWidth: "460px",
-            width: "90vw",
-            borderRadius: "16px",
-            padding: "24px",
-            backgroundColor: isDark ? "rgba(28, 28, 35, 0.95)" : "rgba(255, 255, 255, 0.96)",
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
-            border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)",
-            boxShadow: isDark
-              ? "0 28px 72px rgba(0, 0, 0, 0.65), 0 6px 24px rgba(0, 0, 0, 0.4)"
-              : "0 24px 64px rgba(0, 0, 0, 0.22), 0 4px 18px rgba(0, 0, 0, 0.08)",
+            position: isMobile ? "fixed" : undefined,
+            inset: isMobile ? 0 : undefined,
+            top: isMobile ? 0 : undefined,
+            left: isMobile ? 0 : undefined,
+            right: isMobile ? 0 : undefined,
+            bottom: isMobile ? 0 : undefined,
+            margin: isMobile ? 0 : undefined,
+            zIndex: isMobile ? 2000 : undefined,
+            maxWidth: isMobile ? "100vw" : "460px",
+            minWidth: isMobile ? "100vw" : undefined,
+            width: isMobile ? "100vw" : "90vw",
+            maxHeight: isMobile ? "100dvh" : "88vh",
+            height: isMobile ? "100dvh" : undefined,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            borderRadius: isMobile ? 0 : "16px",
+            padding: isMobile ? "max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) 16px" : "24px",
+            backgroundColor: isDark ? "#1c1c23" : "#ffffff",
+            backdropFilter: "none",
+            WebkitBackdropFilter: "none",
+            border: isMobile ? "none" : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)"),
+            boxShadow: isMobile
+              ? "none"
+              : (isDark
+                ? "0 28px 72px rgba(0, 0, 0, 0.65), 0 6px 24px rgba(0, 0, 0, 0.4)"
+                : "0 24px 64px rgba(0, 0, 0, 0.22), 0 4px 18px rgba(0, 0, 0, 0.08)"),
           }}
         >
-          <DialogBody style={{ display: "flex", flexDirection: "column", width: "100%" }}>
-            <div className="dialog-header-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: "16px" }}>
+          <DialogBody style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0, overflow: "hidden", width: "100%" }}>
+            {/* Header - 固定顶部 */}
+            <header className="dialog-header-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: "16px", flexShrink: 0 }}>
               <div className="dialog-header-title" style={{ flex: 1, minWidth: 0 }}>
                 <DialogTitle style={{ padding: 0, margin: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -1906,9 +2077,9 @@ export const MarkdownStudio: React.FC = () => {
                   style={{ marginLeft: "auto", flexShrink: 0 }}
                 />
               </Tooltip>
-            </div>
+            </header>
 
-            <DialogContent style={{ display: "flex", flexDirection: "column", gap: "14px", padding: 0 }}>
+            <DialogContent style={{ display: "flex", flexDirection: "column", gap: "14px", padding: 0, flex: "1 1 auto", minHeight: 0, overflowY: "auto" }}>
               <div
                 style={{
                   padding: "12px 14px",
@@ -1939,42 +2110,147 @@ export const MarkdownStudio: React.FC = () => {
               )}
             </DialogContent>
 
-            <DialogActions style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px", flexWrap: "wrap" }}>
-              <Button appearance="secondary" onClick={() => setShowUnsavedModal(false)}>
-                继续编辑
-              </Button>
-              <Button
-                appearance="subtle"
-                style={{ color: isDark ? "#f87171" : "#dc2626" }}
-                onClick={() => {
-                  setIsDirty(false);
-                  setShowUnsavedModal(false);
-                  navigate(pendingNavPath || "/workspace");
-                }}
-              >
-                放弃修改并退出
-              </Button>
-              <Button
-                appearance="primary"
-                disabled={isSaving}
-                icon={isSaving ? <Spinner size="tiny" /> : undefined}
-                onClick={async () => {
-                  if (!title.trim()) {
-                    setUnsavedModalError("日记标题不能为空，请先在正文上方输入日记标题");
-                    return;
-                  }
-                  const success = await handleSave(pendingNavPath || "/workspace");
-                  if (success) {
+            {/* Footer Actions - 固定底部 */}
+            <footer className="dialog-footer-row" style={{ flexShrink: 0, width: "100%" }}>
+              <DialogActions style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px", flexWrap: "wrap", flexShrink: 0 }}>
+                <Button appearance="secondary" onClick={() => setShowUnsavedModal(false)}>
+                  继续编辑
+                </Button>
+                <Button
+                  appearance="subtle"
+                  style={{ color: isDark ? "#f87171" : "#dc2626" }}
+                  onClick={() => {
+                    setIsDirty(false);
                     setShowUnsavedModal(false);
-                  }
-                }}
-              >
-                保存并退出
-              </Button>
-            </DialogActions>
+                    navigate(pendingNavPath || "/workspace");
+                  }}
+                >
+                  放弃修改并退出
+                </Button>
+                <Button
+                  appearance="primary"
+                  disabled={isSaving}
+                  icon={isSaving ? <Spinner size="tiny" /> : undefined}
+                  onClick={async () => {
+                    if (!title.trim()) {
+                      setUnsavedModalError("日记标题不能为空，请先在正文上方输入日记标题");
+                      return;
+                    }
+                    const success = await handleSave(pendingNavPath || "/workspace");
+                    if (success) {
+                      setShowUnsavedModal(false);
+                    }
+                  }}
+                  style={{
+                    backgroundColor: "#5B7B8D",
+                    fontWeight: 600,
+                  }}
+                >
+                  保存并退出
+                </Button>
+              </DialogActions>
+            </footer>
           </DialogBody>
         </DialogSurface>
       </Dialog>
+
+      {/* Mobile Sticky Bottom Status Bar (移动端/窄屏模式固定底部栏) */}
+      <footer className="studio-mobile-bottom-bar mobile-only">
+        {/* 左下角：天气和心情胶囊（去掉边框） */}
+        <div className="studio-bottom-left" style={{ display: "flex", alignItems: "center", gap: "2px", flexShrink: 0 }}>
+          <WeatherPicker
+            value={weather}
+            onChange={(w) => {
+              setWeather(w);
+              setIsDirty(true);
+            }}
+            borderless
+            size="small"
+          />
+          <MoodPicker
+            value={mood}
+            onChange={(m) => {
+              setMood(m);
+              setIsDirty(true);
+            }}
+            borderless
+            size="small"
+          />
+        </div>
+
+        {/* 右下角：时间、是否公开、总字数（已阅读时间已去除） */}
+        <div className="studio-bottom-right" style={{ display: "flex", alignItems: "center", gap: "7px", flexShrink: 0 }}>
+          {/* 时间 */}
+          <span
+            className="studio-bottom-date"
+            style={{
+              fontSize: "11px",
+              opacity: 0.65,
+              fontWeight: 500,
+              whiteSpace: "nowrap",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "2px",
+            }}
+          >
+            📅 {createdAt ? formatDate(createdAt) : formatDate(new Date().toISOString())}
+          </span>
+
+          {/* 是否公开 */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsPublic(!isPublic);
+              setIsDirty(true);
+            }}
+            style={{
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "3px",
+              border: isPublic
+                ? "1px solid rgba(91, 123, 141, 0.35)"
+                : isDark
+                ? "1px solid rgba(255, 255, 255, 0.14)"
+                : "1px solid rgba(0, 0, 0, 0.12)",
+              background: isPublic
+                ? isDark
+                  ? "rgba(91, 123, 141, 0.22)"
+                  : "rgba(91, 123, 141, 0.1)"
+                : isDark
+                ? "rgba(255, 255, 255, 0.06)"
+                : "rgba(0, 0, 0, 0.04)",
+              color: isPublic ? (isDark ? "#8EAEC0" : "#5B7B8D") : isDark ? "rgba(255, 255, 255, 0.75)" : "#605e5c",
+              borderRadius: "12px",
+              padding: "2px 7px",
+              fontSize: "11px",
+              fontWeight: 600,
+              transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+              whiteSpace: "nowrap",
+            }}
+            aria-label="切换公开状态"
+          >
+            {isPublic ? (
+              <Globe20Regular style={{ fontSize: "13px", color: isDark ? "#8EAEC0" : "#5B7B8D" }} />
+            ) : (
+              <LockClosed20Regular style={{ fontSize: "13px" }} />
+            )}
+            <span>{isPublic ? "公开" : "私密"}</span>
+          </button>
+
+          {/* 总字数 */}
+          <span
+            style={{
+              fontSize: "11px",
+              opacity: 0.8,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}
+          >
+            📝 {stats.chars}
+          </span>
+        </div>
+      </footer>
     </div>
   );
 };

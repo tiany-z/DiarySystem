@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { authApi, AuthUserInfo } from "../api/auth";
+import { authApi, AuthUserInfo, userApi } from "../api/auth";
 
 interface AuthContextType {
   user: AuthUserInfo | null;
@@ -13,6 +13,8 @@ interface AuthContextType {
     nickname?: string
   ) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
+  updateAvatar: (avatarUrl: string | null) => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -23,6 +25,8 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => ({ success: false }),
   register: async () => ({ success: false }),
   logout: () => {},
+  updateAvatar: () => {},
+  refreshProfile: async () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -37,6 +41,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (savedToken && savedUser) {
         setToken(savedToken);
         setUser(JSON.parse(savedUser));
+        // 自动静默同步最新的用户头像及资料
+        userApi
+          .getProfile()
+          .then((res) => {
+            if (res.status === 1 && res.data) {
+              setUser((prev) => {
+                if (!prev) return null;
+                const updated = { ...prev, ...res.data };
+                localStorage.setItem("diary_user", JSON.stringify(updated));
+                return updated;
+              });
+            }
+          })
+          .catch(() => {});
       }
     } catch {
       localStorage.removeItem("diary_token");
@@ -83,6 +101,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     localStorage.removeItem("diary_token");
     localStorage.removeItem("diary_user");
+    window.dispatchEvent(new CustomEvent("diary:clear_cache"));
+  };
+
+  const updateAvatar = (avatarUrl: string | null) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, avatar: avatarUrl };
+      localStorage.setItem("diary_user", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const refreshProfile = async () => {
+    try {
+      const res = await userApi.getProfile();
+      if (res.status === 1 && res.data) {
+        setUser((prev) => {
+          if (!prev) return null;
+          const updated = { ...prev, ...res.data };
+          localStorage.setItem("diary_user", JSON.stringify(updated));
+          return updated;
+        });
+      }
+    } catch {
+      // ignore
+    }
   };
 
   return (
@@ -95,6 +139,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
+        updateAvatar,
+        refreshProfile,
       }}
     >
       {children}

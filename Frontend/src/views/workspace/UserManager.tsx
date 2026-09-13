@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Avatar,
@@ -32,7 +32,6 @@ import {
 } from "@fluentui/react-components";
 import {
   Add20Filled,
-  ArrowLeft20Regular,
   ArrowSync20Regular,
   Delete20Regular,
   Dismiss20Regular,
@@ -41,7 +40,6 @@ import {
   EyeOff20Regular,
   Key20Regular,
   LockClosed20Regular,
-  PeopleCommunity24Filled,
   PersonAdd20Regular,
   Person20Regular,
   Search20Regular,
@@ -50,15 +48,24 @@ import {
 } from "@fluentui/react-icons";
 import { adminApi, AdminUserInfo } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
+import { usePageCache } from "../../context/PageCacheContext";
 import { useAppTheme } from "../../context/ThemeContext";
+import { useAppDialogMotion } from "../../utils/dialogMotion";
 
 export const UserManager: React.FC = () => {
   const { user } = useAuth();
   const { isDark } = useAppTheme();
+  const { surfaceMotion, backdropMotion, isMobile } = useAppDialogMotion();
   const navigate = useNavigate();
 
-  const [users, setUsers] = useState<AdminUserInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { hasPageLoaded, markPageLoaded, getCachedData, setCachedData } = usePageCache();
+  const PAGE_KEY = "workspace_users";
+  const alreadyLoaded = hasPageLoaded(PAGE_KEY);
+  const cachedUsers = getCachedData<AdminUserInfo[]>(PAGE_KEY);
+
+  const [users, setUsers] = useState<AdminUserInfo[]>(cachedUsers || []);
+  const [isPageLoading, setIsPageLoading] = useState<boolean>(!alreadyLoaded || cachedUsers === null);
+  const [shouldAnimate, setShouldAnimate] = useState<boolean>(!alreadyLoaded);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -79,6 +86,12 @@ export const UserManager: React.FC = () => {
 
   // 修改密码表单
   const [selectedUserForPass, setSelectedUserForPass] = useState<AdminUserInfo | null>(null);
+  const lastUserForPassRef = useRef<AdminUserInfo | null>(selectedUserForPass);
+  if (selectedUserForPass) {
+    lastUserForPassRef.current = selectedUserForPass;
+  }
+  const activeUserForPass = selectedUserForPass || lastUserForPassRef.current;
+
   const [updatedPassword, setUpdatedPassword] = useState("");
   const [updatedConfirmPassword, setUpdatedConfirmPassword] = useState("");
   const [showUpdatedPassword, setShowUpdatedPassword] = useState(false);
@@ -87,24 +100,38 @@ export const UserManager: React.FC = () => {
 
   // 删除用户确认
   const [selectedUserForDelete, setSelectedUserForDelete] = useState<AdminUserInfo | null>(null);
+  const lastUserForDeleteRef = useRef<AdminUserInfo | null>(selectedUserForDelete);
+  if (selectedUserForDelete) {
+    lastUserForDeleteRef.current = selectedUserForDelete;
+  }
+  const activeUserForDelete = selectedUserForDelete || lastUserForDeleteRef.current;
+
   const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
   const [deleteModalError, setDeleteModalError] = useState<string | null>(null);
 
   // 加载用户列表
-  const fetchUsers = async () => {
-    setIsLoading(true);
-    setErrorMsg(null);
+  const fetchUsers = async (isSilent: boolean = false) => {
+    if (!isSilent) {
+      setIsPageLoading(true);
+      setErrorMsg(null);
+    }
     try {
       const res = await adminApi.getUsersList();
       if (res.status === 1 && res.data) {
         setUsers(res.data);
-      } else {
+        setCachedData(PAGE_KEY, res.data);
+      } else if (!isSilent) {
         setErrorMsg(res.content || "获取用户列表失败");
       }
     } catch (err: any) {
-      setErrorMsg(`网络请求异常: ${err.message || String(err)}`);
+      if (!isSilent) {
+        setErrorMsg(`网络请求异常: ${err.message || String(err)}`);
+      }
     } finally {
-      setIsLoading(false);
+      if (!isSilent) {
+        setIsPageLoading(false);
+        markPageLoaded(PAGE_KEY);
+      }
     }
   };
 
@@ -114,7 +141,14 @@ export const UserManager: React.FC = () => {
       navigate("/workspace", { replace: true });
       return;
     }
-    fetchUsers();
+    if (alreadyLoaded && cachedUsers !== null) {
+      // 页面加载过之后：不显示全屏转圈，不重复动画，后台静默调用一次数据更新直接展示最新数据
+      setShouldAnimate(false);
+      fetchUsers(true);
+    } else {
+      // 首次进入：居中转圈，完成后动画显示
+      fetchUsers(false);
+    }
   }, [user]);
 
   // 搜索过滤
@@ -169,7 +203,7 @@ export const UserManager: React.FC = () => {
         setNewNickname("");
         setNewPassword("");
         setNewConfirmPassword("");
-        setSuccessMsg(`✅ 成功添加新用户 [${u}]`);
+        setSuccessMsg(`已添加用户 [${u}]`);
         await fetchUsers();
       } else {
         setAddModalError(res.content || "创建用户失败");
@@ -213,7 +247,7 @@ export const UserManager: React.FC = () => {
         setIsUpdatePassOpen(false);
         setUpdatedPassword("");
         setUpdatedConfirmPassword("");
-        setSuccessMsg(`✅ 成功重置用户 [${selectedUserForPass.username}] 的登录密码`);
+        setSuccessMsg(`已修改用户 [${selectedUserForPass.username}] 的密码`);
         setSelectedUserForPass(null);
       } else {
         setPassModalError(res.content || "修改密码失败");
@@ -238,9 +272,7 @@ export const UserManager: React.FC = () => {
 
       if (res.status === 1) {
         setIsDeleteOpen(false);
-        setSuccessMsg(
-          `🗑️ 成功彻底销毁用户 [${selectedUserForDelete.username}]（连带清除了 ${res.data?.deletedNotesCount || 0} 篇笔记）`
-        );
+        setSuccessMsg(`已删除用户 [${selectedUserForDelete.username}]`);
         setSelectedUserForDelete(null);
         await fetchUsers();
       } else {
@@ -253,71 +285,50 @@ export const UserManager: React.FC = () => {
     }
   };
 
+  if (isPageLoading) {
+    return (
+      <div className="fluent-page-center-loader">
+        <Spinner size="large" label="正在获取用户数据..." />
+      </div>
+    );
+  }
+
   return (
     <div
+      className="win10-page-transition-host user-manager-page-container page-content-container"
       style={{
-        maxWidth: "1200px",
-        margin: "0 auto",
-        padding: "32px 20px 60px",
         width: "100%",
+        maxWidth: "1280px",
+        margin: "0 auto",
+        padding: "32px 24px 80px 24px",
         boxSizing: "border-box",
+        minWidth: 0,
       }}
     >
       {/* Top Header Bar */}
       <div
+        className="win10-tile-rise win10-delay-1 user-manager-header page-header-bar"
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           flexWrap: "wrap",
           gap: "16px",
-          marginBottom: "28px",
+          marginBottom: "24px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <div
-            style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "14px",
-              background: "linear-gradient(135deg, #0078d4, #005a9e)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#ffffff",
-              boxShadow: "0 8px 24px rgba(0, 120, 212, 0.3)",
-            }}
-          >
-            <PeopleCommunity24Filled />
-          </div>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Title2 style={{ fontWeight: 700, margin: 0, fontSize: "24px" }}>
-                用户管理中枢
-              </Title2>
-              <Badge appearance="filled" color="brand" size="medium">
-                👑 系统总管控制台
-              </Badge>
-            </div>
-            <Body1 style={{ opacity: 0.65, fontSize: "13px", marginTop: "4px" }}>
-              总账户专享功能：注册开立新用户、重置修改任意密码、级联清理注销账户
-            </Body1>
-          </div>
-        </div>
+        <Title2 style={{ fontWeight: 800, margin: 0 }}>用户管理</Title2>
 
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <Button
-            appearance="subtle"
-            icon={<ArrowLeft20Regular />}
-            onClick={() => navigate("/workspace")}
-          >
-            返回我的日记库
-          </Button>
-          <Button
-            appearance="subtle"
+            appearance="secondary"
             icon={<ArrowSync20Regular />}
-            onClick={fetchUsers}
-            disabled={isLoading}
+            onClick={() => fetchUsers(false)}
+            disabled={isPageLoading}
+            style={{
+              borderRadius: "8px",
+              fontWeight: 600,
+            }}
           >
             刷新
           </Button>
@@ -329,12 +340,12 @@ export const UserManager: React.FC = () => {
               setIsAddUserOpen(true);
             }}
             style={{
-              background: "linear-gradient(135deg, #0078d4, #005a9e)",
+              backgroundColor: "#5B7B8D",
               borderRadius: "8px",
               fontWeight: 600,
             }}
           >
-            添加新账户
+            添加用户
           </Button>
         </div>
       </div>
@@ -353,6 +364,7 @@ export const UserManager: React.FC = () => {
 
       {/* Stats Cards */}
       <div
+        className="win10-stagger-grid user-manager-stats-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
@@ -369,13 +381,13 @@ export const UserManager: React.FC = () => {
           }}
         >
           <Caption1 style={{ opacity: 0.65, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-            全站已注册用户数
+            用户总数
           </Caption1>
-          <div style={{ fontSize: "32px", fontWeight: 700, color: "#0078d4", marginTop: "4px" }}>
+          <div style={{ fontSize: "32px", fontWeight: 700, color: isDark ? "#8EAEC0" : "#5B7B8D", marginTop: "4px" }}>
             {users.length}
           </div>
           <Caption1 style={{ opacity: 0.6, marginTop: "4px" }}>
-            仅限管理员手动开立，无外部匿名注册
+            系统注册用户
           </Caption1>
         </Card>
 
@@ -388,39 +400,20 @@ export const UserManager: React.FC = () => {
           }}
         >
           <Caption1 style={{ opacity: 0.65, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-            全站随笔日记总数
+            笔记总数
           </Caption1>
           <div style={{ fontSize: "32px", fontWeight: 700, color: "#107c41", marginTop: "4px" }}>
             {totalNotes}
           </div>
           <Caption1 style={{ opacity: 0.6, marginTop: "4px" }}>
-            删除用户时将自动连带永久清空所有笔记
-          </Caption1>
-        </Card>
-
-        <Card
-          style={{
-            padding: "20px 24px",
-            borderRadius: "14px",
-            backgroundColor: isDark ? "#202026" : "#ffffff",
-            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
-          }}
-        >
-          <Caption1 style={{ opacity: 0.65, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-            当前操作执行人
-          </Caption1>
-          <div style={{ fontSize: "20px", fontWeight: 700, marginTop: "10px", display: "flex", alignItems: "center", gap: "8px" }}>
-            <Avatar name="tiany" size={28} color="brand" />
-            <span>@tiany (系统总管)</span>
-          </div>
-          <Caption1 style={{ opacity: 0.6, marginTop: "6px" }}>
-            拥有全站全局调度与管理权限
+            包含全部用户笔记
           </Caption1>
         </Card>
       </div>
 
       {/* Filter and Table Container */}
       <Card
+        className="win10-tile-rise win10-delay-4 user-manager-table-card"
         style={{
           padding: "24px",
           borderRadius: "16px",
@@ -429,39 +422,81 @@ export const UserManager: React.FC = () => {
           boxShadow: isDark
             ? "0 8px 32px rgba(0, 0, 0, 0.4)"
             : "0 8px 32px rgba(0, 0, 0, 0.06)",
+          minWidth: 0,
+          width: "100%",
+          maxWidth: "100%",
+          boxSizing: "border-box",
         }}
       >
-        {/* Search Bar */}
-        <div style={{ marginBottom: "20px", maxWidth: "360px" }}>
-          <Input
-            contentBefore={<Search20Regular />}
-            placeholder="按用户名或昵称搜索..."
-            value={searchQuery}
-            onChange={(_, data) => setSearchQuery(data.value)}
-            style={{ width: "100%" }}
-          />
+        {/* Search Bar & Mobile Hint */}
+        <div
+          style={{
+            marginBottom: "20px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "10px",
+          }}
+        >
+          <div style={{ maxWidth: "360px", width: "100%", flex: 1, minWidth: "200px" }}>
+            <Input
+              contentBefore={<Search20Regular />}
+              placeholder="搜索用户..."
+              value={searchQuery}
+              onChange={(_, data) => setSearchQuery(data.value)}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <Caption1
+            className="mobile-only"
+            style={{
+              opacity: 0.65,
+              fontSize: "12px",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              userSelect: "none",
+            }}
+          >
+            ↔ 列表可左右滑动
+          </Caption1>
         </div>
 
         {/* User Table */}
-        {isLoading ? (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <Spinner size="large" label="正在拉取全量用户数据..." />
-          </div>
-        ) : filteredUsers.length === 0 ? (
+        {filteredUsers.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 0", opacity: 0.6 }}>
             <Person20Regular style={{ fontSize: "36px", marginBottom: "8px" }} />
-            <div>未检索到匹配的用户记录</div>
+            <div>未找到匹配用户</div>
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <Table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 4px" }}>
+          <div
+            className="user-table-scroll-wrapper"
+            style={{
+              width: "100%",
+              maxWidth: "100%",
+              minWidth: 0,
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
+              paddingBottom: "4px",
+            }}
+          >
+            <Table
+              className="user-management-table"
+              style={{
+                minWidth: "680px",
+                width: "100%",
+                borderCollapse: "separate",
+                borderSpacing: "0 4px",
+              }}
+            >
               <TableHeader>
                 <TableRow>
-                  <TableHeaderCell style={{ fontWeight: 600 }}>用户信息</TableHeaderCell>
-                  <TableHeaderCell style={{ fontWeight: 600 }}>系统角色</TableHeaderCell>
-                  <TableHeaderCell style={{ fontWeight: 600 }}>关联随笔数</TableHeaderCell>
-                  <TableHeaderCell style={{ fontWeight: 600 }}>注册创建时间</TableHeaderCell>
-                  <TableHeaderCell style={{ fontWeight: 600, textAlign: "right" }}>操作</TableHeaderCell>
+                  <TableHeaderCell style={{ fontWeight: 600, minWidth: "160px", whiteSpace: "nowrap" }}>用户信息</TableHeaderCell>
+                  <TableHeaderCell style={{ fontWeight: 600, minWidth: "100px", whiteSpace: "nowrap" }}>系统角色</TableHeaderCell>
+                  <TableHeaderCell style={{ fontWeight: 600, minWidth: "120px", whiteSpace: "nowrap" }}>关联随笔数</TableHeaderCell>
+                  <TableHeaderCell style={{ fontWeight: 600, minWidth: "160px", whiteSpace: "nowrap" }}>注册创建时间</TableHeaderCell>
+                  <TableHeaderCell style={{ fontWeight: 600, minWidth: "140px", whiteSpace: "nowrap", textAlign: "right" }}>操作</TableHeaderCell>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -476,10 +511,15 @@ export const UserManager: React.FC = () => {
                       }}
                     >
                       {/* User Info */}
-                      <TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 0" }}>
                           <Avatar
-                            name={item.nickname || item.username}
+                            image={
+                              (item.avatar || (user?.username === item.username ? user?.avatar : null))
+                                ? { src: (item.avatar || (user?.username === item.username ? user?.avatar : null))! }
+                                : undefined
+                            }
+                            aria-label={item.nickname || item.username}
                             color={isSuperAdmin ? "brand" : "colorful"}
                             size={36}
                           />
@@ -487,16 +527,18 @@ export const UserManager: React.FC = () => {
                             <Body1Strong style={{ display: "block" }}>
                               {item.nickname || item.username}
                             </Body1Strong>
-                            <Caption1 style={{ opacity: 0.6 }}>@{item.username}</Caption1>
+                            <Caption1 style={{ opacity: 0.6 }}>
+                              @{item.username}
+                            </Caption1>
                           </div>
                         </div>
                       </TableCell>
 
                       {/* Role */}
-                      <TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap" }}>
                         {isSuperAdmin ? (
                           <Badge appearance="filled" color="brand">
-                            👑 系统总管
+                            管理员
                           </Badge>
                         ) : (
                           <Badge appearance="tint" color="informative">
@@ -506,7 +548,7 @@ export const UserManager: React.FC = () => {
                       </TableCell>
 
                       {/* Notes count */}
-                      <TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                           <Document20Regular style={{ opacity: 0.6 }} />
                           <Body1>{item.note_count || 0} 篇</Body1>
@@ -514,16 +556,16 @@ export const UserManager: React.FC = () => {
                       </TableCell>
 
                       {/* Created At */}
-                      <TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap" }}>
                         <Caption1 style={{ opacity: 0.75 }}>
                           {item.created_at ? new Date(item.created_at).toLocaleString("zh-CN") : "-"}
                         </Caption1>
                       </TableCell>
 
                       {/* Actions */}
-                      <TableCell style={{ textAlign: "right" }}>
-                        <div style={{ display: "inline-flex", gap: "6px" }}>
-                          <Tooltip content="修改该账户登录密码" relationship="label">
+                      <TableCell style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "inline-flex", gap: "6px", flexShrink: 0 }}>
+                          <Tooltip content="修改密码" relationship="label">
                             <Button
                               appearance="subtle"
                               size="small"
@@ -541,7 +583,7 @@ export const UserManager: React.FC = () => {
                           </Tooltip>
 
                           <Tooltip
-                            content={isSuperAdmin ? "系统总管账户不可删除" : "连带删除此用户及其所有笔记"}
+                            content={isSuperAdmin ? "不可删除管理员" : "删除用户"}
                             relationship="label"
                           >
                             <Button
@@ -556,7 +598,7 @@ export const UserManager: React.FC = () => {
                               }}
                               style={{ color: isSuperAdmin ? undefined : "#d13438" }}
                             >
-                              删除账户
+                              删除
                             </Button>
                           </Tooltip>
                         </div>
@@ -571,48 +613,95 @@ export const UserManager: React.FC = () => {
       </Card>
 
       {/* 模态框 1：添加新用户 */}
-      <Dialog open={isAddUserOpen} onOpenChange={(_, data) => setIsAddUserOpen(data.open)}>
-        <DialogSurface style={{ maxWidth: "460px" }}>
-          <form onSubmit={handleAddUserSubmit}>
-            <DialogBody>
-              <DialogTitle
-                action={
+      <Dialog
+        open={isAddUserOpen}
+        onOpenChange={(_, data) => setIsAddUserOpen(data.open)}
+        surfaceMotion={surfaceMotion}
+      >
+        <DialogSurface
+          backdropMotion={backdropMotion}
+          backdrop={{
+            style: {
+              backdropFilter: "none",
+              WebkitBackdropFilter: "none",
+              backgroundColor: "rgba(0, 0, 0, 0.4)",
+            },
+          }}
+          style={{
+            position: isMobile ? "fixed" : undefined,
+            inset: isMobile ? 0 : undefined,
+            top: isMobile ? 0 : undefined,
+            left: isMobile ? 0 : undefined,
+            right: isMobile ? 0 : undefined,
+            bottom: isMobile ? 0 : undefined,
+            margin: isMobile ? 0 : undefined,
+            zIndex: isMobile ? 2000 : undefined,
+            maxWidth: isMobile ? "100vw" : "460px",
+            minWidth: isMobile ? "100vw" : undefined,
+            width: isMobile ? "100vw" : undefined,
+            maxHeight: isMobile ? "100dvh" : "88vh",
+            height: isMobile ? "100dvh" : undefined,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            borderRadius: isMobile ? 0 : "16px",
+            padding: isMobile ? "max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) 16px" : undefined,
+            backgroundColor: isDark ? "#1c1c23" : "#ffffff",
+            backdropFilter: "none",
+            WebkitBackdropFilter: "none",
+            border: isMobile ? "none" : undefined,
+          }}
+        >
+          <form onSubmit={handleAddUserSubmit} style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0, overflow: "hidden", width: "100%" }}>
+            <DialogBody style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0, overflow: "hidden", width: "100%" }}>
+              {/* Header - 固定顶部 */}
+              <header className="dialog-header-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: "16px", flexShrink: 0 }}>
+                <div className="dialog-header-title" style={{ flex: 1, minWidth: 0 }}>
+                  <DialogTitle style={{ padding: 0, margin: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <PersonAdd20Regular style={{ color: "#5B7B8D" }} />
+                      <Title3 style={{ fontWeight: 600, fontSize: "18px" }}>添加用户</Title3>
+                    </div>
+                  </DialogTitle>
+                </div>
+                <Tooltip content="关闭" relationship="label">
                   <Button
+                    className="dialog-close-btn"
                     appearance="subtle"
-                    aria-label="close"
                     icon={<Dismiss20Regular />}
                     onClick={() => setIsAddUserOpen(false)}
+                    aria-label="关闭"
+                    style={{ marginLeft: "auto", flexShrink: 0 }}
                   />
-                }
-              >
-                添加新用户账户
-              </DialogTitle>
-              <DialogContent style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "12px" }}>
+                </Tooltip>
+              </header>
+
+              <DialogContent style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "12px", flex: "1 1 auto", minHeight: 0, overflowY: "auto" }}>
                 {addModalError && (
                   <MessageBar intent="error">
                     <MessageBarBody>{addModalError}</MessageBarBody>
                   </MessageBar>
                 )}
 
-                <Field label="账号用户名" required hint="用户登录时使用的唯一账号名">
+                <Field label="用户名" required>
                   <Input
                     contentBefore={<Person20Regular />}
-                    placeholder="请输入用户名 (如 alice)"
+                    placeholder="请输入用户名"
                     value={newUsername}
                     onChange={(_, data) => setNewUsername(data.value)}
                     required
                   />
                 </Field>
 
-                <Field label="个性手记昵称" hint="日记展示与广场展示的名号">
+                <Field label="昵称">
                   <Input
-                    placeholder="请输入昵称 (如 拾光作者)"
+                    placeholder="请输入昵称"
                     value={newNickname}
                     onChange={(_, data) => setNewNickname(data.value)}
                   />
                 </Field>
 
-                <Field label="初始登录密码" required hint="不少于 6 位密码">
+                <Field label="初始密码" required hint="不少于 6 位">
                   <Input
                     type={showNewPassword ? "text" : "password"}
                     contentBefore={<LockClosed20Regular />}
@@ -625,60 +714,115 @@ export const UserManager: React.FC = () => {
                         tabIndex={-1}
                       />
                     }
-                    placeholder="请输入初始登录密码"
+                    placeholder="请输入初始密码"
                     value={newPassword}
                     onChange={(_, data) => setNewPassword(data.value)}
                     required
                   />
                 </Field>
 
-                <Field label="确认初始密码" required>
+                <Field label="确认密码" required>
                   <Input
                     type={showNewPassword ? "text" : "password"}
                     contentBefore={<LockClosed20Regular />}
-                    placeholder="请再次输入初始密码"
+                    placeholder="请再次输入密码"
                     value={newConfirmPassword}
                     onChange={(_, data) => setNewConfirmPassword(data.value)}
                     required
                   />
                 </Field>
               </DialogContent>
-              <DialogActions style={{ marginTop: "20px" }}>
-                <Button appearance="secondary" onClick={() => setIsAddUserOpen(false)}>
-                  取消
-                </Button>
-                <Button
-                  type="submit"
-                  appearance="primary"
-                  disabled={isAddSubmitting}
-                  icon={isAddSubmitting ? <Spinner size="tiny" /> : <Add20Filled />}
-                >
-                  {isAddSubmitting ? "正在开立..." : "确认添加"}
-                </Button>
-              </DialogActions>
+
+              {/* Footer Actions - 固定底部 */}
+              <footer className="dialog-footer-row" style={{ flexShrink: 0, width: "100%" }}>
+                <DialogActions style={{ marginTop: "20px", flexShrink: 0 }}>
+                  <Button appearance="secondary" onClick={() => setIsAddUserOpen(false)}>
+                    取消
+                  </Button>
+                  <Button
+                    type="submit"
+                    appearance="primary"
+                    disabled={isAddSubmitting}
+                    icon={isAddSubmitting ? <Spinner size="tiny" /> : <Add20Filled />}
+                    style={{
+                      backgroundColor: "#5B7B8D",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {isAddSubmitting ? "正在添加..." : "添加"}
+                  </Button>
+                </DialogActions>
+              </footer>
             </DialogBody>
           </form>
         </DialogSurface>
       </Dialog>
 
       {/* 模态框 2：修改密码 */}
-      <Dialog open={isUpdatePassOpen} onOpenChange={(_, data) => setIsUpdatePassOpen(data.open)}>
-        <DialogSurface style={{ maxWidth: "440px" }}>
-          <form onSubmit={handleUpdatePasswordSubmit}>
-            <DialogBody>
-              <DialogTitle
-                action={
+      <Dialog
+        open={isUpdatePassOpen}
+        onOpenChange={(_, data) => setIsUpdatePassOpen(data.open)}
+        surfaceMotion={surfaceMotion}
+      >
+        <DialogSurface
+          backdropMotion={backdropMotion}
+          backdrop={{
+            style: {
+              backdropFilter: "none",
+              WebkitBackdropFilter: "none",
+              backgroundColor: "rgba(0, 0, 0, 0.4)",
+            },
+          }}
+          style={{
+            position: isMobile ? "fixed" : undefined,
+            inset: isMobile ? 0 : undefined,
+            top: isMobile ? 0 : undefined,
+            left: isMobile ? 0 : undefined,
+            right: isMobile ? 0 : undefined,
+            bottom: isMobile ? 0 : undefined,
+            margin: isMobile ? 0 : undefined,
+            zIndex: isMobile ? 2000 : undefined,
+            maxWidth: isMobile ? "100vw" : "440px",
+            minWidth: isMobile ? "100vw" : undefined,
+            width: isMobile ? "100vw" : undefined,
+            maxHeight: isMobile ? "100dvh" : "88vh",
+            height: isMobile ? "100dvh" : undefined,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            borderRadius: isMobile ? 0 : "16px",
+            padding: isMobile ? "max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) 16px" : undefined,
+            backgroundColor: isDark ? "#1c1c23" : "#ffffff",
+            backdropFilter: "none",
+            WebkitBackdropFilter: "none",
+            border: isMobile ? "none" : undefined,
+          }}
+        >
+          <form onSubmit={handleUpdatePasswordSubmit} style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0, overflow: "hidden", width: "100%" }}>
+            <DialogBody style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0, overflow: "hidden", width: "100%" }}>
+              {/* Header - 固定顶部 */}
+              <header className="dialog-header-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: "16px", flexShrink: 0 }}>
+                <div className="dialog-header-title" style={{ flex: 1, minWidth: 0 }}>
+                  <DialogTitle style={{ padding: 0, margin: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <Key20Regular style={{ color: "#5B7B8D" }} />
+                      <Title3 style={{ fontWeight: 600, fontSize: "18px" }}>修改密码</Title3>
+                    </div>
+                  </DialogTitle>
+                </div>
+                <Tooltip content="关闭" relationship="label">
                   <Button
+                    className="dialog-close-btn"
                     appearance="subtle"
-                    aria-label="close"
                     icon={<Dismiss20Regular />}
                     onClick={() => setIsUpdatePassOpen(false)}
+                    aria-label="关闭"
+                    style={{ marginLeft: "auto", flexShrink: 0 }}
                   />
-                }
-              >
-                重置用户密码
-              </DialogTitle>
-              <DialogContent style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "12px" }}>
+                </Tooltip>
+              </header>
+
+              <DialogContent style={{ display: "flex", flexDirection: "column", gap: "16px", marginTop: "12px", flex: "1 1 auto", minHeight: 0, overflowY: "auto" }}>
                 {passModalError && (
                   <MessageBar intent="error">
                     <MessageBarBody>{passModalError}</MessageBarBody>
@@ -692,13 +836,13 @@ export const UserManager: React.FC = () => {
                     backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.04)",
                   }}
                 >
-                  <Caption1 style={{ opacity: 0.6 }}>当前正在为以下账户重置密码：</Caption1>
+                  <Caption1 style={{ opacity: 0.6 }}>修改以下账号密码：</Caption1>
                   <Body1Strong style={{ display: "block", fontSize: "15px", marginTop: "2px" }}>
-                    {selectedUserForPass?.nickname || selectedUserForPass?.username} (@{selectedUserForPass?.username})
+                    @{activeUserForPass?.username}
                   </Body1Strong>
                 </div>
 
-                <Field label="新登录密码" required hint="不少于 6 位字符">
+                <Field label="新密码" required hint="不少于 6 位">
                   <Input
                     type={showUpdatedPassword ? "text" : "password"}
                     contentBefore={<Key20Regular />}
@@ -718,54 +862,107 @@ export const UserManager: React.FC = () => {
                   />
                 </Field>
 
-                <Field label="确认新密码" required>
+                <Field label="确认密码" required>
                   <Input
                     type={showUpdatedPassword ? "text" : "password"}
                     contentBefore={<Key20Regular />}
-                    placeholder="请再次输入新密码"
+                    placeholder="请再次输入密码"
                     value={updatedConfirmPassword}
                     onChange={(_, data) => setUpdatedConfirmPassword(data.value)}
                     required
                   />
                 </Field>
               </DialogContent>
-              <DialogActions style={{ marginTop: "20px" }}>
-                <Button appearance="secondary" onClick={() => setIsUpdatePassOpen(false)}>
-                  取消
-                </Button>
-                <Button
-                  type="submit"
-                  appearance="primary"
-                  disabled={isPassSubmitting}
-                  icon={isPassSubmitting ? <Spinner size="tiny" /> : <Key20Regular />}
-                >
-                  {isPassSubmitting ? "正在更新..." : "确认修改"}
-                </Button>
-              </DialogActions>
+
+              {/* Footer Actions - 固定底部 */}
+              <footer className="dialog-footer-row" style={{ flexShrink: 0, width: "100%" }}>
+                <DialogActions style={{ marginTop: "20px", flexShrink: 0 }}>
+                  <Button appearance="secondary" onClick={() => setIsUpdatePassOpen(false)}>
+                    取消
+                  </Button>
+                  <Button
+                    type="submit"
+                    appearance="primary"
+                    disabled={isPassSubmitting}
+                    icon={isPassSubmitting ? <Spinner size="tiny" /> : <Key20Regular />}
+                    style={{
+                      backgroundColor: "#5B7B8D",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {isPassSubmitting ? "正在保存..." : "确认"}
+                  </Button>
+                </DialogActions>
+              </footer>
             </DialogBody>
           </form>
         </DialogSurface>
       </Dialog>
 
       {/* 模态框 3：级联删除确认 */}
-      <Dialog open={isDeleteOpen} onOpenChange={(_, data) => setIsDeleteOpen(data.open)}>
-        <DialogSurface style={{ maxWidth: "440px" }}>
-          <DialogBody>
-            <DialogTitle
-              action={
+      <Dialog
+        open={isDeleteOpen}
+        onOpenChange={(_, data) => setIsDeleteOpen(data.open)}
+        surfaceMotion={surfaceMotion}
+      >
+        <DialogSurface
+          backdropMotion={backdropMotion}
+          backdrop={{
+            style: {
+              backdropFilter: "none",
+              WebkitBackdropFilter: "none",
+              backgroundColor: "rgba(0, 0, 0, 0.4)",
+            },
+          }}
+          style={{
+            position: isMobile ? "fixed" : undefined,
+            inset: isMobile ? 0 : undefined,
+            top: isMobile ? 0 : undefined,
+            left: isMobile ? 0 : undefined,
+            right: isMobile ? 0 : undefined,
+            bottom: isMobile ? 0 : undefined,
+            margin: isMobile ? 0 : undefined,
+            zIndex: isMobile ? 2000 : undefined,
+            maxWidth: isMobile ? "100vw" : "440px",
+            minWidth: isMobile ? "100vw" : undefined,
+            width: isMobile ? "100vw" : undefined,
+            maxHeight: isMobile ? "100dvh" : "88vh",
+            height: isMobile ? "100dvh" : undefined,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            borderRadius: isMobile ? 0 : "16px",
+            padding: isMobile ? "max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) 16px" : undefined,
+            backgroundColor: isDark ? "#1c1c23" : "#ffffff",
+            backdropFilter: "none",
+            WebkitBackdropFilter: "none",
+            border: isMobile ? "none" : undefined,
+          }}
+        >
+          <DialogBody style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0, overflow: "hidden", width: "100%" }}>
+            {/* Header - 固定顶部 */}
+            <header className="dialog-header-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: "16px", flexShrink: 0 }}>
+              <div className="dialog-header-title" style={{ flex: 1, minWidth: 0 }}>
+                <DialogTitle style={{ padding: 0, margin: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#d13438" }}>
+                    <Warning20Regular />
+                    <Title3 style={{ fontWeight: 600, fontSize: "18px", color: "#d13438" }}>删除用户</Title3>
+                  </div>
+                </DialogTitle>
+              </div>
+              <Tooltip content="关闭" relationship="label">
                 <Button
+                  className="dialog-close-btn"
                   appearance="subtle"
-                  aria-label="close"
                   icon={<Dismiss20Regular />}
                   onClick={() => setIsDeleteOpen(false)}
+                  aria-label="关闭"
+                  style={{ marginLeft: "auto", flexShrink: 0 }}
                 />
-              }
-            >
-              <span style={{ color: "#d13438", display: "inline-flex", alignItems: "center", gap: "8px" }}>
-                <Warning20Regular /> 确认级联删除账户
-              </span>
-            </DialogTitle>
-            <DialogContent style={{ marginTop: "12px" }}>
+              </Tooltip>
+            </header>
+
+            <DialogContent style={{ marginTop: "12px", flex: "1 1 auto", minHeight: 0, overflowY: "auto" }}>
               {deleteModalError && (
                 <MessageBar intent="error" style={{ marginBottom: "12px" }}>
                   <MessageBarBody>{deleteModalError}</MessageBarBody>
@@ -773,10 +970,9 @@ export const UserManager: React.FC = () => {
               )}
 
               <Body1>
-                您确定要彻底删除用户{" "}
+                确定删除用户{" "}
                 <strong>
-                  {selectedUserForDelete?.nickname || selectedUserForDelete?.username} (@
-                  {selectedUserForDelete?.username})
+                  @{activeUserForDelete?.username}
                 </strong>{" "}
                 吗？
               </Body1>
@@ -793,25 +989,27 @@ export const UserManager: React.FC = () => {
                   lineHeight: "1.5",
                 }}
               >
-                ⚠️ <strong>重大警告：</strong> 该用户名下所有随笔日记（共{" "}
-                <strong>{selectedUserForDelete?.note_count || 0}</strong> 篇）将被<strong>永久级联清除</strong>
-                ，且无法撤销！
+                删除后该用户的笔记也将一并清除，且无法恢复。
               </div>
             </DialogContent>
-            <DialogActions style={{ marginTop: "20px" }}>
-              <Button appearance="secondary" onClick={() => setIsDeleteOpen(false)}>
-                取消
-              </Button>
-              <Button
-                appearance="primary"
-                disabled={isDeleteSubmitting}
-                onClick={handleDeleteUserSubmit}
-                style={{ backgroundColor: "#d13438", borderColor: "#d13438" }}
-                icon={isDeleteSubmitting ? <Spinner size="tiny" /> : <Delete20Regular />}
-              >
-                {isDeleteSubmitting ? "正在连带清空..." : "确认彻底删除"}
-              </Button>
-            </DialogActions>
+
+            {/* Footer Actions - 固定底部 */}
+            <footer className="dialog-footer-row" style={{ flexShrink: 0, width: "100%" }}>
+              <DialogActions style={{ marginTop: "20px", flexShrink: 0 }}>
+                <Button appearance="secondary" onClick={() => setIsDeleteOpen(false)}>
+                  取消
+                </Button>
+                <Button
+                  appearance="primary"
+                  disabled={isDeleteSubmitting}
+                  onClick={handleDeleteUserSubmit}
+                  style={{ backgroundColor: "#d13438", borderColor: "#d13438" }}
+                  icon={isDeleteSubmitting ? <Spinner size="tiny" /> : <Delete20Regular />}
+                >
+                  {isDeleteSubmitting ? "正在删除..." : "删除"}
+                </Button>
+              </DialogActions>
+            </footer>
           </DialogBody>
         </DialogSurface>
       </Dialog>

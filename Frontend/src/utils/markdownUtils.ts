@@ -13,9 +13,16 @@ marked.setOptions({
 
 const renderer = new marked.Renderer();
 renderer.code = function ({ text, lang }: { text: string; lang?: string }) {
+  if (lang && lang.trim().toLowerCase() === "mermaid") {
+    const encoded = encodeURIComponent(text.trim());
+    return `<div class="mermaid-diagram-container" data-mermaid="${encoded}"><div class="mermaid-loading-state"><span class="mermaid-loading-spinner"></span>正在绘制图表...</div></div>`;
+  }
   const validLanguage = lang && hljs.getLanguage(lang) ? lang : "plaintext";
   const highlighted = hljs.highlight(text, { language: validLanguage }).value;
-  return `<pre><code class="hljs language-${validLanguage}">${highlighted}</code></pre>`;
+  const displayLang = (lang || "code").toUpperCase();
+  const encodedText = encodeURIComponent(text);
+
+  return `<div class="code-block-wrapper"><div class="code-block-header"><span class="code-block-lang">${displayLang}</span><div class="code-block-actions"><button type="button" class="code-block-action-btn btn-code-theme" title="切换深色模式"><span class="theme-icon">🌙</span><span class="theme-text">深色</span></button><button type="button" class="code-block-action-btn btn-code-copy" data-code="${encodedText}" title="复制代码"><span class="copy-icon">📋</span><span class="copy-text">复制</span></button></div></div><pre><code class="hljs language-${validLanguage}">${highlighted}</code></pre></div>`;
 };
 
 marked.use({ renderer });
@@ -36,6 +43,54 @@ try {
 } catch {
   // fallback if plugin fails
 }
+
+// 自定义代码块逆向规则 (恢复 code-block-wrapper 为标准 ```lang ... ```)
+turndownService.addRule("codeBlockWrapper", {
+  filter: (node) => {
+    return (
+      node.nodeName === "DIV" &&
+      node.classList.contains("code-block-wrapper")
+    );
+  },
+  replacement: (_content, node) => {
+    const el = node as HTMLElement;
+    const codeEl = el.querySelector("code");
+    const langSpan = el.querySelector(".code-block-lang");
+    const rawText = codeEl ? codeEl.textContent || "" : "";
+    let lang = "";
+    if (codeEl) {
+      const cls = codeEl.className || "";
+      const match = cls.match(/language-(\w+)/);
+      if (match) lang = match[1];
+    }
+    if ((!lang || lang === "plaintext") && langSpan) {
+      const txt = (langSpan.textContent || "").toLowerCase().trim();
+      if (txt && txt !== "CODE" && txt !== "PLAINTEXT") lang = txt;
+    }
+    return `\n\n\`\`\`${lang === "plaintext" ? "" : lang}\n${rawText.trim()}\n\`\`\`\n\n`;
+  },
+});
+
+// 自定义 Mermaid 图表逆向规则 (支持所见即所得转源码无损保持)
+turndownService.addRule("mermaidBlock", {
+  filter: (node) => {
+    return (
+      node.nodeName === "DIV" &&
+      node.classList.contains("mermaid-diagram-container") &&
+      node.hasAttribute("data-mermaid")
+    );
+  },
+  replacement: (_content, node) => {
+    const el = node as HTMLElement;
+    const encoded = el.getAttribute("data-mermaid") || "";
+    try {
+      const code = decodeURIComponent(encoded);
+      return `\n\n\`\`\`mermaid\n${code.trim()}\n\`\`\`\n\n`;
+    } catch {
+      return "";
+    }
+  },
+});
 
 // 自定义 Callout 提示框规则
 turndownService.addRule("calloutBlock", {
@@ -115,43 +170,41 @@ turndownService.addRule("resizableImage", {
  */
 export function markdownToHtml(md: string): string {
   if (!md || !md.trim()) return "";
+  const purifyConfig = {
+    ADD_TAGS: ["input", "button"],
+    ADD_ATTR: [
+      "type",
+      "checked",
+      "disabled",
+      "style",
+      "width",
+      "height",
+      "data-width",
+      "data-align",
+      "data-mermaid",
+      "data-processed",
+      "data-chart-id",
+      "data-code",
+      "loading",
+      "alt",
+      "src",
+      "title",
+    ],
+  };
+  const sanitize = (raw: string) => {
+    if (typeof DOMPurify?.sanitize === "function") {
+      return DOMPurify.sanitize(raw, purifyConfig);
+    }
+    if (typeof (DOMPurify as any)?.default?.sanitize === "function") {
+      return (DOMPurify as any).default.sanitize(raw, purifyConfig);
+    }
+    return raw;
+  };
   try {
     const rawHtml = marked.parse(md) as string;
-    return DOMPurify.sanitize(rawHtml, {
-      ADD_TAGS: ["input"],
-      ADD_ATTR: [
-        "type",
-        "checked",
-        "disabled",
-        "style",
-        "width",
-        "height",
-        "data-width",
-        "data-align",
-        "loading",
-        "alt",
-        "src",
-        "title",
-      ],
-    });
+    return sanitize(rawHtml);
   } catch {
-    return DOMPurify.sanitize(md, {
-      ADD_TAGS: ["input"],
-      ADD_ATTR: [
-        "type",
-        "checked",
-        "disabled",
-        "style",
-        "width",
-        "height",
-        "data-width",
-        "data-align",
-        "loading",
-        "alt",
-        "src",
-        "title",
-      ],
-    });
+    return sanitize(md);
   }
 }
 

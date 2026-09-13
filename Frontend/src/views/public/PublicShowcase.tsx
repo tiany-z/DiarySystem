@@ -1,30 +1,27 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-  Badge,
   Body1,
   Button,
   Caption1,
   Input,
-  LargeTitle,
-  Subtitle1,
   Tab,
   TabList,
-  Title2,
   Spinner,
+  Title2,
 } from "@fluentui/react-components";
 import {
   Add20Filled,
-  BookCompass24Regular,
+  ArrowSync20Regular,
   Filter20Regular,
-  Folder20Regular,
   Search20Regular,
-  Sparkle24Filled,
 } from "@fluentui/react-icons";
 import { diaryApi, DiaryItem } from "../../api/diary";
 import { NoteCard } from "../../components/NoteCard";
 import { NoteReaderModal } from "../../components/NoteReaderModal";
+import { Win10AnimatedGrid } from "../../components/Win10AnimatedGrid";
 import { useAuth } from "../../context/AuthContext";
+import { usePageCache } from "../../context/PageCacheContext";
 import { useAppTheme } from "../../context/ThemeContext";
 
 // 精选公开示例笔记库 (供初次访问时探索浏览)
@@ -37,7 +34,7 @@ const FEATURED_NOTES: DiaryItem[] = [
     created_at: "2026-09-12 10:00:00",
     content: `# 探索 Fluent 2 视觉与交互美学
 
-微软 **Fluent 2** 是面向多平台统一设计语言的集大成者，它不仅融合了亚克力玻璃拟态（Acrylic）、平滑光影（Elevation）与精致圆角，更提供了一整套基于**原子化 Design Tokens** 的交互体系。
+微软 **Fluent 2** 是面向多平台统一设计语言的集大成者，它融合了亚克力玻璃拟态、平滑光影与精致圆角，提供了一整套基于**原子化 Design Tokens** 的交互体系。
 
 ## 为什么选择 Fluent 2？
 1. **统一的设计语言**：无论在 Windows、Web 还是移动端，都保持着无缝一致的微软现代桌面质感；
@@ -80,6 +77,15 @@ export function AppRoot({ isDark }: { isDark: boolean }) {
 - **离线反思**：在没有社交媒体弹窗干扰的环境下梳理技术架构；
 - **随想即记**：捕捉闪烁的灵感火花，并整理为成体系的 Markdown 笔记。
 
+### 慢思考精力分配比例
+\`\`\`mermaid
+pie title 慢思考日程精力分配
+    "晨读与深度思考" : 30
+    "架构设计与编码" : 45
+    "自然散步与反思" : 15
+    "灵感归档整理" : 10
+\`\`\`
+
 | 时间阶段 | 推荐行动 | 预期心境 |
 | :--- | :--- | :--- |
 | 清晨 07:00 - 08:00 | 晨读与日记复盘 | 宁静清澈 🧘‍♂️ |
@@ -96,6 +102,34 @@ export function AppRoot({ isDark }: { isDark: boolean }) {
     content: `# 高性能微内核架构的设计思考
 
 传统 Node.js 后端常常充斥着冗长的控制器样板代码和黑盒 ORM 反射开销。通过引入**契约驱动架构 (Contract-Driven Design)** 与 **SQL AST (抽象语法树)** 预编译技术，系统取得了质的飞跃。
+
+## 系统架构与数据流转流程图
+\`\`\`mermaid
+graph TD
+    Client[💻 前端客户端] -->|1. 随笔读写请求| Gateway[⚡ 契约驱动网关]
+    Gateway -->|2. JWT 严格鉴权| Kernel[核心业务微内核]
+    Kernel -->|3. 查询二段式缓存| Cache[(🚀 内存高速缓存)]
+    Cache -->|命中返回| Gateway
+    Cache -->|未命中回源| DB[(🗄️ MySQL 聚簇索引)]
+    DB -->|回填写入| Cache
+\`\`\`
+
+## 核心交互时序图
+\`\`\`mermaid
+sequenceDiagram
+    autonumber
+    actor User as 👤 用户
+    participant App as 💻 前端预览
+    participant Server as ⚡ 后端核心
+    participant DB as 🗄️ MySQL 数据库
+
+    User->>App: 点击打开随笔预览
+    App->>Server: 获取随笔详情 (GET /api/diaries/:id)
+    Server->>DB: 聚簇索引快速回源
+    DB-->>Server: 返回结构化数据
+    Server-->>App: 200 OK 传输数据
+    App-->>User: 渲染 Markdown 与 Mermaid 矢量图表
+\`\`\`
 
 ## 关键架构创新点
 1. **零运行时解析开销**：在服务启动阶段一次性完成 AST 向原生 MySQL 参数化 SQL 的编译；
@@ -140,20 +174,31 @@ export const PublicShowcase: React.FC = () => {
   const { id: routeNoteId } = useParams<{ id?: string }>();
   const activeNoteId = searchParams.get("note") || searchParams.get("id") || routeNoteId;
 
-  const [notes, setNotes] = useState<DiaryItem[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { hasPageLoaded, markPageLoaded, getCachedData, setCachedData } = usePageCache();
+  const PAGE_KEY = "public_showcase";
+  const alreadyLoaded = hasPageLoaded(PAGE_KEY);
+  const cachedNotes = getCachedData<DiaryItem[]>(PAGE_KEY);
+
+  const [notes, setNotes] = useState<DiaryItem[]>(cachedNotes || []);
+  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(!alreadyLoaded || cachedNotes === null);
+  const [shouldAnimate, setShouldAnimate] = useState<boolean>(!alreadyLoaded);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMood, setSelectedMood] = useState<string>("all");
+  const [isReaderOpen, setIsReaderOpen] = useState(false);
   const [readerDiary, setReaderDiary] = useState<DiaryItem | null>(null);
 
   // 深度链接 / 复制粘贴 URL 自动加载指定公开笔记内容
   useEffect(() => {
     if (!activeNoteId) {
-      setReaderDiary(null);
-      return;
+      setIsReaderOpen(false);
+      const timer = setTimeout(() => {
+        setReaderDiary(null);
+      }, 350);
+      return () => clearTimeout(timer);
     }
 
     if (readerDiary && readerDiary.id === activeNoteId) {
+      setIsReaderOpen(true);
       return;
     }
 
@@ -161,6 +206,7 @@ export const PublicShowcase: React.FC = () => {
     const found = notes.find((n) => n.id === activeNoteId);
     if (found) {
       setReaderDiary(found);
+      setIsReaderOpen(true);
       return;
     }
 
@@ -171,6 +217,7 @@ export const PublicShowcase: React.FC = () => {
         const res = await diaryApi.detail(activeNoteId);
         if (!isCancelled && res.status === 1 && res.data) {
           setReaderDiary(res.data);
+          setIsReaderOpen(true);
         }
       } catch (err) {
         console.warn("加载指定公开笔记失败:", err);
@@ -185,63 +232,114 @@ export const PublicShowcase: React.FC = () => {
 
   // 随阅读弹窗开关动态同步浏览器标签页 Title
   useEffect(() => {
-    if (readerDiary) {
+    if (readerDiary && isReaderOpen) {
       document.title = `${readerDiary.title || "公开手记"} - 拾光手记`;
     } else {
-      document.title = "拾光手记 - 记录灵感随笔与心境沉淀";
+      document.title = "拾光手记";
     }
-  }, [readerDiary]);
+  }, [readerDiary, isReaderOpen]);
 
   // 打开公开笔记阅读，并将笔记 ID 写入 URL，方便直接复制与分享链接
   const handleOpenNote = (note: DiaryItem) => {
     setReaderDiary(note);
+    setIsReaderOpen(true);
     setSearchParams({ note: note.id }, { replace: false });
   };
 
   // 关闭公开笔记阅读，清空 URL 中的 note 参数恢复默认广场
   const handleCloseReader = () => {
-    setReaderDiary(null);
+    setIsReaderOpen(false);
     if (routeNoteId) {
       navigate("/", { replace: true });
     } else {
       setSearchParams({}, { replace: true });
     }
+    setTimeout(() => {
+      setReaderDiary(null);
+    }, 350);
   };
 
-  // 从后端异步加载全部公开可见的日记 (严格来自数据库中公开可见的笔记)
-  useEffect(() => {
-    const fetchPublicNotes = async () => {
-      setIsLoading(true);
-      try {
-        const res = await diaryApi.publicList();
-        if (res.status === 1 && res.data) {
-          setNotes(res.data);
-        } else {
-          setNotes([]);
-        }
-      } catch {
+  // 从后端异步加载全部公开可见的日记（首次全屏居中加载并入场，后续切换静默更新）
+  const fetchPublicNotes = async (isSilent: boolean = false) => {
+    if (!isSilent) {
+      setIsInitialLoading(true);
+    }
+    try {
+      const res = await diaryApi.publicList();
+      if (res.status === 1 && res.data) {
+        setNotes(res.data);
+        setCachedData(PAGE_KEY, res.data);
+      } else if (!isSilent) {
         setNotes([]);
-      } finally {
-        setIsLoading(false);
       }
-    };
-    fetchPublicNotes();
+    } catch {
+      if (!isSilent) {
+        setNotes([]);
+      }
+    } finally {
+      if (!isSilent) {
+        setIsInitialLoading(false);
+        markPageLoaded(PAGE_KEY);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (alreadyLoaded && cachedNotes !== null) {
+      // 页面加载过之后：不显示加载动画和出现动画，后台静默调用数据更新直接展示
+      setShouldAnimate(false);
+      fetchPublicNotes(true);
+    } else {
+      // 首次加载：居中转圈，完成后动画显示
+      fetchPublicNotes(false);
+    }
   }, []);
 
-  // 过滤笔记
-  const filteredNotes = notes.filter((note) => {
-    const matchSearch =
-      !searchQuery ||
-      note.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.content?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchMood =
-      selectedMood === "all" || note.mood?.toLowerCase() === selectedMood.toLowerCase();
-    return matchSearch && matchMood;
-  });
+  // 保证进入笔记广场及加载完成时，页面必须绝对滚动到顶部，杜绝任何向下滑动残留
+  useEffect(() => {
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+    const scrollToTop = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      const main = document.querySelector(".app-main-content");
+      if (main) main.scrollTop = 0;
+    };
+    scrollToTop();
+    const raf = requestAnimationFrame(scrollToTop);
+    const timer = setTimeout(scrollToTop, 60);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, [isInitialLoading]);
+
+  // 过滤笔记 (使用 useMemo 避免每次无关父组件更新导致数组引用频繁变更)
+  const filteredNotes = useMemo(() => {
+    return notes.filter((note) => {
+      const matchSearch =
+        !searchQuery ||
+        note.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        note.content?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchMood =
+        selectedMood === "all" || note.mood?.toLowerCase() === selectedMood.toLowerCase();
+      return matchSearch && matchMood;
+    });
+  }, [notes, searchQuery, selectedMood]);
+
+  if (isInitialLoading) {
+    return (
+      <div className="fluent-page-center-loader">
+        <Spinner size="large" label="正在获取日记..." />
+      </div>
+    );
+  }
 
   return (
     <div
-      className="public-page-container"
+      className="win10-page-transition-host public-page-container page-content-container"
       style={{
         width: "100%",
         maxWidth: "1280px",
@@ -251,138 +349,102 @@ export const PublicShowcase: React.FC = () => {
         minWidth: 0,
       }}
     >
-      {/* Hero Welcome Banner (明亮、通透、高质感 Fluent 2 视觉) */}
+      {/* Top Header Bar */}
       <div
-        className="hero-welcome-banner"
+        className="win10-tile-rise win10-delay-1 page-header-bar"
         style={{
-          width: "100%",
-          boxSizing: "border-box",
-          borderRadius: "24px",
-          padding: "52px 48px",
-          marginBottom: "44px",
-          background: isDark
-            ? "linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(20, 20, 26, 0.8) 100%)"
-            : "linear-gradient(135deg, #eef6ff 0%, #f0f7ff 45%, #faf5ff 100%)",
-          border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 120, 212, 0.16)",
-          boxShadow: isDark
-            ? "0 16px 48px rgba(0, 0, 0, 0.45)"
-            : "0 16px 48px rgba(0, 120, 212, 0.08)",
-          position: "relative",
-          overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "16px",
+          marginBottom: "24px",
         }}
       >
-        <div style={{ maxWidth: "760px", position: "relative", zIndex: 2 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", marginBottom: "14px" }}>
-            <Badge
-              appearance="tint"
-              color="brand"
-              icon={<Sparkle24Filled style={{ color: "#0078d4", fontSize: "16px" }} />}
-              style={{
-                padding: "6px 14px",
-                fontSize: "13px",
-                fontWeight: 600,
-                borderRadius: "999px",
-              }}
-            >
-              灵感随笔
-            </Badge>
-          </div>
+        <Title2 style={{ fontWeight: 800, margin: 0 }}>笔记广场</Title2>
 
-          <LargeTitle className="hero-gradient-title">
-            于秩序之中，静听思维的回响
-          </LargeTitle>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <Button
+            appearance="secondary"
+            icon={<ArrowSync20Regular />}
+            onClick={() => fetchPublicNotes(false)}
+            disabled={isInitialLoading}
+            style={{
+              borderRadius: "8px",
+              fontWeight: 600,
+            }}
+          >
+            刷新
+          </Button>
 
-          <Subtitle1 className="hero-subtitle" style={{ opacity: 0.85, lineHeight: 1.6, marginBottom: "24px", display: "block", fontSize: "15px" }}>
-            摒弃冗余与杂音，以纯粹的极简美学，安放独属于你的灵感火花与心境沉淀。
-          </Subtitle1>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-            {isAuthenticated ? (
-              <>
-                <Button
-                  appearance="primary"
-                  icon={<Folder20Regular />}
-                  onClick={() => navigate("/workspace")}
-                  style={{
-                    background: "linear-gradient(135deg, #0078d4, #005a9e)",
-                    borderRadius: "8px",
-                    fontWeight: 600,
-                  }}
-                >
-                  笔记库
-                </Button>
-                <Button
-                  appearance="secondary"
-                  icon={<Add20Filled />}
-                  onClick={() => navigate("/workspace/new")}
-                  style={{ borderRadius: "8px" }}
-                >
-                  写日记
-                </Button>
-              </>
-            ) : (
-              <Button
-                appearance="primary"
-                icon={<Add20Filled />}
-                onClick={() => navigate("/auth")}
-                style={{
-                  background: "linear-gradient(135deg, #0078d4, #005a9e)",
-                  borderRadius: "8px",
-                  fontWeight: 600,
-                }}
-              >
-                开启记录
-              </Button>
-            )}
-
-            <Button
-              appearance="subtle"
-              icon={<BookCompass24Regular />}
-              onClick={() => {
-                const el = document.getElementById("explore-section");
-                el?.scrollIntoView({ behavior: "smooth" });
-              }}
-              style={{ borderRadius: "8px" }}
-            >
-              浏览广场
-            </Button>
-          </div>
+          <Button
+            appearance="primary"
+            icon={<Add20Filled />}
+            onClick={() => {
+              if (!isAuthenticated) {
+                navigate("/auth");
+              } else {
+                navigate("/workspace/new");
+              }
+            }}
+            style={{
+              backgroundColor: "#5B7B8D",
+              borderRadius: "8px",
+              fontWeight: 600,
+            }}
+          >
+            写笔记
+          </Button>
         </div>
       </div>
 
-      {/* Explore Section */}
-      <div id="explore-section" style={{ width: "100%", boxSizing: "border-box" }}>
+      {/* 顶部中央搜索框与分类标签 */}
+      <div
+        className="win10-tile-rise win10-delay-2"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "16px",
+          marginBottom: "32px",
+          width: "100%",
+          boxSizing: "border-box",
+        }}
+      >
+        {/* 所有笔记中间顶部显示搜索框 */}
         <div
+          className="responsive-search-box"
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "16px",
-            marginBottom: "20px",
             width: "100%",
+            maxWidth: "520px",
             boxSizing: "border-box",
           }}
         >
-          <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-            <Title2 style={{ fontWeight: 800 }}>公开广场</Title2>
-            <Caption1 style={{ opacity: 0.65 }}>共 {filteredNotes.length} 篇</Caption1>
-          </div>
-
-          {/* Search Input */}
-          <div className="responsive-search-box" style={{ width: "280px" }}>
-            <Input
-              contentBefore={<Search20Regular />}
-              placeholder="搜索..."
-              value={searchQuery}
-              onChange={(_, data) => setSearchQuery(data.value)}
-              style={{ width: "100%", borderRadius: "8px" }}
-            />
-          </div>
+          <Input
+            contentBefore={<Search20Regular />}
+            placeholder="搜索公开日记标题或正文内容..."
+            value={searchQuery}
+            onChange={(_, data) => setSearchQuery(data.value)}
+            style={{
+              width: "100%",
+              borderRadius: "10px",
+              height: "42px",
+              fontSize: "14px",
+            }}
+          />
         </div>
 
-        {/* Mood Filter Tabs */}
-        <div className="responsive-tablist-wrapper" style={{ marginBottom: "24px", width: "100%", boxSizing: "border-box" }}>
+        {/* 心情过滤分类标签 */}
+        <div
+          className="responsive-tablist-wrapper"
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            width: "100%",
+            boxSizing: "border-box",
+            overflowX: "auto",
+          }}
+        >
           <TabList
             size="large"
             selectedValue={selectedMood}
@@ -396,13 +458,13 @@ export const PublicShowcase: React.FC = () => {
             <Tab value="Tired">倦怠 🌙</Tab>
           </TabList>
         </div>
+      </div>
+
+      {/* 笔记网格列表 */}
+      <div style={{ width: "100%", boxSizing: "border-box" }}>
 
         {/* Notes Grid */}
-        {isLoading ? (
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "80px 0" }}>
-            <Spinner label="正在加载广场公开日记..." size="large" />
-          </div>
-        ) : filteredNotes.length === 0 ? (
+        {filteredNotes.length === 0 ? (
           <div
             style={{
               textAlign: "center",
@@ -418,58 +480,37 @@ export const PublicShowcase: React.FC = () => {
             <div>暂无公开日记</div>
           </div>
         ) : (
-          <div
+          <Win10AnimatedGrid
+            items={filteredNotes}
+            getKey={(note) => note.id}
             className="responsive-card-grid"
-            style={{
+            gridStyle={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 340px), 1fr))",
               gap: "24px",
               width: "100%",
               boxSizing: "border-box",
             }}
-          >
-            {filteredNotes.map((note) => (
+            renderItem={(note) => (
               <NoteCard
-                key={note.id}
                 diary={note}
+                showVisibilityBadge={false}
+                showAuthor={true}
                 onClick={() => handleOpenNote(note)}
               />
-            ))}
-          </div>
+            )}
+          />
         )}
       </div>
 
       {/* Reader Modal */}
       <NoteReaderModal
         diary={readerDiary}
-        open={!!readerDiary}
+        open={isReaderOpen}
         onClose={handleCloseReader}
         onEdit={(d) => {
-          if (!isAuthenticated) {
-            // 保存未登录用户点击的模板，登录后无缝恢复进入编辑器
-            sessionStorage.setItem(
-              "pending_template",
-              JSON.stringify({
-                templateTitle: `基于「${d.title}」的随想记录`,
-                templateContent: d.content,
-                weather: d.weather,
-                mood: d.mood,
-              })
-            );
-            navigate("/auth");
-            return;
-          }
           if (user && d.user_id === user.userId) {
             navigate(`/workspace/edit/${d.id}`);
-          } else {
-            navigate("/workspace/new", {
-              state: {
-                templateTitle: `基于「${d.title}」的随想记录`,
-                templateContent: d.content,
-                weather: d.weather,
-                mood: d.mood,
-              },
-            });
           }
         }}
       />

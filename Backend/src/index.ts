@@ -2,6 +2,8 @@ import http from "http";
 import {
   closeMysqlPool,
   ensureSuperAdminAccount,
+  ensureSystemSettingsTable,
+  ensureUserAvatarColumn,
   executeQuery,
   initMysqlPool,
   loadEnvFile,
@@ -79,6 +81,18 @@ async function main() {
     const adminInitRes = await ensureSuperAdminAccount();
     if (adminInitRes.status === 0) {
       LogClient.error(`超级管理员初始化核验失败: ${adminInitRes.content}`, undefined, "DiaryBackend");
+    }
+
+    // 核心保障：自愈核验并初始化系统全局设置表与管理员 tiany 的默认壁纸视觉方案
+    const settingsInitRes = await ensureSystemSettingsTable();
+    if (settingsInitRes.status === 0) {
+      LogClient.error(`系统设置表自愈初始化失败: ${settingsInitRes.content}`, undefined, "DiaryBackend");
+    }
+
+    // 核心保障：自愈核验并补充 users.avatar 头像字段
+    const avatarColRes = await ensureUserAvatarColumn();
+    if (avatarColRes.status === 0) {
+      LogClient.error(`用户头像字段核验失败: ${avatarColRes.content}`, undefined, "DiaryBackend");
     }
   }
 

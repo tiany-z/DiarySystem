@@ -1,5 +1,5 @@
 import React from "react";
-import { Badge, Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger } from "@fluentui/react-components";
+import { Badge, Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, Tooltip } from "@fluentui/react-components";
 import {
   BrainCircuit20Regular,
   Clock20Regular,
@@ -17,6 +17,27 @@ export const MOOD_OPTIONS = [
   { id: "Tired", label: "倦怠", color: "warning" as const, icon: Clock20Regular, hex: "#f368e0" },
   { id: "Sad", label: "低落", color: "severe" as const, icon: EmojiSad20Regular, hex: "#576574" },
 ];
+
+export const MoodIcon: React.FC<{ mood?: string | null; size?: number }> = ({
+  mood,
+  size = 17,
+}) => {
+  const safeMood = (mood || "Happy").toLowerCase();
+  const item = MOOD_OPTIONS.find((m) => m.id.toLowerCase() === safeMood) || MOOD_OPTIONS[0];
+  const Icon = item.icon;
+
+  return (
+    <Tooltip content={`心境：${item.label}`} relationship="label">
+      <span
+        className="note-card-meta-icon"
+        style={{ color: item.hex }}
+        aria-label={`心境: ${item.label}`}
+      >
+        <Icon style={{ fontSize: `${size}px` }} />
+      </span>
+    </Tooltip>
+  );
+};
 
 export const MoodBadge: React.FC<{ mood?: string | null; size?: "medium" | "large" }> = ({
   mood,
@@ -51,7 +72,10 @@ export const MoodBadge: React.FC<{ mood?: string | null; size?: "medium" | "larg
 export const MoodPicker: React.FC<{
   value?: string | null;
   onChange: (val: string) => void;
-}> = ({ value, onChange }) => {
+  borderless?: boolean;
+  size?: "small" | "medium";
+  style?: React.CSSProperties;
+}> = ({ value, onChange, borderless = false, size = "medium", style }) => {
   const safeVal = (value || "Happy").toLowerCase();
   const current = MOOD_OPTIONS.find((m) => m.id.toLowerCase() === safeVal) || MOOD_OPTIONS[0];
   const CurrentIcon = current.icon;
@@ -61,14 +85,18 @@ export const MoodPicker: React.FC<{
       <MenuTrigger disableButtonEnhancement>
         <Button
           appearance="subtle"
-          size="medium"
-          icon={<CurrentIcon style={{ color: current.hex, fontSize: "17px" }} />}
+          size={size}
+          icon={<CurrentIcon style={{ color: current.hex, fontSize: size === "small" ? "15px" : "17px" }} />}
           style={{
             borderRadius: "999px",
-            padding: "5px 14px",
-            fontSize: "13px",
+            padding: borderless ? "2px 6px" : "5px 14px",
+            fontSize: size === "small" ? "12px" : "13px",
             fontWeight: 500,
-            border: "1px solid rgba(128, 128, 128, 0.16)",
+            minWidth: borderless ? "unset" : undefined,
+            height: borderless ? "28px" : undefined,
+            border: borderless ? "none" : "1px solid rgba(128, 128, 128, 0.16)",
+            background: borderless ? "transparent" : undefined,
+            ...style,
           }}
         >
           {current.label}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Badge,
@@ -27,6 +27,7 @@ import {
 } from "@fluentui/react-components";
 import {
   Add20Filled,
+  ArrowReset20Regular,
   ArrowUpload20Regular,
   Delete20Regular,
   Dismiss20Regular,
@@ -37,6 +38,7 @@ import {
   Globe20Regular,
   LockClosed20Regular,
   Search20Regular,
+  Search24Regular,
   Sparkle20Regular,
   WeatherSunny20Regular,
 } from "@fluentui/react-icons";
@@ -45,49 +47,93 @@ import { MoodBadge } from "../../components/MoodBadge";
 import { formatDate, NoteCard, extractFirstImage } from "../../components/NoteCard";
 import { WeatherBadge } from "../../components/WeatherBadge";
 import { MarkdownImportModal } from "../../components/MarkdownImportModal";
+import { Win10AnimatedGrid } from "../../components/Win10AnimatedGrid";
 import { useAuth } from "../../context/AuthContext";
+import { usePageCache } from "../../context/PageCacheContext";
 import { useAppTheme } from "../../context/ThemeContext";
+import { useAppDialogMotion } from "../../utils/dialogMotion";
 
 export const NotesManager: React.FC = () => {
   const { user } = useAuth();
   const { isDark } = useAppTheme();
+  const { surfaceMotion, backdropMotion, isMobile } = useAppDialogMotion();
   const navigate = useNavigate();
 
-  const [notes, setNotes] = useState<DiaryItem[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { hasPageLoaded, markPageLoaded, getCachedData, setCachedData } = usePageCache();
+  const PAGE_KEY = "workspace_notes";
+  const alreadyLoaded = hasPageLoaded(PAGE_KEY);
+  const cachedNotes = getCachedData<DiaryItem[]>(PAGE_KEY);
+
+  const [notes, setNotes] = useState<DiaryItem[]>(cachedNotes || []);
+  const [isPageLoading, setIsPageLoading] = useState<boolean>(!alreadyLoaded || cachedNotes === null);
+  const [shouldAnimate, setShouldAnimate] = useState<boolean>(!alreadyLoaded);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMood, setSelectedMood] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewModeState] = useState<"grid" | "list">(() => {
+    try {
+      const saved = localStorage.getItem("diary_notes_view_mode");
+      return saved === "list" ? "list" : "grid";
+    } catch {
+      return "grid";
+    }
+  });
+
+  const setViewMode = (mode: "grid" | "list") => {
+    setViewModeState(mode);
+    try {
+      localStorage.setItem("diary_notes_view_mode", mode);
+    } catch {}
+  };
 
   // 删除对话框状态
   const [deleteTarget, setDeleteTarget] = useState<DiaryItem | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const lastDeleteTargetRef = useRef<DiaryItem | null>(deleteTarget);
+  if (deleteTarget) {
+    lastDeleteTargetRef.current = deleteTarget;
+  }
+  const activeDeleteTarget = deleteTarget || lastDeleteTargetRef.current;
 
   // Markdown 批量导入对话框状态
   const [importModalOpen, setImportModalOpen] = useState<boolean>(false);
   const [droppedFiles, setDroppedFiles] = useState<File[]>([]);
 
-  const fetchNotes = async () => {
-    setIsLoading(true);
-    setErrorMsg(null);
+  const fetchNotes = async (isSilent: boolean = false) => {
+    if (!isSilent) {
+      setIsPageLoading(true);
+      setErrorMsg(null);
+    }
     try {
       const res = await diaryApi.list();
       if (res.status === 1 && res.data) {
         setNotes(res.data);
-      } else {
+        setCachedData(PAGE_KEY, res.data);
+      } else if (!isSilent) {
         setErrorMsg(res.content || "加载日记列表失败");
       }
     } catch (err: any) {
-      setErrorMsg(`网络请求错误: ${err.message || String(err)}`);
+      if (!isSilent) {
+        setErrorMsg(`网络请求错误: ${err.message || String(err)}`);
+      }
     } finally {
-      setIsLoading(false);
+      if (!isSilent) {
+        setIsPageLoading(false);
+        markPageLoaded(PAGE_KEY);
+      }
     }
   };
 
   useEffect(() => {
-    fetchNotes();
+    if (alreadyLoaded && cachedNotes !== null) {
+      // 页面加载过之后：不显示全屏转圈，不重复动画，后台静默调用一次数据更新直接展示最新数据
+      setShouldAnimate(false);
+      fetchNotes(true);
+    } else {
+      // 首次进入：居中转圈，完成后动画显示
+      fetchNotes(false);
+    }
   }, []);
 
   const handleDeleteConfirm = async () => {
@@ -96,7 +142,11 @@ export const NotesManager: React.FC = () => {
     try {
       const res = await diaryApi.delete(deleteTarget.id);
       if (res.status === 1) {
-        setNotes((prev) => prev.filter((n) => n.id !== deleteTarget.id));
+        setNotes((prev) => {
+          const updated = prev.filter((n) => n.id !== deleteTarget.id);
+          setCachedData(PAGE_KEY, updated);
+          return updated;
+        });
         setDeleteTarget(null);
       } else {
         alert(res.content || "删除日记失败");
@@ -116,11 +166,13 @@ export const NotesManager: React.FC = () => {
         is_public: nextPublic ? 1 : 0,
       });
       if (res.status === 1) {
-        setNotes((prev) =>
-          prev.map((item) =>
+        setNotes((prev) => {
+          const updated = prev.map((item) =>
             item.id === diary.id ? { ...item, is_public: nextPublic ? 1 : 0 } : item
-          )
-        );
+          );
+          setCachedData(PAGE_KEY, updated);
+          return updated;
+        });
       } else {
         alert(res.content || "更新日记可见性失败");
       }
@@ -147,9 +199,17 @@ export const NotesManager: React.FC = () => {
     return m === "happy" || m === "excited";
   }).length;
 
+  if (isPageLoading) {
+    return (
+      <div className="fluent-page-center-loader">
+        <Spinner size="large" label="正在获取笔记..." />
+      </div>
+    );
+  }
+
   return (
     <div
-      className="workspace-page-container"
+      className="workspace-page-container win10-page-transition-host notes-manager-page-container page-content-container"
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
@@ -174,6 +234,7 @@ export const NotesManager: React.FC = () => {
     >
       {/* Header Info Banner */}
       <div
+        className="win10-tile-rise win10-delay-1 page-header-bar"
         style={{
           display: "flex",
           alignItems: "center",
@@ -183,7 +244,7 @@ export const NotesManager: React.FC = () => {
           marginBottom: "24px",
         }}
       >
-        <Title2 style={{ fontWeight: 800 }}>我的笔记</Title2>
+        <Title2 style={{ fontWeight: 800, margin: 0 }}>我的笔记</Title2>
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Button
@@ -198,7 +259,7 @@ export const NotesManager: React.FC = () => {
               fontWeight: 600,
             }}
           >
-            导入 Markdown
+            导入
           </Button>
 
           <Button
@@ -206,7 +267,7 @@ export const NotesManager: React.FC = () => {
             icon={<Add20Filled />}
             onClick={() => navigate("/workspace/new")}
             style={{
-              background: "linear-gradient(135deg, #0078d4, #005a9e)",
+              backgroundColor: "#5B7B8D",
               borderRadius: "8px",
               fontWeight: 600,
             }}
@@ -218,7 +279,7 @@ export const NotesManager: React.FC = () => {
 
       {/* Metric Cards */}
       <div
-        className="workspace-metric-grid"
+        className="workspace-metric-grid win10-stagger-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -232,7 +293,7 @@ export const NotesManager: React.FC = () => {
             borderRadius: "14px",
             backgroundColor: isDark ? "#202026" : "#ffffff",
             border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
-            boxShadow: isDark ? "0 4px 14px rgba(0, 0, 0, 0.2)" : "0 2px 12px rgba(0, 120, 212, 0.04)",
+            boxShadow: isDark ? "0 4px 14px rgba(0, 0, 0, 0.2)" : "0 2px 12px rgba(91, 123, 141, 0.06)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -241,8 +302,8 @@ export const NotesManager: React.FC = () => {
                 width: "36px",
                 height: "36px",
                 borderRadius: "10px",
-                background: "rgba(0, 120, 212, 0.12)",
-                color: "#0078d4",
+                background: "rgba(91, 123, 141, 0.15)",
+                color: "#5B7B8D",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -263,7 +324,7 @@ export const NotesManager: React.FC = () => {
             borderRadius: "14px",
             backgroundColor: isDark ? "#202026" : "#ffffff",
             border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
-            boxShadow: isDark ? "0 4px 14px rgba(0, 0, 0, 0.2)" : "0 2px 12px rgba(0, 120, 212, 0.04)",
+            boxShadow: isDark ? "0 4px 14px rgba(0, 0, 0, 0.2)" : "0 2px 12px rgba(91, 123, 141, 0.06)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -294,7 +355,7 @@ export const NotesManager: React.FC = () => {
             borderRadius: "14px",
             backgroundColor: isDark ? "#202026" : "#ffffff",
             border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
-            boxShadow: isDark ? "0 4px 14px rgba(0, 0, 0, 0.2)" : "0 2px 12px rgba(0, 120, 212, 0.04)",
+            boxShadow: isDark ? "0 4px 14px rgba(0, 0, 0, 0.2)" : "0 2px 12px rgba(91, 123, 141, 0.06)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -322,6 +383,7 @@ export const NotesManager: React.FC = () => {
 
       {/* Toolbar & Filters */}
       <div
+        className="win10-tile-rise win10-delay-3"
         style={{
           display: "flex",
           alignItems: "center",
@@ -365,6 +427,7 @@ export const NotesManager: React.FC = () => {
                 onClick={() => setViewMode("grid")}
                 size="small"
                 aria-label="网格视图"
+                style={viewMode === "grid" ? { backgroundColor: "#5B7B8D" } : undefined}
               />
             </Tooltip>
             <Tooltip content="列表视图" relationship="label">
@@ -374,6 +437,7 @@ export const NotesManager: React.FC = () => {
                 onClick={() => setViewMode("list")}
                 size="small"
                 aria-label="列表视图"
+                style={viewMode === "list" ? { backgroundColor: "#5B7B8D" } : undefined}
               />
             </Tooltip>
           </div>
@@ -387,69 +451,138 @@ export const NotesManager: React.FC = () => {
         </MessageBar>
       )}
 
-      {/* Loading State */}
-      {isLoading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: "80px 0" }}>
-          <Spinner label="加载中..." size="medium" />
-        </div>
-      ) : filteredNotes.length === 0 ? (
-        /* Empty State */
-        <div
-          style={{
-            textAlign: "center",
-            padding: "80px 20px",
-            borderRadius: "16px",
-            border: "1px dashed rgba(128, 128, 128, 0.25)",
-            background: isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.01)",
-          }}
-        >
-          <Document24Regular style={{ fontSize: "44px", opacity: 0.4, marginBottom: "12px" }} />
-          <Title3 style={{ fontWeight: 600, display: "block" }}>
-            {notes.length === 0 ? "暂无笔记" : "未找到匹配项"}
-          </Title3>
-          <Body1 style={{ opacity: 0.65, marginTop: "6px", marginBottom: "20px", display: "block", fontSize: "13px" }}>
-            {notes.length === 0
-              ? "开启第一篇 Markdown 灵感随笔吧。"
-              : "尝试清空搜索关键字。"}
-          </Body1>
-          {notes.length === 0 && (
-            <Button
-              appearance="primary"
-              icon={<Add20Filled />}
-              onClick={() => navigate("/workspace/new")}
-              style={{ borderRadius: "8px" }}
+      {/* 笔记展示区域 (统一采用与公共广场完全一致的阶梯平滑浮现与磁贴流转动效) */}
+      <div className="win10-tile-rise win10-delay-4" style={{ width: "100%", boxSizing: "border-box" }}>
+        {filteredNotes.length === 0 ? (
+          /* Empty State */
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center",
+              padding: "72px 24px",
+              borderRadius: "16px",
+              border: isDark ? "1px dashed rgba(255, 255, 255, 0.15)" : "1px dashed rgba(0, 0, 0, 0.15)",
+              background: isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.01)",
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "50%",
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(91, 123, 141, 0.12)",
+                color: isDark ? "rgba(255, 255, 255, 0.7)" : "#5B7B8D",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginBottom: "16px",
+              }}
             >
-              新建笔记
-            </Button>
-          )}
-        </div>
-      ) : viewMode === "grid" ? (
-        /* Grid View */
-        <div
-          className="responsive-card-grid"
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 340px), 1fr))",
-            gap: "20px",
-            width: "100%",
-            boxSizing: "border-box",
-          }}
-        >
-          {filteredNotes.map((note) => (
-            <NoteCard
-              key={note.id}
-              diary={note}
-              showActions={true}
-              onClick={() => navigate(`/workspace/edit/${note.id}`)}
-              onEdit={() => navigate(`/workspace/edit/${note.id}`)}
-              onDelete={() => setDeleteTarget(note)}
-              onTogglePublic={() => handleTogglePublic(note)}
-            />
-          ))}
-        </div>
-      ) : (
+              {notes.length === 0 ? (
+                <Document24Regular style={{ fontSize: "28px" }} />
+              ) : (
+                <Search24Regular style={{ fontSize: "28px" }} />
+              )}
+            </div>
+
+            <Title3
+              style={{
+                fontWeight: 600,
+                textAlign: "center",
+                margin: "0 0 8px 0",
+                display: "block",
+                width: "100%",
+              }}
+            >
+              {notes.length === 0 ? "暂无笔记" : "未找到匹配项"}
+            </Title3>
+
+            <Body1
+              style={{
+                opacity: 0.65,
+                textAlign: "center",
+                margin: "0 auto 20px auto",
+                display: "block",
+                fontSize: "13px",
+                maxWidth: "440px",
+                lineHeight: "1.6",
+                width: "100%",
+              }}
+            >
+              {notes.length === 0
+                ? "开始写第一篇笔记吧，记录生活中的点滴与思考。"
+                : searchQuery.trim()
+                ? `未找到与 “${searchQuery.trim()}” 相关的笔记，请尝试更换关键词。`
+                : selectedMood !== "all"
+                ? "当前分类下暂无笔记，可以尝试切换心情分类或清除筛选。"
+                : "未找到符合当前筛选条件的笔记，请尝试调整筛选范围。"}
+            </Body1>
+
+            {notes.length === 0 ? (
+              <Button
+                appearance="primary"
+                icon={<Add20Filled />}
+                onClick={() => navigate("/workspace/new")}
+                style={{
+                  backgroundColor: "#5B7B8D",
+                  borderRadius: "8px",
+                  fontWeight: 600,
+                }}
+              >
+                新建笔记
+              </Button>
+            ) : (
+              (searchQuery.trim() !== "" || selectedMood !== "all") && (
+                <Button
+                  appearance="secondary"
+                  icon={<ArrowReset20Regular />}
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedMood("all");
+                  }}
+                  style={{
+                    borderRadius: "8px",
+                    fontWeight: 600,
+                  }}
+                >
+                  清除筛选条件
+                </Button>
+              )
+            )}
+          </div>
+        ) : viewMode === "grid" ? (
+          /* Grid View */
+          <Win10AnimatedGrid
+            items={filteredNotes}
+            getKey={(note) => String(note.id)}
+            className="responsive-card-grid"
+            gridStyle={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 340px), 1fr))",
+              gap: "24px",
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+            renderItem={(note) => (
+              <NoteCard
+                diary={note}
+                showActions={true}
+                showVisibilityBadge={true}
+                onClick={() => navigate(`/workspace/edit/${note.id}`)}
+                onEdit={() => navigate(`/workspace/edit/${note.id}`)}
+                onDelete={() => setDeleteTarget(note)}
+                onTogglePublic={() => handleTogglePublic(note)}
+              />
+            )}
+          />
+        ) : (
         /* List View */
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="win10-stagger-grid" style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {filteredNotes.map((note) => (
             <Card
               key={note.id}
@@ -465,7 +598,7 @@ export const NotesManager: React.FC = () => {
                 justifyContent: "space-between",
                 backgroundColor: isDark ? "#202026" : "#ffffff",
                 border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
-                boxShadow: isDark ? "0 4px 14px rgba(0, 0, 0, 0.2)" : "0 2px 10px rgba(0, 120, 212, 0.04)",
+                boxShadow: isDark ? "0 4px 14px rgba(0, 0, 0, 0.2)" : "0 2px 10px rgba(91, 123, 141, 0.06)",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: 1, minWidth: 0 }}>
@@ -497,7 +630,7 @@ export const NotesManager: React.FC = () => {
 
                 <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                   <Tooltip
-                    content={note.is_public !== 0 && note.is_public !== false ? "公开可见 (点击设为私密)" : "私密笔记 (点击公开到广场)"}
+                    content={note.is_public !== 0 && note.is_public !== false ? "公开" : "私密"}
                     relationship="label"
                   >
                     <Button
@@ -505,7 +638,7 @@ export const NotesManager: React.FC = () => {
                       size="small"
                       icon={
                         note.is_public !== 0 && note.is_public !== false ? (
-                          <Globe20Regular style={{ color: "#0078d4" }} />
+                          <Globe20Regular style={{ color: "#5B7B8D" }} />
                         ) : (
                           <LockClosed20Regular style={{ color: "#8a8886" }} />
                         )
@@ -536,36 +669,56 @@ export const NotesManager: React.FC = () => {
           ))}
         </div>
       )}
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <Dialog
         open={!!deleteTarget}
         onOpenChange={(_, data) => !data.open && setDeleteTarget(null)}
+        surfaceMotion={surfaceMotion}
       >
         <DialogSurface
+          backdropMotion={backdropMotion}
           backdrop={{
             style: {
-              backdropFilter: "blur(12px) saturate(135%)",
-              WebkitBackdropFilter: "blur(12px) saturate(135%)",
-              backgroundColor: isDark ? "rgba(0, 0, 0, 0.55)" : "rgba(15, 23, 42, 0.4)",
+              backdropFilter: "none",
+              WebkitBackdropFilter: "none",
+              backgroundColor: "rgba(0, 0, 0, 0.4)",
             },
           }}
           style={{
-            maxWidth: "420px",
-            width: "90vw",
-            borderRadius: "16px",
-            padding: "24px",
-            backgroundColor: isDark ? "rgba(28, 28, 35, 0.95)" : "rgba(255, 255, 255, 0.96)",
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
-            border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)",
-            boxShadow: isDark
-              ? "0 28px 72px rgba(0, 0, 0, 0.65), 0 6px 24px rgba(0, 0, 0, 0.4)"
-              : "0 24px 64px rgba(0, 0, 0, 0.22), 0 4px 18px rgba(0, 0, 0, 0.08)",
+            position: isMobile ? "fixed" : undefined,
+            inset: isMobile ? 0 : undefined,
+            top: isMobile ? 0 : undefined,
+            left: isMobile ? 0 : undefined,
+            right: isMobile ? 0 : undefined,
+            bottom: isMobile ? 0 : undefined,
+            margin: isMobile ? 0 : undefined,
+            zIndex: isMobile ? 2000 : undefined,
+            maxWidth: isMobile ? "100vw" : "420px",
+            minWidth: isMobile ? "100vw" : undefined,
+            width: isMobile ? "100vw" : "90vw",
+            maxHeight: isMobile ? "100dvh" : "88vh",
+            height: isMobile ? "100dvh" : undefined,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            borderRadius: isMobile ? 0 : "16px",
+            padding: isMobile ? "max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) 16px" : "24px",
+            backgroundColor: isDark ? "#1c1c23" : "#ffffff",
+            backdropFilter: "none",
+            WebkitBackdropFilter: "none",
+            border: isMobile ? "none" : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)"),
+            boxShadow: isMobile
+              ? "none"
+              : (isDark
+                ? "0 28px 72px rgba(0, 0, 0, 0.65), 0 6px 24px rgba(0, 0, 0, 0.4)"
+                : "0 24px 64px rgba(0, 0, 0, 0.22), 0 4px 18px rgba(0, 0, 0, 0.08)"),
           }}
         >
-          <DialogBody style={{ display: "flex", flexDirection: "column", width: "100%" }}>
-            <div className="dialog-header-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: "16px" }}>
+          <DialogBody style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0, overflow: "hidden", width: "100%" }}>
+            {/* Header - 固定顶部 */}
+            <header className="dialog-header-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: "16px", flexShrink: 0 }}>
               <div className="dialog-header-title" style={{ flex: 1, minWidth: 0 }}>
                 <DialogTitle style={{ padding: 0, margin: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -586,9 +739,9 @@ export const NotesManager: React.FC = () => {
                   style={{ marginLeft: "auto", flexShrink: 0 }}
                 />
               </Tooltip>
-            </div>
+            </header>
 
-            <DialogContent style={{ display: "flex", flexDirection: "column", gap: "14px", padding: 0 }}>
+            <DialogContent style={{ display: "flex", flexDirection: "column", gap: "14px", padding: 0, flex: "1 1 auto", minHeight: 0, overflowY: "auto" }}>
               <div
                 style={{
                   padding: "12px 14px",
@@ -605,36 +758,38 @@ export const NotesManager: React.FC = () => {
                     wordBreak: "break-word",
                   }}
                 >
-                  {deleteTarget?.title || "无标题日记"}
+                  {activeDeleteTarget?.title || "无标题日记"}
                 </div>
-                {deleteTarget && (
+                {activeDeleteTarget && (
                   <Caption1 style={{ opacity: 0.65 }}>
-                    {formatDate(deleteTarget.created_at)}
+                    {formatDate(activeDeleteTarget.created_at)}
                   </Caption1>
                 )}
               </div>
               <Caption1 style={{ color: isDark ? "#f87171" : "#dc2626", fontSize: "12.5px" }}>
-                此操作将永久移除该篇日记，且不可撤销。
+                删除后无法恢复。
               </Caption1>
             </DialogContent>
 
-            {/* Footer Actions - 原生 Fluent 2 按钮，无多余线条 */}
-            <DialogActions style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "24px", padding: 0 }}>
-              <Button appearance="secondary" onClick={() => setDeleteTarget(null)}>
-                取消
-              </Button>
-              <Button
-                appearance="primary"
-                disabled={isDeleting}
-                onClick={handleDeleteConfirm}
-                style={{
-                  backgroundColor: "#d13438",
-                  color: "#ffffff",
-                }}
-              >
-                {isDeleting ? "正在删除..." : "确认删除"}
-              </Button>
-            </DialogActions>
+            {/* Footer Actions - 固定底部 */}
+            <footer className="dialog-footer-row" style={{ flexShrink: 0, width: "100%" }}>
+              <DialogActions style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "24px", padding: 0, flexShrink: 0 }}>
+                <Button appearance="secondary" onClick={() => setDeleteTarget(null)}>
+                  取消
+                </Button>
+                <Button
+                  appearance="primary"
+                  disabled={isDeleting}
+                  onClick={handleDeleteConfirm}
+                  style={{
+                    backgroundColor: "#d13438",
+                    color: "#ffffff",
+                  }}
+                >
+                  {isDeleting ? "正在删除..." : "删除"}
+                </Button>
+              </DialogActions>
+            </footer>
           </DialogBody>
         </DialogSurface>
       </Dialog>
