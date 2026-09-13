@@ -316,7 +316,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
           <div
             onClick={(e) => e.stopPropagation()}
             onDoubleClick={handleDoubleClick}
-            className="lightbox-svg-wrapper"
+            className="lightbox-svg-wrapper lightbox-content-card"
             style={{
               maxWidth: "96vw",
               maxHeight: "92vh",
@@ -324,40 +324,60 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
               transformOrigin: "center center",
               transition: isDragging ? "none" : "transform 0.12s cubic-bezier(0.2, 0, 0.2, 1)",
-              backgroundColor: "rgba(26, 26, 34, 0.98)",
-              borderRadius: "16px",
-              padding: "36px 28px",
-              boxShadow: "0 28px 80px rgba(0, 0, 0, 0.75)",
-              border: "1px solid rgba(255, 255, 255, 0.12)",
+              backgroundColor: "#ffffff",
+              borderRadius: "14px",
+              padding: "32px 36px",
+              boxShadow: "0 28px 80px rgba(0, 0, 0, 0.85)",
+              border: "1px solid rgba(255, 255, 255, 0.25)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               pointerEvents: "auto",
+              boxSizing: "border-box",
             }}
             dangerouslySetInnerHTML={{ __html: svgHtml }}
           />
         ) : (
-          <img
-            src={imageSrc!}
-            alt={imageAlt || "图片预览"}
+          <div
             onClick={(e) => e.stopPropagation()}
             onDoubleClick={handleDoubleClick}
-            draggable={false}
+            className="lightbox-img-card lightbox-content-card"
             style={{
               maxWidth: "96vw",
               maxHeight: "92vh",
-              width: "auto",
-              height: "auto",
-              objectFit: "contain",
-              borderRadius: "10px",
-              boxShadow: "0 28px 80px rgba(0, 0, 0, 0.8)",
-              userSelect: "none",
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
               transformOrigin: "center center",
               transition: isDragging ? "none" : "transform 0.12s cubic-bezier(0.2, 0, 0.2, 1)",
+              backgroundColor: "#ffffff",
+              borderRadius: "14px",
+              padding: "16px",
+              boxShadow: "0 28px 80px rgba(0, 0, 0, 0.85)",
+              border: "1px solid rgba(255, 255, 255, 0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               pointerEvents: "auto",
+              boxSizing: "border-box",
+              overflow: "hidden",
             }}
-          />
+          >
+            <img
+              src={imageSrc!}
+              alt={imageAlt || "图片预览"}
+              draggable={false}
+              style={{
+                maxWidth: "calc(96vw - 32px)",
+                maxHeight: "calc(92vh - 32px)",
+                width: "auto",
+                height: "auto",
+                objectFit: "contain",
+                borderRadius: "8px",
+                backgroundColor: "#ffffff",
+                userSelect: "none",
+                display: "block",
+              }}
+            />
+          </div>
         )}
       </div>
 

@@ -2203,14 +2203,46 @@ select,
 }
 
 /* ==========================================================================
-   Note Reader Modal 3-Stage Width Switcher & Adaptive Layout
+   Note Reader Modal 4-Stage Width Switcher & Adaptive Layout (默认 / 更宽 / 全宽 / 全屏)
    ========================================================================== */
 
 .reader-modal-surface {
-  transition-property: width, max-width !important;
+  transition-property: width, max-width, height, max-height, border-radius !important;
   transition-duration: 0.26s !important;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1) !important;
-  will-change: width, max-width;
+  will-change: width, max-width, height, max-height;
+}
+
+/* 桌面端全屏阅读模式：看起来和移动端一样全屏显示，覆盖整个网页 (包括遮盖标题栏，无圆角、无留白、无投影) */
+.reader-modal-surface.is-fullscreen-mode {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  min-width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100% !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 20px 32px !important;
+  background-color: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  z-index: 2000 !important;
+  box-sizing: border-box !important;
+}
+
+html.dark .reader-modal-surface.is-fullscreen-mode {
+  background-color: #1c1c23 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .reader-width-switcher {
@@ -2253,6 +2285,12 @@ select,
   background-color: #ffffff;
   color: #5B7B8D;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+html.dark .reader-width-btn.active {
+  background-color: #2b2b36;
+  color: #8EAEC0;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
 }
 
 /* 暗黑模式暗色适配 */
@@ -3560,4 +3598,21 @@ html.dark .image-undo-toast {
 
 .image-lightbox-top-bar button:active {
   transform: scale(0.95) !important;
+}
+
+/* 预览图片中间图片部分方块背景始终为纯白 (#ffffff) */
+.lightbox-content-card,
+.lightbox-img-card,
+.lightbox-svg-wrapper {
+  background-color: #ffffff !important;
+  color: #1a1a1a !important;
+}
+
+.lightbox-content-card img,
+.lightbox-img-card img {
+  background-color: #ffffff !important;
+}
+
+.lightbox-content-card svg {
+  background-color: transparent !important;
 }

@@ -294,10 +294,11 @@ export const Header: React.FC = () => {
                     aria-label={user.nickname || user.username}
                   >
                     <Avatar
+                      name={user.nickname || user.username}
                       image={user.avatar ? { src: user.avatar } : undefined}
                       aria-label={user.nickname || user.username}
                       color="brand"
-                      size={24}
+                      size={28}
                     />
                     <span
                       style={{
@@ -318,18 +319,19 @@ export const Header: React.FC = () => {
                 <MenuList>
                   <div
                     style={{
-                      padding: "10px 12px",
+                      padding: "12px 14px",
                       borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.06)",
                       display: "flex",
                       alignItems: "center",
-                      gap: "10px",
+                      gap: "12px",
                     }}
                   >
                     <Avatar
+                      name={user.nickname || user.username}
                       image={user.avatar ? { src: user.avatar } : undefined}
                       aria-label={user.nickname || user.username}
                       color="brand"
-                      size={36}
+                      size={40}
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
@@ -458,6 +460,7 @@ export const Header: React.FC = () => {
                   aria-label={user.nickname || user.username}
                 >
                   <Avatar
+                    name={user.nickname || user.username}
                     image={user.avatar ? { src: user.avatar } : undefined}
                     aria-label={user.nickname || user.username}
                     color="brand"
@@ -482,19 +485,20 @@ export const Header: React.FC = () => {
                 <MenuList>
                   <div
                     style={{
-                      padding: "10px 12px",
+                      padding: "12px 14px",
                       borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.06)",
                       marginBottom: "4px",
                       display: "flex",
                       alignItems: "center",
-                      gap: "10px",
+                      gap: "12px",
                     }}
                   >
                     <Avatar
+                      name={user.nickname || user.username}
                       image={user.avatar ? { src: user.avatar } : undefined}
                       aria-label={user.nickname || user.username}
                       color="brand"
-                      size={36}
+                      size={40}
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div

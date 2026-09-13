@@ -12,6 +12,7 @@ import {
   Tooltip,
 } from "@fluentui/react-components";
 import {
+  AutoFitWidth20Regular,
   Checkmark20Regular,
   ColumnTriple20Regular,
   Dismiss20Regular,
@@ -29,7 +30,7 @@ import { formatDate } from "./NoteCard";
 import { WeatherIcon } from "./WeatherBadge";
 import { useAppDialogMotion } from "../utils/dialogMotion";
 
-export type ReaderWidthMode = "default" | "wider" | "full";
+export type ReaderWidthMode = "default" | "wider" | "full" | "fullscreen";
 
 interface NoteReaderModalProps {
   diary: DiaryItem | null;
@@ -64,10 +65,10 @@ export const NoteReaderModal: React.FC<NoteReaderModalProps> = ({
     };
   }, []);
 
-  // 弹窗宽度挡位状态：默认当前 (default) / 更宽 (wider) / 全宽 (full)，持久化至本地
+  // 弹窗宽度挡位状态：默认当前 (default) / 更宽 (wider) / 全宽 (full) / 全屏 (fullscreen)，持久化至本地
   const [widthMode, setWidthMode] = useState<ReaderWidthMode>(() => {
     const saved = localStorage.getItem("diary_reader_width_mode");
-    if (saved === "wider" || saved === "full" || saved === "default") {
+    if (saved === "wider" || saved === "full" || saved === "fullscreen" || saved === "default") {
       return saved;
     }
     return "default";
@@ -96,9 +97,9 @@ export const NoteReaderModal: React.FC<NoteReaderModalProps> = ({
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  // 计算三挡对应的响应式宽度约束：当页面变窄时均自适应回落至页面的最大宽度 (calc(100vw - 32px))
+  // 计算四挡对应的响应式宽度约束：当页面变窄或设为全屏时，自适应为 100vw 全屏覆盖
   const getModalWidthStyle = (mode: ReaderWidthMode) => {
-    if (isNarrowScreen) {
+    if (isNarrowScreen || mode === "fullscreen") {
       return {
         width: "100vw",
         maxWidth: "100vw",
@@ -124,6 +125,7 @@ export const NoteReaderModal: React.FC<NoteReaderModalProps> = ({
     }
   };
 
+  const isFullscreen = isNarrowScreen || widthMode === "fullscreen";
   const modalWidth = getModalWidthStyle(widthMode);
 
   return (
@@ -133,7 +135,7 @@ export const NoteReaderModal: React.FC<NoteReaderModalProps> = ({
       surfaceMotion={surfaceMotion}
     >
       <DialogSurface
-        className="reader-modal-surface"
+        className={`reader-modal-surface ${widthMode === "fullscreen" ? "is-fullscreen-mode" : ""}`}
         backdropMotion={backdropMotion}
         backdrop={{
           style: {
@@ -144,29 +146,33 @@ export const NoteReaderModal: React.FC<NoteReaderModalProps> = ({
         }}
         style={{
           ...modalWidth,
-          position: isNarrowScreen ? "fixed" : undefined,
-          inset: isNarrowScreen ? 0 : undefined,
-          top: isNarrowScreen ? 0 : undefined,
-          left: isNarrowScreen ? 0 : undefined,
-          right: isNarrowScreen ? 0 : undefined,
-          bottom: isNarrowScreen ? 0 : undefined,
-          margin: isNarrowScreen ? 0 : undefined,
-          zIndex: isNarrowScreen ? 2000 : undefined,
-          width: isNarrowScreen ? "100vw" : modalWidth.width,
-          minWidth: isNarrowScreen ? "100vw" : undefined,
-          maxWidth: isNarrowScreen ? "100vw" : modalWidth.maxWidth,
-          maxHeight: isNarrowScreen ? "100dvh" : "88vh",
-          height: isNarrowScreen ? "100dvh" : undefined,
+          position: isFullscreen ? "fixed" : undefined,
+          inset: isFullscreen ? 0 : undefined,
+          top: isFullscreen ? 0 : undefined,
+          left: isFullscreen ? 0 : undefined,
+          right: isFullscreen ? 0 : undefined,
+          bottom: isFullscreen ? 0 : undefined,
+          margin: isFullscreen ? 0 : undefined,
+          zIndex: isFullscreen ? 2000 : undefined,
+          width: isFullscreen ? "100vw" : modalWidth.width,
+          minWidth: isFullscreen ? "100vw" : undefined,
+          maxWidth: isFullscreen ? "100vw" : modalWidth.maxWidth,
+          maxHeight: isFullscreen ? "100dvh" : "88vh",
+          height: isFullscreen ? "100dvh" : undefined,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
-          borderRadius: isNarrowScreen ? 0 : "16px",
-          border: isNarrowScreen ? "none" : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)"),
-          padding: isNarrowScreen ? "max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) 16px" : "24px 28px",
+          borderRadius: isFullscreen ? 0 : "16px",
+          border: isFullscreen ? "none" : (isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)"),
+          padding: isNarrowScreen
+            ? "max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) 16px"
+            : isFullscreen
+            ? "20px 32px"
+            : "24px 28px",
           backgroundColor: isDark ? "#1c1c23" : "#ffffff",
           backdropFilter: "none",
           WebkitBackdropFilter: "none",
-          boxShadow: isNarrowScreen
+          boxShadow: isFullscreen
             ? "none"
             : (isDark
               ? "0 28px 72px rgba(0, 0, 0, 0.65), 0 6px 24px rgba(0, 0, 0, 0.4)"
@@ -297,7 +303,7 @@ export const NoteReaderModal: React.FC<NoteReaderModalProps> = ({
                 </span>
               </div>
 
-              {/* 靠右：宽度控制按钮 (三挡，窄屏全屏模式下自动隐藏) */}
+              {/* 靠右：宽度控制按钮 (四挡：默认、更宽、全宽、全屏，窄屏全屏模式下自动隐藏) */}
               <div
                 className="reader-width-switcher reader-width-toolbar"
                 role="group"
@@ -307,7 +313,7 @@ export const NoteReaderModal: React.FC<NoteReaderModalProps> = ({
                   display: isNarrowScreen ? "none" : undefined,
                 }}
               >
-                <Tooltip content="默认宽度" relationship="label">
+                <Tooltip content="默认宽度 (780px)" relationship="label">
                   <button
                     type="button"
                     className={`reader-width-btn ${widthMode === "default" ? "active" : ""}`}
@@ -319,7 +325,7 @@ export const NoteReaderModal: React.FC<NoteReaderModalProps> = ({
                   </button>
                 </Tooltip>
 
-                <Tooltip content="更宽视窗" relationship="label">
+                <Tooltip content="更宽视窗 (1080px)" relationship="label">
                   <button
                     type="button"
                     className={`reader-width-btn ${widthMode === "wider" ? "active" : ""}`}
@@ -331,15 +337,27 @@ export const NoteReaderModal: React.FC<NoteReaderModalProps> = ({
                   </button>
                 </Tooltip>
 
-                <Tooltip content="全宽视窗" relationship="label">
+                <Tooltip content="全宽视窗 (1520px)" relationship="label">
                   <button
                     type="button"
                     className={`reader-width-btn ${widthMode === "full" ? "active" : ""}`}
                     onClick={() => handleSetWidthMode("full")}
                     aria-pressed={widthMode === "full"}
                   >
-                    <FullScreenMaximize20Regular style={{ fontSize: "15px" }} />
+                    <AutoFitWidth20Regular style={{ fontSize: "15px" }} />
                     <span>全宽</span>
+                  </button>
+                </Tooltip>
+
+                <Tooltip content="全屏沉浸阅读 (覆盖全屏)" relationship="label">
+                  <button
+                    type="button"
+                    className={`reader-width-btn ${widthMode === "fullscreen" ? "active" : ""}`}
+                    onClick={() => handleSetWidthMode("fullscreen")}
+                    aria-pressed={widthMode === "fullscreen"}
+                  >
+                    <FullScreenMaximize20Regular style={{ fontSize: "15px" }} />
+                    <span>全屏</span>
                   </button>
                 </Tooltip>
               </div>
