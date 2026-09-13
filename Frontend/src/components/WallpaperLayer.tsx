@@ -14,12 +14,14 @@ export const WallpaperLayer: React.FC = () => {
   const [isLayerVisible, setIsLayerVisible] = useState<boolean>(false);
 
   useEffect(() => {
-    // 只有在全局配置已启用、设置已从数据库确立、且具有权威壁纸 URL 时才开始加载
-    if (!enabled || !isSettingsLoaded || !currentWallpaper?.url) {
+    // 优先支持 Base64 秒显（IndexedDB 离线直显）：若已有 Base64，无需等待数据库异步请求完成
+    const isReady = isSettingsLoaded || !!currentWallpaper?.base64;
+    const hasSource = !!(currentWallpaper?.base64 || currentWallpaper?.url);
+    if (!enabled || !isReady || !hasSource) {
       return;
     }
 
-    const targetUrl = currentWallpaper.url;
+    const targetUrl = currentWallpaper.base64 || currentWallpaper.url!;
 
     // 1. 首屏首次加载：确保从纯色平滑淡入到当前应该显示的权威图，绝不提前展示第一张临时图
     if (!activeUrl) {
@@ -45,7 +47,7 @@ export const WallpaperLayer: React.FC = () => {
       };
     }
 
-    // 2. 后续切换壁纸（例如设置面板中切换）：双图层交叉渐变，无任何拉伸形变
+    // 2. 后续切换壁纸（例如设置面板中切换，或10秒后检测出圈平滑换新图）：双图层交叉渐变，无任何拉伸形变
     if (targetUrl !== activeUrl && targetUrl !== incomingUrl) {
       let active = true;
       const img = new Image();
@@ -68,7 +70,7 @@ export const WallpaperLayer: React.FC = () => {
         active = false;
       };
     }
-  }, [enabled, isSettingsLoaded, currentWallpaper?.url, activeUrl, incomingUrl]);
+  }, [enabled, isSettingsLoaded, currentWallpaper?.url, currentWallpaper?.base64, activeUrl, incomingUrl]);
 
   // 新图渐变完成晋升为 activeUrl
   const handleTransitionEnd = (e: React.TransitionEvent) => {
@@ -82,7 +84,8 @@ export const WallpaperLayer: React.FC = () => {
   // 动态提取当前活跃壁纸图片的综合颜色，以 20% 透明度注入全站文本选中背景底色 (--selection-bg)
   // 若未开启壁纸或未加载图片，则移除内联变量，由 CSS 自动使用浅色模式 20% 黑色 / 深色模式 20% 白色
   useEffect(() => {
-    if (!enabled || !isSettingsLoaded || !activeUrl) {
+    const isReady = isSettingsLoaded || !!currentWallpaper?.base64;
+    if (!enabled || !isReady || !activeUrl) {
       document.documentElement.style.removeProperty("--selection-bg");
       return;
     }
@@ -100,10 +103,11 @@ export const WallpaperLayer: React.FC = () => {
       active = false;
       document.documentElement.style.removeProperty("--selection-bg");
     };
-  }, [enabled, isSettingsLoaded, activeUrl]);
+  }, [enabled, isSettingsLoaded, activeUrl, currentWallpaper?.base64]);
 
   // 未就绪或禁用时直接返回 null，露出纯正深色/浅色背景，绝不闪现任何第一张图
-  if (!enabled || !isSettingsLoaded || !activeUrl) {
+  const isReady = isSettingsLoaded || !!currentWallpaper?.base64;
+  if (!enabled || !isReady || !activeUrl) {
     return null;
   }
 

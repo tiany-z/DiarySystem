@@ -5,6 +5,7 @@ export interface WallpaperItem {
   title: string;
   copyright: string;
   date?: string;
+  base64?: string;
 }
 
 export interface WallpaperResponse {

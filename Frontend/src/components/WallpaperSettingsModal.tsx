@@ -202,7 +202,7 @@ export const WallpaperSettingsModal: React.FC = () => {
                         maxHeight: "140px",
                         flexShrink: 0,
                         position: "relative",
-                        backgroundImage: `url("${currentWallpaper.url}")`,
+                        backgroundImage: `url("${currentWallpaper.base64 || currentWallpaper.url}")`,
                         backgroundSize: "cover",
                         backgroundPosition: "center center",
                       }}
