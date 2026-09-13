@@ -684,8 +684,8 @@ export const MarkdownImportModal: React.FC<MarkdownImportModalProps> = ({
                   }}
                 >
                   {isImporting
-                    ? `正在导入 (${progressIndex}/${items.length})...`
-                    : "开始导入"}
+                    ? "正在导入..."
+                    : "确定"}
                 </Button>
               </div>
             </DialogActions>

@@ -1,36 +1,53 @@
 import { useEffect, useState } from "react";
 import type { DialogProps, DialogSurfaceProps } from "@fluentui/react-components";
+import { createPresenceComponent } from "@fluentui/react-motion";
 
 /**
- * 桌面端 / 平板端全局统一弹窗动效配置:
- * 1. 打开动画: 0.3s (300ms)，曲线 cubic-bezier(0.1, 0.9, 0.2, 1) (中心优雅微放大弹出)
- * 2. 关闭动画: 0.2s (200ms)，曲线 cubic-bezier(0.8, 0, 0.78, 1) (中心平滑渐隐缩放退出)
+ * 全局统一弹窗动效配置:
+ * 1. 打开动画: 0.3s (300ms)，曲线 cubic-bezier(0.1, 0.9, 0.2, 1)
+ *    从聪慧放大 (0.9 -> 1.04 [65%]) 到缩小到正常大小 (1.0 [100%])
+ * 2. 关闭动画: 0.3s (300ms)，曲线 cubic-bezier(0.1, 0.9, 0.2, 1)
+ *    从正常到放大 (1.0 -> 1.08 [100%], 透明度 1 -> 0)
  */
-export const win10DialogSurfaceMotion: DialogProps["surfaceMotion"] = {
-  duration: 300,
-  exitDuration: 200,
-  easing: "cubic-bezier(0.1, 0.9, 0.2, 1)",
-  exitEasing: "cubic-bezier(0.8, 0, 0.78, 1)",
-  outScale: 0.85,
-} as any;
+export const smartZoomDialogSurfaceMotion: DialogProps["surfaceMotion"] = createPresenceComponent(() => ({
+  enter: [
+    {
+      keyframes: [
+        { opacity: 0, transform: "scale(0.9)", offset: 0 },
+        { opacity: 1, transform: "scale(1.04)", offset: 0.65 },
+        { opacity: 1, transform: "scale(1)", offset: 1 },
+      ],
+      duration: 300,
+      easing: "cubic-bezier(0.1, 0.9, 0.2, 1)",
+      fill: "both",
+    },
+  ],
+  exit: [
+    {
+      keyframes: [
+        { opacity: 1, transform: "scale(1)", offset: 0 },
+        { opacity: 0, transform: "scale(1.08)", offset: 1 },
+      ],
+      duration: 300,
+      easing: "cubic-bezier(0.1, 0.9, 0.2, 1)",
+      fill: "both",
+    },
+  ],
+})) as any;
 
-export const win10DialogBackdropMotion: DialogSurfaceProps["backdropMotion"] = {
+export const smartZoomBackdropMotion: DialogSurfaceProps["backdropMotion"] = {
   duration: 300,
-  exitDuration: 200,
+  exitDuration: 300,
   easing: "cubic-bezier(0.1, 0.9, 0.2, 1)",
-  exitEasing: "cubic-bezier(0.8, 0, 0.78, 1)",
+  exitEasing: "cubic-bezier(0.1, 0.9, 0.2, 1)",
 } as any;
 
 /**
- * 手机移动端底部抽屉滑动动效配置:
- * 配合 CSS 中的 mobileDrawerSlideUp 关键帧动效，实现从屏幕最底部向上平滑滑入全屏
+ * 保持向下兼容导出的配置引用
  */
-export const mobileDrawerSurfaceMotion: DialogProps["surfaceMotion"] = {
-  duration: 300,
-  exitDuration: 200,
-  easing: "cubic-bezier(0.1, 0.9, 0.2, 1)",
-  exitEasing: "cubic-bezier(0.8, 0, 0.78, 1)",
-} as any;
+export const win10DialogSurfaceMotion = smartZoomDialogSurfaceMotion;
+export const win10DialogBackdropMotion = smartZoomBackdropMotion;
+export const mobileDrawerSurfaceMotion = smartZoomDialogSurfaceMotion;
 
 /**
  * 精准判断当前是否处于平板设备 (明确区分并排除手机与桌面):
@@ -133,16 +150,14 @@ export function useIsMobilePhone(): boolean {
 
 /**
  * 统一获取当前环境的最佳 Dialog 动效:
- * - 手机移动端界面 (排除平板): 从底部向上抽屉滑出 (0.3s cubic-bezier(0.1, 0.9, 0.2, 1), 退出 0.2s cubic-bezier(0.8, 0, 0.78, 1))
- * - 桌面端 / 平板端: 居中平滑缩放弹出 (0.3s cubic-bezier(0.1, 0.9, 0.2, 1), 退出 0.2s cubic-bezier(0.8, 0, 0.78, 1))
+ * 所有弹窗统一使用 0.3s cubic-bezier(0.1, 0.9, 0.2, 1) 的聪慧放大缩小进场与放大离场动效
  */
 export function useAppDialogMotion() {
   const isMobile = useIsMobilePhone();
 
   return {
-    surfaceMotion: isMobile ? mobileDrawerSurfaceMotion : win10DialogSurfaceMotion,
-    backdropMotion: win10DialogBackdropMotion,
+    surfaceMotion: smartZoomDialogSurfaceMotion,
+    backdropMotion: smartZoomBackdropMotion,
     isMobile,
   };
 }
-

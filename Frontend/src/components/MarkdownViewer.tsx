@@ -176,7 +176,7 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <Tooltip content="关闭全屏预览 (Esc)" relationship="label">
+          <Tooltip content="关闭全屏预览" relationship="label">
             <Button
               appearance="subtle"
               icon={<Dismiss20Regular style={{ color: "#ffffff", fontSize: "20px" }} />}

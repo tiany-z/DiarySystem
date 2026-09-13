@@ -176,9 +176,20 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Nav Links (Desktop) - 仅在登录状态下显示导航链接 (公共广场、我的笔记、用户管理) */}
+      {/* Nav Links (Desktop) - 绝不受右侧更多按钮影响，始终全网页严格水平居中 */}
       {isAuthenticated && (
-        <nav className="desktop-only" style={{ alignItems: "center", gap: "8px" }}>
+        <nav
+          className="desktop-only"
+          style={{
+            position: "absolute",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            pointerEvents: "auto",
+          }}
+        >
           <Button
             appearance={location.pathname === "/" ? "primary" : "subtle"}
             icon={<Globe20Regular />}

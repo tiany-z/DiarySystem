@@ -136,7 +136,7 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ isOpen, onClos
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setStatusMsg({ type: "error", text: "请选择有效的图片文件 (JPG/PNG/WebP/GIF)" });
+      setStatusMsg({ type: "error", text: "请选择有效的图片文件" });
       return;
     }
 
@@ -163,7 +163,7 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ isOpen, onClos
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setStatusMsg({ type: "error", text: "请选择有效的图片文件 (JPG/PNG/WebP/GIF)" });
+      setStatusMsg({ type: "error", text: "请选择有效的图片文件" });
       return;
     }
 
@@ -349,7 +349,7 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ isOpen, onClos
 
   // 恢复默认头像
   const handleRemoveAvatar = async () => {
-    if (!window.confirm("确定要恢复默认头像（使用用户名首字母头像）吗？")) return;
+    if (!window.confirm("确定要恢复默认头像吗？")) return;
     try {
       setIsSubmitting(true);
       const res = await userApi.updateAvatar(null);
@@ -816,41 +816,26 @@ export const AvatarCropModal: React.FC<AvatarCropModalProps> = ({ isOpen, onClos
             )}
           </DialogContent>
 
-          {/* Actions - 固定底部 */}
+          {/* Actions - 固定底部：只有确定与取消 */}
           <footer className="dialog-footer-row" style={{ flexShrink: 0, width: "100%" }}>
-            <DialogActions style={{ marginTop: "24px", display: "flex", justifyContent: "space-between", flexShrink: 0 }}>
-              <div>
-                {user?.avatar && (
-                  <Button
-                    appearance="subtle"
-                    icon={<Delete20Regular />}
-                    onClick={handleRemoveAvatar}
-                    disabled={isSubmitting}
-                    style={{ color: "#c42b1c", borderRadius: "8px" }}
-                  >
-                    恢复默认头像
-                  </Button>
-                )}
-              </div>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <Button appearance="secondary" onClick={onClose} disabled={isSubmitting} style={{ borderRadius: "8px" }}>
-                  取消
-                </Button>
-                <Button
-                  appearance="primary"
-                  onClick={handleSaveAvatar}
-                  disabled={!imageSrc || isSubmitting}
-                  icon={isSubmitting ? <Spinner size="tiny" /> : undefined}
-                  style={{
-                    backgroundColor: "#5B7B8D",
-                    borderRadius: "8px",
-                    fontWeight: 600,
-                    boxShadow: "0 2px 8px rgba(91, 123, 141, 0.35)",
-                  }}
-                >
-                  {isSubmitting ? "正在保存..." : "保存头像"}
-                </Button>
-              </div>
+            <DialogActions style={{ marginTop: "24px", display: "flex", justifyContent: "flex-end", gap: "10px", flexShrink: 0 }}>
+              <Button appearance="secondary" onClick={onClose} disabled={isSubmitting} style={{ borderRadius: "8px" }}>
+                取消
+              </Button>
+              <Button
+                appearance="primary"
+                onClick={handleSaveAvatar}
+                disabled={!imageSrc || isSubmitting}
+                icon={isSubmitting ? <Spinner size="tiny" /> : undefined}
+                style={{
+                  backgroundColor: "#5B7B8D",
+                  borderRadius: "8px",
+                  fontWeight: 600,
+                  boxShadow: "0 2px 8px rgba(91, 123, 141, 0.35)",
+                }}
+              >
+                {isSubmitting ? "正在保存..." : "确定"}
+              </Button>
             </DialogActions>
           </footer>
         </DialogBody>

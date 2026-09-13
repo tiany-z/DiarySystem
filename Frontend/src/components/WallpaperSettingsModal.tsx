@@ -367,53 +367,45 @@ export const WallpaperSettingsModal: React.FC = () => {
             )}
           </DialogContent>
 
-          {/* Footer Actions - 固定底部 */}
+          {/* Footer Actions - 固定底部：任何涉及编辑的弹窗只有确定与取消 */}
           <footer className="dialog-footer-row" style={{ flexShrink: 0, width: "100%" }}>
-            <DialogActions style={{ justifyContent: "space-between", marginTop: "20px", padding: 0, flexShrink: 0 }}>
-              {isTiany ? (
-                <>
-                  <Button
-                    appearance="subtle"
-                    disabled={isSaving}
-                    onClick={() => {
-                      resetSettings();
-                    }}
-                  >
-                    恢复默认
-                  </Button>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <Button
-                      appearance="primary"
-                      icon={isSaving ? <Spinner size="tiny" /> : <Save20Regular />}
-                      disabled={isSaving}
-                      onClick={handleSaveToDatabase}
-                      style={{
-                        backgroundColor: "#5B7B8D",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {isSaving ? "正在保存..." : "保存设置"}
-                    </Button>
-                    <Button appearance="secondary" onClick={() => setIsSettingsOpen(false)}>
-                      完成
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div />
-                  <Button
-                    appearance="primary"
-                    onClick={() => setIsSettingsOpen(false)}
-                    style={{
-                      backgroundColor: "#5B7B8D",
-                      fontWeight: 600,
-                    }}
-                  >
-                    完成
-                  </Button>
-                </>
-              )}
+            <DialogActions style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px", padding: 0, flexShrink: 0 }}>
+              <Button
+                appearance="secondary"
+                disabled={isSaving}
+                onClick={() => setIsSettingsOpen(false)}
+              >
+                取消
+              </Button>
+              <Button
+                appearance="primary"
+                icon={isSaving ? <Spinner size="tiny" /> : undefined}
+                disabled={isSaving}
+                onClick={async () => {
+                  if (isTiany) {
+                    setSaveStatus("idle");
+                    const ok = await saveToDatabase();
+                    if (ok) {
+                      setIsSettingsOpen(false);
+                    } else {
+                      setSaveStatus("error");
+                      setSaveMsg("保存失败，请检查网络");
+                      setTimeout(() => {
+                        setSaveMsg(null);
+                        setSaveStatus("idle");
+                      }, 3000);
+                    }
+                  } else {
+                    setIsSettingsOpen(false);
+                  }
+                }}
+                style={{
+                  backgroundColor: "#5B7B8D",
+                  fontWeight: 600,
+                }}
+              >
+                {isSaving ? "正在保存..." : "确定"}
+              </Button>
             </DialogActions>
           </footer>
         </DialogBody>

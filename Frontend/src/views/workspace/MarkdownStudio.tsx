@@ -617,7 +617,7 @@ export const MarkdownStudio: React.FC = () => {
   // 核心：上传图片并插入当前文档
   const uploadAndInsertImage = async (file: File) => {
     if (!file.type.startsWith("image/")) {
-      setErrorMsg("请选择合法的图片格式 (JPG, PNG, GIF, WebP, SVG)");
+      setErrorMsg("请选择合法的图片格式");
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -993,8 +993,19 @@ export const MarkdownStudio: React.FC = () => {
           </Text>
         </div>
 
-        {/* Center: Document Mode Selector & Width Mode Selector */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+        {/* Center: Document Mode Selector & Width Mode Selector (始终全网页严格水平居中) */}
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            pointerEvents: "auto",
+            zIndex: 10,
+          }}
+        >
           <div
             style={{
               display: "flex",
@@ -1035,7 +1046,7 @@ export const MarkdownStudio: React.FC = () => {
             </Tooltip>
           </div>
 
-          {/* Width Mode Selector (标准/更宽/全宽三档切换) */}
+          {/* Width Mode Selector (标准/宽屏/全宽三档切换) */}
           <Menu>
             <MenuTrigger disableButtonEnhancement>
               <Tooltip content="画布宽度调整" relationship="label">
@@ -1053,19 +1064,19 @@ export const MarkdownStudio: React.FC = () => {
                   icon={editorWidthMode === "default" ? <CheckmarkCircle20Regular style={{ color: "#5B7B8D" }} /> : undefined}
                   onClick={() => handleSwitchWidthMode("default")}
                 >
-                  标准宽度 (880px)
+                  标准宽度
                 </MenuItem>
                 <MenuItem
                   icon={editorWidthMode === "wider" ? <CheckmarkCircle20Regular style={{ color: "#5B7B8D" }} /> : undefined}
                   onClick={() => handleSwitchWidthMode("wider")}
                 >
-                  宽屏模式 (1240px)
+                  宽屏模式
                 </MenuItem>
                 <MenuItem
                   icon={editorWidthMode === "full" ? <CheckmarkCircle20Regular style={{ color: "#5B7B8D" }} /> : undefined}
                   onClick={() => handleSwitchWidthMode("full")}
                 >
-                  全宽铺满 (100%)
+                  全宽铺满
                 </MenuItem>
               </MenuList>
             </MenuPopover>
@@ -1191,7 +1202,7 @@ export const MarkdownStudio: React.FC = () => {
                     handleSwitchWidthMode(nextMode);
                   }}
                 >
-                  切换宽度 ({editorWidthMode === "default" ? "标准" : editorWidthMode === "wider" ? "宽屏" : "全宽"})
+                  切换宽度
                 </MenuItem>
                 <MenuItem
                   icon={isPublic ? <Globe20Regular /> : <LockClosed20Regular />}
@@ -1983,7 +1994,7 @@ export const MarkdownStudio: React.FC = () => {
                     fontWeight: 600,
                   }}
                 >
-                  插入表格
+                  确定
                 </Button>
               </DialogActions>
             </footer>
@@ -2113,7 +2124,7 @@ export const MarkdownStudio: React.FC = () => {
                       fontWeight: 600,
                     }}
                   >
-                    应用修改
+                    确定
                   </Button>
                 </div>
               </DialogActions>
@@ -2413,7 +2424,7 @@ export const MarkdownStudio: React.FC = () => {
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <Tooltip content="关闭全屏预览 (Esc)" relationship="label">
+              <Tooltip content="关闭全屏预览" relationship="label">
                 <Button
                   appearance="subtle"
                   icon={<Dismiss20Regular style={{ color: "#ffffff", fontSize: "20px" }} />}

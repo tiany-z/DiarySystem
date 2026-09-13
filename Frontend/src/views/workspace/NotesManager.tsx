@@ -786,7 +786,7 @@ export const NotesManager: React.FC = () => {
                     color: "#ffffff",
                   }}
                 >
-                  {isDeleting ? "正在删除..." : "删除"}
+                  {isDeleting ? "正在删除..." : "确定"}
                 </Button>
               </DialogActions>
             </footer>

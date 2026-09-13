@@ -749,7 +749,7 @@ export const UserManager: React.FC = () => {
                       fontWeight: 600,
                     }}
                   >
-                    {isAddSubmitting ? "正在添加..." : "添加"}
+                    {isAddSubmitting ? "正在保存..." : "确定"}
                   </Button>
                 </DialogActions>
               </footer>
@@ -890,7 +890,7 @@ export const UserManager: React.FC = () => {
                       fontWeight: 600,
                     }}
                   >
-                    {isPassSubmitting ? "正在保存..." : "确认"}
+                    {isPassSubmitting ? "正在保存..." : "确定"}
                   </Button>
                 </DialogActions>
               </footer>
@@ -1006,7 +1006,7 @@ export const UserManager: React.FC = () => {
                   style={{ backgroundColor: "#d13438", borderColor: "#d13438" }}
                   icon={isDeleteSubmitting ? <Spinner size="tiny" /> : <Delete20Regular />}
                 >
-                  {isDeleteSubmitting ? "正在删除..." : "删除"}
+                  {isDeleteSubmitting ? "正在删除..." : "确定"}
                 </Button>
               </DialogActions>
             </footer>
