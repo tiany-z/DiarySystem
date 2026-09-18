@@ -37,18 +37,22 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // 自动根据文本行数调整高度 (44px ~ 160px)
+  // 自动根据文本行数调整高度 (38px ~ 160px)
   const adjustHeight = () => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    const nextHeight = Math.min(Math.max(el.scrollHeight, 44), 160);
+    const nextHeight = Math.min(Math.max(el.scrollHeight, 38), 160);
     el.style.height = `${nextHeight}px`;
   };
 
   useEffect(() => {
     adjustHeight();
   }, [text]);
+
+  const isMultiLine =
+    text.includes("\n") ||
+    (textareaRef.current ? textareaRef.current.scrollHeight > 48 : false);
 
   const handleSend = () => {
     if (isStreaming) {
@@ -66,7 +70,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
     onSendMessage(trimmed);
     setText("");
     if (textareaRef.current) {
-      textareaRef.current.style.height = "44px";
+      textareaRef.current.style.height = "38px";
     }
   };
 
@@ -131,9 +135,11 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)",
           boxShadow: isDark ? "0 4px 20px rgba(0, 0, 0, 0.35)" : "0 4px 16px rgba(0, 0, 0, 0.05)",
           display: "flex",
-          alignItems: "flex-end",
+          alignItems: isMultiLine ? "flex-end" : "center",
           padding: isMobile ? "4px 8px 4px 12px" : "6px 12px 6px 16px",
           gap: "8px",
+          minHeight: "52px",
+          boxSizing: "border-box",
         }}
       >
         <textarea
@@ -153,13 +159,15 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             outline: "none",
             backgroundColor: "transparent",
             fontSize: "14px",
-            lineHeight: "1.5",
+            lineHeight: "22px",
             color: isDark ? "#f7fafc" : "#2d3748",
             resize: "none",
             padding: "8px 0",
             maxHeight: "160px",
-            minHeight: "40px",
+            minHeight: "38px",
+            height: "38px",
             fontFamily: "inherit",
+            boxSizing: "border-box",
           }}
         />
 
@@ -185,7 +193,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             justifyContent: "center",
             cursor: text.trim() || isStreaming ? "pointer" : "default",
             transition: "all 0.2s ease",
-            marginBottom: "3px",
+            marginBottom: isMultiLine ? "3px" : "0",
             flexShrink: 0,
           }}
         >

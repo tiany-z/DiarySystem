@@ -632,7 +632,7 @@ export const AIChatView: React.FC = () => {
             position: "absolute",
             left: 0,
             right: 0,
-            bottom: "calc(50% + 20px)",
+            bottom: "calc(50% + 52px)",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",

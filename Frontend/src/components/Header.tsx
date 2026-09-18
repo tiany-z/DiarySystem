@@ -41,6 +41,30 @@ export const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // 监听网页宽度：仅在宽度 <= 1080px (导航文字折叠为纯图标) 时显示 hover Tooltip；网页足够宽显示了文字时不展示 Tooltip
+  const [isNarrowNav, setIsNarrowNav] = React.useState<boolean>(
+    typeof window !== "undefined" ? window.innerWidth <= 1080 : false
+  );
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsNarrowNav(window.innerWidth <= 1080);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const wrapNavTooltip = (label: string, element: React.ReactElement) => {
+    if (isNarrowNav) {
+      return (
+        <Tooltip content={label} relationship="label">
+          {element}
+        </Tooltip>
+      );
+    }
+    return element;
+  };
+
   const handleNav = (targetPath: string) => {
     if (typeof window !== "undefined" && window.__checkUnsavedBeforeNavigate) {
       const allowed = window.__checkUnsavedBeforeNavigate(targetPath);
@@ -190,7 +214,8 @@ export const Header: React.FC = () => {
             pointerEvents: "auto",
           }}
         >
-          <Tooltip content="公共广场" relationship="label">
+          {wrapNavTooltip(
+            "公共广场",
             <Button
               className="header-nav-btn"
               appearance={location.pathname === "/" ? "primary" : "subtle"}
@@ -203,9 +228,10 @@ export const Header: React.FC = () => {
             >
               <span className="header-nav-btn-text">公共广场</span>
             </Button>
-          </Tooltip>
+          )}
 
-          <Tooltip content="我的笔记" relationship="label">
+          {wrapNavTooltip(
+            "我的笔记",
             <Button
               className="header-nav-btn"
               appearance={
@@ -231,9 +257,10 @@ export const Header: React.FC = () => {
             >
               <span className="header-nav-btn-text">我的笔记</span>
             </Button>
-          </Tooltip>
+          )}
 
-          <Tooltip content="AI 助手" relationship="label">
+          {wrapNavTooltip(
+            "AI 助手",
             <Button
               className="header-nav-btn"
               appearance={location.pathname.startsWith("/workspace/ai") ? "primary" : "subtle"}
@@ -253,10 +280,11 @@ export const Header: React.FC = () => {
             >
               <span className="header-nav-btn-text">AI 助手</span>
             </Button>
-          </Tooltip>
+          )}
 
-          {user?.username === "tiany" && (
-            <Tooltip content="用户管理" relationship="label">
+          {user?.username === "tiany" &&
+            wrapNavTooltip(
+              "用户管理",
               <Button
                 className="header-nav-btn"
                 appearance={location.pathname.startsWith("/workspace/users") ? "primary" : "subtle"}
@@ -276,8 +304,7 @@ export const Header: React.FC = () => {
               >
                 <span className="header-nav-btn-text">用户管理</span>
               </Button>
-            </Tooltip>
-          )}
+            )}
         </nav>
       )}
 
