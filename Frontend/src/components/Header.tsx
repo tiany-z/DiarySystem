@@ -3,6 +3,12 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   Avatar,
   Button,
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogContent,
+  DialogSurface,
+  DialogTitle,
   Menu,
   MenuItem,
   MenuList,
@@ -22,6 +28,7 @@ import {
   PeopleCommunity20Regular,
   Person20Regular,
   Settings20Regular,
+  SignOut20Regular,
   WeatherMoon20Regular,
   WeatherSunny20Regular,
   Bot20Regular,
@@ -34,10 +41,22 @@ import { BrandLogo } from "./BrandLogo";
 
 export const Header: React.FC = () => {
   const { isDark, themeMode, setThemeMode, forceCodeDark, toggleForceCodeDark } = useAppTheme();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const { openSettings } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = React.useState(false);
+
+  const handleLogout = () => {
+    setIsLogoutDialogOpen(false);
+    if (typeof window !== "undefined" && window.__checkUnsavedBeforeNavigate) {
+      const allowed = window.__checkUnsavedBeforeNavigate("/");
+      if (!allowed) return;
+    }
+    logout();
+    navigate("/");
+  };
 
   // 监听网页宽度：仅在宽度 <= 1080px (导航文字折叠为纯图标) 时显示 hover Tooltip；网页足够宽显示了文字时不展示 Tooltip
   const [isNarrowNav, setIsNarrowNav] = React.useState<boolean>(
@@ -170,10 +189,10 @@ export const Header: React.FC = () => {
         WebkitBackdropFilter: "blur(16px) saturate(180%)",
       }}
     >
-      {/* Brand Logo */}
+      {/* Brand Logo (Desktop: 点击直接返回首页) */}
       <div
         onClick={() => handleNav("/")}
-        className="header-brand-wrap"
+        className="header-brand-wrap desktop-only"
         style={{
           display: "flex",
           alignItems: "center",
@@ -187,6 +206,72 @@ export const Header: React.FC = () => {
           <Subtitle2 className="header-brand-title" style={{ fontWeight: 700, letterSpacing: "-0.3px", lineHeight: 1.25 }}>拾光手记</Subtitle2>
           <span className="header-brand-subtitle" style={{ fontSize: "10px", opacity: 0.6, fontWeight: 500, letterSpacing: "0.2px", lineHeight: 1.2 }}>note.flynt.hk</span>
         </div>
+      </div>
+
+      {/* Brand Logo (Mobile: 点击展开 Fluent 2 导航菜单切换页面) */}
+      <div className="mobile-only" style={{ alignItems: "center" }}>
+        <Menu>
+          <MenuTrigger disableButtonEnhancement>
+            <div
+              className="header-brand-wrap"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                cursor: "pointer",
+                userSelect: "none",
+              }}
+              aria-label="页面切换菜单"
+            >
+              <BrandLogo size={30} className="header-brand-logo-icon" />
+              <div className="header-brand-title-wrap" style={{ display: "flex", flexDirection: "column" }}>
+                <Subtitle2 className="header-brand-title" style={{ fontWeight: 700, letterSpacing: "-0.3px", lineHeight: 1.25, fontSize: "14px" }}>拾光手记</Subtitle2>
+                <span className="header-brand-subtitle" style={{ fontSize: "9px", opacity: 0.6, fontWeight: 500, letterSpacing: "0.2px", lineHeight: 1.1 }}>note.flynt.hk</span>
+              </div>
+            </div>
+          </MenuTrigger>
+          <MenuPopover>
+            <MenuList>
+              <MenuItem
+                icon={<Globe20Regular />}
+                onClick={() => handleNav("/")}
+              >
+                笔记广场
+              </MenuItem>
+              {isAuthenticated ? (
+                <>
+                  <MenuItem
+                    icon={<Folder20Regular />}
+                    onClick={() => handleNav("/workspace")}
+                  >
+                    我的笔记
+                  </MenuItem>
+                  <MenuItem
+                    icon={<Bot20Regular />}
+                    onClick={() => handleNav("/workspace/ai")}
+                  >
+                    AI助手
+                  </MenuItem>
+                  {user?.username === "tiany" && (
+                    <MenuItem
+                      icon={<PeopleCommunity20Regular />}
+                      onClick={() => handleNav("/workspace/users")}
+                    >
+                      用户管理
+                    </MenuItem>
+                  )}
+                </>
+              ) : (
+                <MenuItem
+                  icon={<Person20Regular />}
+                  onClick={() => handleNav("/auth")}
+                >
+                  登录
+                </MenuItem>
+              )}
+            </MenuList>
+          </MenuPopover>
+        </Menu>
       </div>
 
       {/* Nav Links (Desktop) - 绝不受右侧更多按钮影响，始终全网页严格水平居中 */}
@@ -372,6 +457,12 @@ export const Header: React.FC = () => {
                   >
                     设置
                   </MenuItem>
+                  <MenuItem
+                    icon={<SignOut20Regular />}
+                    onClick={() => setIsLogoutDialogOpen(true)}
+                  >
+                    退出登录
+                  </MenuItem>
                 </MenuList>
               </MenuPopover>
             </Menu>
@@ -471,6 +562,12 @@ export const Header: React.FC = () => {
                   >
                     设置
                   </MenuItem>
+                  <MenuItem
+                    icon={<SignOut20Regular />}
+                    onClick={() => setIsLogoutDialogOpen(true)}
+                  >
+                    退出登录
+                  </MenuItem>
                 </MenuList>
               </MenuPopover>
             </Menu>
@@ -502,6 +599,41 @@ export const Header: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* 退出登录确认弹窗 */}
+      <Dialog
+        open={isLogoutDialogOpen}
+        onOpenChange={(_, data) => setIsLogoutDialogOpen(data.open)}
+      >
+        <DialogSurface style={{ maxWidth: "380px", borderRadius: "12px", padding: "20px" }}>
+          <DialogBody>
+            <DialogTitle>确认退出登录</DialogTitle>
+            <DialogContent style={{ marginTop: "10px", fontSize: "14px", lineHeight: 1.6, opacity: 0.85 }}>
+              确定要退出当前账号吗？未保存的内容可能会丢失。
+            </DialogContent>
+            <DialogActions style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+              <Button
+                appearance="secondary"
+                onClick={() => setIsLogoutDialogOpen(false)}
+              >
+                取消
+              </Button>
+              <Button
+                appearance="primary"
+                className="btn-danger"
+                style={{
+                  backgroundColor: "#d13438",
+                  borderColor: "#d13438",
+                  color: "#ffffff",
+                }}
+                onClick={handleLogout}
+              >
+                退出登录
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </header>
   );
 };

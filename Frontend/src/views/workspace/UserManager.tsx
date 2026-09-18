@@ -1001,10 +1001,11 @@ export const UserManager: React.FC = () => {
                 </Button>
                 <Button
                   appearance="primary"
+                  className="btn-danger"
                   disabled={isDeleteSubmitting}
                   onClick={handleDeleteUserSubmit}
-                  style={{ backgroundColor: "#d13438", borderColor: "#d13438" }}
-                  icon={isDeleteSubmitting ? <Spinner size="tiny" /> : <Delete20Regular />}
+                  style={{ backgroundColor: "#d13438", borderColor: "#d13438", color: "#ffffff" }}
+                  icon={isDeleteSubmitting ? <Spinner size="tiny" /> : <Delete20Regular style={{ color: "#ffffff" }} />}
                 >
                   {isDeleteSubmitting ? "正在删除..." : "确定"}
                 </Button>

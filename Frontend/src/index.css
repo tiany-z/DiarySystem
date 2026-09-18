@@ -1975,6 +1975,73 @@ button.fui-Button--appearance-primary:not([style*="d13438"]):not([style*="red"])
   color: #ffffff !important;
 }
 
+/* ==========================================================================
+   全站所有红色操作按钮规范：纯红底色 + 纯白字体 (按钮为纯红色，字体为白色)
+   ========================================================================== */
+.btn-danger,
+button.btn-danger,
+.fui-Button.btn-danger,
+button[data-intent="danger"],
+.fui-Button[data-intent="danger"],
+.fui-Button--appearance-primary[style*="d13438"],
+.fui-Button--appearance-primary[style*="red"],
+.fui-Button--appearance-primary[style*="dc2626"],
+.fui-Button--appearance-primary[style*="e53e3e"],
+.fui-Button[style*="d13438"],
+.fui-Button[style*="dc2626"],
+.fui-Button[style*="e53e3e"],
+button[style*="d13438"],
+button[style*="dc2626"],
+button[style*="e53e3e"],
+button[style*="background-color: #d13438"],
+button[style*="background-color: rgb(209, 52, 56)"] {
+  background-color: #d13438 !important;
+  background: #d13438 !important;
+  border-color: #d13438 !important;
+  border: 1px solid #d13438 !important;
+  color: #ffffff !important;
+}
+
+.btn-danger:hover,
+button.btn-danger:hover,
+.fui-Button.btn-danger:hover,
+button[data-intent="danger"]:hover,
+.fui-Button[data-intent="danger"]:hover,
+.fui-Button--appearance-primary[style*="d13438"]:hover,
+.fui-Button[style*="d13438"]:hover,
+button[style*="d13438"]:hover {
+  background-color: #b91c1c !important;
+  background: #b91c1c !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+.btn-danger:active,
+button.btn-danger:active,
+.fui-Button.btn-danger:active,
+button[data-intent="danger"]:active,
+.fui-Button[data-intent="danger"]:active,
+.fui-Button--appearance-primary[style*="d13438"]:active,
+.fui-Button[style*="d13438"]:active,
+button[style*="d13438"]:active {
+  background-color: #991b1b !important;
+  background: #991b1b !important;
+  border-color: #991b1b !important;
+  color: #ffffff !important;
+}
+
+.btn-danger *,
+button.btn-danger *,
+.fui-Button.btn-danger *,
+button[data-intent="danger"] *,
+.fui-Button[data-intent="danger"] *,
+button[style*="d13438"] *,
+button[style*="dc2626"] *,
+button[style*="e53e3e"] * {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
 .fui-Button .fui-Button__icon {
   display: inline-flex !important;
   align-items: center !important;

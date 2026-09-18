@@ -160,6 +160,9 @@ export const UnifiedSettingsModal: React.FC = () => {
   // Avatar Crop Modal state
   const [isAvatarCropOpen, setIsAvatarCropOpen] = useState(false);
 
+  // Logout confirm modal state
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+
   // Wallpaper save status
   const [wpSaveStatus, setWpSaveStatus] = useState<"idle" | "success" | "error">("idle");
   const [wpSaveMsg, setWpSaveMsg] = useState<string | null>(null);
@@ -1152,13 +1155,15 @@ export const UnifiedSettingsModal: React.FC = () => {
                         </div>
                       </div>
                       <Button
-                        appearance="secondary"
-                        style={{ color: "#d13438" }}
-                        icon={<SignOut20Regular />}
-                        onClick={() => {
-                          closeSettings();
-                          logout();
+                        appearance="primary"
+                        className="btn-danger"
+                        style={{
+                          backgroundColor: "#d13438",
+                          borderColor: "#d13438",
+                          color: "#ffffff",
                         }}
+                        icon={<SignOut20Regular style={{ color: "#ffffff" }} />}
+                        onClick={() => setIsLogoutConfirmOpen(true)}
                       >
                         退出登录
                       </Button>
@@ -1344,6 +1349,46 @@ export const UnifiedSettingsModal: React.FC = () => {
         isOpen={isChangePasswordOpen}
         onClose={() => setIsChangePasswordOpen(false)}
       />
+
+      {/* 退出登录确认弹窗 */}
+      <Dialog
+        open={isLogoutConfirmOpen}
+        onOpenChange={(_, data) => setIsLogoutConfirmOpen(data.open)}
+      >
+        <DialogSurface style={{ maxWidth: "380px", borderRadius: "12px", padding: "20px" }}>
+          <DialogBody>
+            <DialogTitle>确认退出登录</DialogTitle>
+            <DialogContent style={{ marginTop: "10px", fontSize: "14px", lineHeight: 1.6, opacity: 0.85 }}>
+              确定要退出当前账号吗？未保存的内容可能会丢失。
+            </DialogContent>
+            <DialogActions style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+              <Button
+                appearance="secondary"
+                onClick={() => setIsLogoutConfirmOpen(false)}
+              >
+                取消
+              </Button>
+              <Button
+                appearance="primary"
+                className="btn-danger"
+                style={{
+                  backgroundColor: "#d13438",
+                  borderColor: "#d13438",
+                  color: "#ffffff",
+                }}
+                onClick={() => {
+                  setIsLogoutConfirmOpen(false);
+                  closeSettings();
+                  logout();
+                  navigate("/");
+                }}
+              >
+                退出登录
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </>
   );
 };

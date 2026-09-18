@@ -814,10 +814,12 @@ export const NotesManager: React.FC = () => {
                 </Button>
                 <Button
                   appearance="primary"
+                  className="btn-danger"
                   disabled={isDeleting}
                   onClick={handleDeleteConfirm}
                   style={{
                     backgroundColor: "#d13438",
+                    borderColor: "#d13438",
                     color: "#ffffff",
                   }}
                 >
