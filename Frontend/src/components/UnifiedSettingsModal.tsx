@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Badge,
   Button,
@@ -31,6 +32,7 @@ import {
   Image20Regular,
   Key20Regular,
   LockClosed20Regular,
+  PeopleCommunity20Regular,
   Person20Regular,
   PlugConnected20Regular,
   Save20Regular,
@@ -111,6 +113,7 @@ export const UnifiedSettingsModal: React.FC = () => {
   const { user, refreshProfile, updateAvatar, logout } = useAuth();
   const { isDark, themeMode, setThemeMode, forceCodeDark, setForceCodeDark } = useAppTheme();
   const { surfaceMotion, backdropMotion, isMobile } = useAppDialogMotion();
+  const navigate = useNavigate();
 
   // Wallpaper context
   const {
@@ -1095,6 +1098,39 @@ export const UnifiedSettingsModal: React.FC = () => {
                         修改密码
                       </Button>
                     </div>
+
+                    {/* 用户管理控制台入口 (仅超级管理员 tiany 可见) */}
+                    {isTiany && (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "14px 16px",
+                          borderRadius: "10px",
+                          border: isDark ? "1px solid rgba(91, 123, 141, 0.25)" : "1px solid rgba(91, 123, 141, 0.2)",
+                          backgroundColor: isDark ? "rgba(91, 123, 141, 0.06)" : "rgba(91, 123, 141, 0.03)",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <PeopleCommunity20Regular style={{ color: "#5B7B8D", fontSize: "20px" }} />
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: "13.5px" }}>用户管理控制台</div>
+                            <div style={{ fontSize: "12px", opacity: 0.6 }}>管理系统所有用户账号、重置密码及权限</div>
+                          </div>
+                        </div>
+                        <Button
+                          appearance="primary"
+                          icon={<PeopleCommunity20Regular />}
+                          onClick={() => {
+                            closeSettings();
+                            navigate("/workspace/users");
+                          }}
+                        >
+                          进入管理
+                        </Button>
+                      </div>
+                    )}
 
                     {/* 退出登录卡片 */}
                     <div

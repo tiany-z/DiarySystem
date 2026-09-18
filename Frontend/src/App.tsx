@@ -17,6 +17,7 @@ import { NotesManager } from "./views/workspace/NotesManager";
 import { UserManager } from "./views/workspace/UserManager";
 import { AIChatView } from "./views/workspace/AIChatView";
 import { WorkspaceView } from "./views/workspace/WorkspaceView";
+import { CustomScrollbar } from "./components/CustomScrollbar";
 
 const getRouteTransitionKey = (pathname: string) => {
   if (pathname.startsWith("/workspace/ai")) return "/workspace/ai";
@@ -120,6 +121,16 @@ const AppContent: React.FC = () => {
               }
             />
 
+            {/* 模块四：用户管理控制台 (受保护路由) */}
+            <Route
+              path="/workspace/users"
+              element={
+                <ProtectedRoute>
+                  <UserManager />
+                </ProtectedRoute>
+              }
+            />
+
             {/* 模块六：全功能自主思考 AI Agent 对话工作台 (受保护路由) */}
             <Route
               path="/workspace/ai"
@@ -143,6 +154,7 @@ const AppContent: React.FC = () => {
           </Routes>
         </div>
       </main>
+      <CustomScrollbar />
       <Toaster />
     </>
   );
@@ -168,8 +180,8 @@ export const App: React.FC = () => {
           <WallpaperProvider>
             <SettingsProvider>
               <WallpaperLayer />
-              <UnifiedSettingsModal />
               <BrowserRouter>
+                <UnifiedSettingsModal />
                 <AppContent />
               </BrowserRouter>
             </SettingsProvider>

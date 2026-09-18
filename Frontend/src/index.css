@@ -87,12 +87,27 @@ html {
   overflow-y: auto;
   touch-action: pan-x pan-y;
   -webkit-text-size-adjust: 100%;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
-html.dark {
-  scrollbar-color: rgba(203, 213, 225, 0.3) transparent;
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* 全局隐藏原生滚动条 (完全由自定义 HTML 浮动滚动条 CustomScrollbar 接管，0px 占用文档流布局空间) */
+* {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 body {
