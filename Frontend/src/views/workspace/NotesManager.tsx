@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Badge,
@@ -43,7 +43,7 @@ import {
   WeatherSunny20Regular,
 } from "@fluentui/react-icons";
 import { diaryApi, DiaryItem } from "../../api/diary";
-import { MoodBadge } from "../../components/MoodBadge";
+import { MoodBadge, getAllMoods } from "../../components/MoodBadge";
 import { formatDate, NoteCard, extractFirstImage } from "../../components/NoteCard";
 import { WeatherBadge } from "../../components/WeatherBadge";
 import { MarkdownImportModal } from "../../components/MarkdownImportModal";
@@ -71,6 +71,19 @@ export const NotesManager: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMood, setSelectedMood] = useState<string>("all");
+  const [customMoodVersion, setCustomMoodVersion] = useState(0);
+
+  // 监听用户自定义心情库变动，保持分类标签实时同步
+  useEffect(() => {
+    const handleUpdate = () => setCustomMoodVersion((v) => v + 1);
+    window.addEventListener("mood:custom_updated", handleUpdate);
+    return () => window.removeEventListener("mood:custom_updated", handleUpdate);
+  }, []);
+
+  // 动态融合系统预设、用户本地自定义以及该用户所有日记中实际出现的分类
+  const moodTabs = useMemo(() => {
+    return getAllMoods(notes);
+  }, [notes, customMoodVersion]);
   const [viewMode, setViewModeState] = useState<"grid" | "list">(() => {
     try {
       const saved = localStorage.getItem("diary_notes_view_mode");
@@ -412,11 +425,11 @@ export const NotesManager: React.FC = () => {
             onTabSelect={(_, data) => setSelectedMood(String(data.value))}
           >
             <Tab value="all">全部</Tab>
-            <Tab value="Happy">欢喜 ✨</Tab>
-            <Tab value="Peaceful">宁静 🌿</Tab>
-            <Tab value="Excited">充沛 🔥</Tab>
-            <Tab value="Thinking">沉思 💡</Tab>
-            <Tab value="Tired">倦怠 🌙</Tab>
+            {moodTabs.map((m) => (
+              <Tab key={m.id} value={m.id}>
+                {m.label} {m.emoji || "✨"}
+              </Tab>
+            ))}
           </TabList>
         </div>
 

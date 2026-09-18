@@ -20,6 +20,7 @@ import { diaryApi, DiaryItem } from "../../api/diary";
 import { NoteCard } from "../../components/NoteCard";
 import { NoteReaderModal } from "../../components/NoteReaderModal";
 import { Win10AnimatedGrid } from "../../components/Win10AnimatedGrid";
+import { getAllMoods } from "../../components/MoodBadge";
 import { useAuth } from "../../context/AuthContext";
 import { usePageCache } from "../../context/PageCacheContext";
 import { useAppTheme } from "../../context/ThemeContext";
@@ -186,6 +187,19 @@ export const PublicShowcase: React.FC = () => {
   const [selectedMood, setSelectedMood] = useState<string>("all");
   const [isReaderOpen, setIsReaderOpen] = useState(false);
   const [readerDiary, setReaderDiary] = useState<DiaryItem | null>(null);
+  const [customMoodVersion, setCustomMoodVersion] = useState(0);
+
+  // 监听用户自定义心情库变动，保持分类标签实时同步
+  useEffect(() => {
+    const handleUpdate = () => setCustomMoodVersion((v) => v + 1);
+    window.addEventListener("mood:custom_updated", handleUpdate);
+    return () => window.removeEventListener("mood:custom_updated", handleUpdate);
+  }, []);
+
+  // 动态融合系统预设、用户本地自定义以及所有公开笔记中实际出现的分类
+  const moodTabs = useMemo(() => {
+    return getAllMoods(notes);
+  }, [notes, customMoodVersion]);
 
   // 深度链接 / 复制粘贴 URL 自动加载指定公开笔记内容
   useEffect(() => {
@@ -462,11 +476,11 @@ export const PublicShowcase: React.FC = () => {
             onTabSelect={(_, data) => setSelectedMood(String(data.value))}
           >
             <Tab value="all">全部</Tab>
-            <Tab value="Happy">欢喜 ✨</Tab>
-            <Tab value="Peaceful">宁静 🌿</Tab>
-            <Tab value="Excited">充沛 🔥</Tab>
-            <Tab value="Thinking">沉思 💡</Tab>
-            <Tab value="Tired">倦怠 🌙</Tab>
+            {moodTabs.map((m) => (
+              <Tab key={m.id} value={m.id}>
+                {m.label} {m.emoji || "✨"}
+              </Tab>
+            ))}
           </TabList>
         </div>
       </div>

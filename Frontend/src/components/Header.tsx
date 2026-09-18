@@ -385,25 +385,25 @@ export const Header: React.FC = () => {
                     icon={<Camera20Regular />}
                     onClick={() => openSettings("profile")}
                   >
-                    个人资料 / 修改头像
+                    个人资料
                   </MenuItem>
                   <MenuItem
                     icon={<Bot20Regular style={{ color: "#5B7B8D" }} />}
                     onClick={() => openSettings("ai")}
                   >
-                    AI 助手设置
+                    AI 模型
                   </MenuItem>
                   <MenuItem
                     icon={<Settings20Regular />}
                     onClick={() => openSettings("wallpaper")}
                   >
-                    背景壁纸设置
+                    背景壁纸
                   </MenuItem>
                   <MenuItem
                     icon={<Sparkle20Regular style={{ color: "#5B7B8D" }} />}
                     onClick={() => openSettings("theme")}
                   >
-                    外观偏好
+                    界面外观
                   </MenuItem>
                   <MenuItem
                     icon={<Folder20Regular />}
@@ -554,25 +554,25 @@ export const Header: React.FC = () => {
                     icon={<Camera20Regular />}
                     onClick={() => openSettings("profile")}
                   >
-                    个人资料 / 修改头像
+                    个人资料
                   </MenuItem>
                   <MenuItem
                     icon={<Bot20Regular style={{ color: "#5B7B8D" }} />}
                     onClick={() => openSettings("ai")}
                   >
-                    AI 助手设置
+                    AI 模型
                   </MenuItem>
                   <MenuItem
                     icon={<Settings20Regular />}
                     onClick={() => openSettings("wallpaper")}
                   >
-                    背景壁纸设置
+                    背景壁纸
                   </MenuItem>
                   <MenuItem
                     icon={<Sparkle20Regular style={{ color: "#5B7B8D" }} />}
                     onClick={() => openSettings("theme")}
                   >
-                    外观偏好
+                    界面外观
                   </MenuItem>
                   <MenuItem icon={<Globe20Regular />} onClick={() => handleNav("/")}>
                     公共广场

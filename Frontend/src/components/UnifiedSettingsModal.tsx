@@ -219,12 +219,12 @@ export const UnifiedSettingsModal: React.FC = () => {
   const handleTestAi = async () => {
     if (!aiBaseUrl.trim()) {
       setAiTestStatus("error");
-      setAiTestMessage("请填写 API 服务地址");
+      setAiTestMessage("请输入服务地址");
       return;
     }
     if (!aiModelName.trim()) {
       setAiTestStatus("error");
-      setAiTestMessage("请填写模型名称");
+      setAiTestMessage("请输入模型名称");
       return;
     }
 
@@ -241,16 +241,14 @@ export const UnifiedSettingsModal: React.FC = () => {
 
       if (res.status === 1 && res.data?.success) {
         setAiTestStatus("success");
-        setAiTestMessage(
-          `连接成功！模型 ${res.data.model || aiModelName} 响应正常（耗时 ${res.data.latencyMs ?? 0}ms）`
-        );
+        setAiTestMessage(`连接成功 (${res.data.latencyMs ?? 0}ms)`);
       } else {
         setAiTestStatus("error");
-        setAiTestMessage(res.data?.message || res.content || "连接失败，请检查地址或密钥");
+        setAiTestMessage(res.data?.message || res.content || "连接失败");
       }
     } catch (err: any) {
       setAiTestStatus("error");
-      setAiTestMessage(`测试出错: ${err?.message || "网络请求异常"}`);
+      setAiTestMessage(`连接失败: ${err?.message || "网络异常"}`);
     } finally {
       setIsAiTesting(false);
     }
@@ -260,12 +258,12 @@ export const UnifiedSettingsModal: React.FC = () => {
   const handleSaveAi = async () => {
     if (!aiBaseUrl.trim()) {
       setAiSaveStatus("error");
-      setAiSaveMessage("请填写 API 服务地址");
+      setAiSaveMessage("请输入服务地址");
       return;
     }
     if (!aiModelName.trim()) {
       setAiSaveStatus("error");
-      setAiSaveMessage("请填写模型标识");
+      setAiSaveMessage("请输入模型名称");
       return;
     }
 
@@ -282,7 +280,7 @@ export const UnifiedSettingsModal: React.FC = () => {
 
       if (res.status === 1) {
         setAiSaveStatus("success");
-        setAiSaveMessage("AI 助手配置保存成功！");
+        setAiSaveMessage("已保存");
         setAiHasKey(Boolean(aiApiKey.trim() || aiHasKey));
         if (aiApiKey.trim()) {
           const raw = aiApiKey.trim();
@@ -298,7 +296,7 @@ export const UnifiedSettingsModal: React.FC = () => {
         }, 2500);
       } else {
         setAiSaveStatus("error");
-        setAiSaveMessage(res.content || "保存失败，请稍后重试");
+        setAiSaveMessage(res.content || "保存失败");
       }
     } catch (err: any) {
       setAiSaveStatus("error");
@@ -315,14 +313,14 @@ export const UnifiedSettingsModal: React.FC = () => {
     const ok = await saveWpToDatabase();
     if (ok) {
       setWpSaveStatus("success");
-      setWpSaveMsg("背景设置已成功同步到系统全局！");
+      setWpSaveMsg("已保存");
       setTimeout(() => {
         setWpSaveMsg(null);
         setWpSaveStatus("idle");
       }, 2500);
     } else {
       setWpSaveStatus("error");
-      setWpSaveMsg("保存失败，请检查网络或后端数据库状态");
+      setWpSaveMsg("保存失败");
       setTimeout(() => {
         setWpSaveMsg(null);
         setWpSaveStatus("idle");
@@ -334,7 +332,7 @@ export const UnifiedSettingsModal: React.FC = () => {
   const handleSaveNickname = async () => {
     const trimmed = nicknameInput.trim();
     if (!trimmed) {
-      setNicknameMsg({ type: "error", text: "昵称不能为空" });
+      setNicknameMsg({ type: "error", text: "请输入昵称" });
       return;
     }
     setIsUpdatingNickname(true);
@@ -343,13 +341,13 @@ export const UnifiedSettingsModal: React.FC = () => {
       const res = await userApi.updateProfile({ nickname: trimmed });
       if (res.status === 1) {
         await refreshProfile();
-        setNicknameMsg({ type: "success", text: "昵称更新成功！" });
+        setNicknameMsg({ type: "success", text: "已更新" });
         setTimeout(() => setNicknameMsg(null), 2500);
       } else {
-        setNicknameMsg({ type: "error", text: res.content || "昵称更新失败" });
+        setNicknameMsg({ type: "error", text: res.content || "更新失败" });
       }
     } catch (err: any) {
-      setNicknameMsg({ type: "error", text: err?.message || "网络请求异常" });
+      setNicknameMsg({ type: "error", text: err?.message || "网络异常" });
     } finally {
       setIsUpdatingNickname(false);
     }
@@ -358,15 +356,15 @@ export const UnifiedSettingsModal: React.FC = () => {
   // Change Password
   const handleChangePassword = async () => {
     if (!oldPassword.trim()) {
-      setPasswordMsg({ type: "error", text: "请提供当前的原密码" });
+      setPasswordMsg({ type: "error", text: "请输入原密码" });
       return;
     }
     if (newPassword.trim().length < 6) {
-      setPasswordMsg({ type: "error", text: "新密码长度不能少于 6 位" });
+      setPasswordMsg({ type: "error", text: "新密码不能少于 6 位" });
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordMsg({ type: "error", text: "两次输入的新密码不一致" });
+      setPasswordMsg({ type: "error", text: "两次输入密码不一致" });
       return;
     }
 
@@ -378,16 +376,16 @@ export const UnifiedSettingsModal: React.FC = () => {
         newPassword: newPassword.trim(),
       });
       if (res.status === 1) {
-        setPasswordMsg({ type: "success", text: "密码修改成功，请妥善保管！" });
+        setPasswordMsg({ type: "success", text: "密码已更新" });
         setOldPassword("");
         setNewPassword("");
         setConfirmPassword("");
         setTimeout(() => setPasswordMsg(null), 3000);
       } else {
-        setPasswordMsg({ type: "error", text: res.content || "原密码核验失败或修改未成功" });
+        setPasswordMsg({ type: "error", text: res.content || "原密码错误" });
       }
     } catch (err: any) {
-      setPasswordMsg({ type: "error", text: err?.message || "密码修改请求失败" });
+      setPasswordMsg({ type: "error", text: err?.message || "网络异常" });
     } finally {
       setIsUpdatingPassword(false);
     }
@@ -406,10 +404,10 @@ export const UnifiedSettingsModal: React.FC = () => {
 
   // Navigation tabs definition
   const TABS: { id: SettingsTabKey; label: string; icon: React.ReactElement }[] = [
-    { id: "ai", label: "AI 助手", icon: <Bot20Regular /> },
+    { id: "ai", label: "AI 模型", icon: <Bot20Regular /> },
     { id: "wallpaper", label: "背景壁纸", icon: <Image20Regular /> },
     { id: "profile", label: "个人资料", icon: <Person20Regular /> },
-    { id: "theme", label: "外观偏好", icon: <Sparkle20Regular /> },
+    { id: "theme", label: "界面外观", icon: <Sparkle20Regular /> },
   ];
 
   return (
@@ -488,7 +486,7 @@ export const UnifiedSettingsModal: React.FC = () => {
               }}
             >
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <Title3 style={{ fontWeight: 600, fontSize: "17px" }}>系统设置</Title3>
+                <Title3 style={{ fontWeight: 600, fontSize: "17px" }}>设置</Title3>
               </div>
 
               <Tooltip content="关闭" relationship="label">
@@ -611,22 +609,17 @@ export const UnifiedSettingsModal: React.FC = () => {
                   boxSizing: "border-box",
                 }}
               >
-                {/* 1. AI 助手设置 TAB */}
+                {/* 1. AI 模型设置 TAB */}
                 {activeTab === "ai" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div>
-                      <h4 style={{ margin: "0 0 4px", fontSize: "15px", fontWeight: 600 }}>
-                        AI 大语言模型配置
-                      </h4>
-                      <Caption1 style={{ opacity: 0.65, fontSize: "12px" }}>
-                        配置您个人的 OpenAI 兼容接口，即可在全站使用自主 Agent 助手
-                      </Caption1>
-                    </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>
+                      AI 模型
+                    </h4>
 
-                    {/* 预设快捷选择 */}
+                    {/* 快捷预设 */}
                     <div>
                       <Caption1 style={{ fontWeight: 600, display: "block", marginBottom: "8px" }}>
-                        常用服务提供商快捷预设
+                        快捷预设
                       </Caption1>
                       <div
                         style={{
@@ -678,22 +671,22 @@ export const UnifiedSettingsModal: React.FC = () => {
                     </div>
 
                     {/* API 服务地址 */}
-                    <Field label="API 服务地址 (Base URL)" required>
+                    <Field label="服务地址 (Base URL)" required>
                       <Input
                         value={aiBaseUrl}
                         onChange={(_, d) => setAiBaseUrl(d.value)}
-                        placeholder="例如 https://api.deepseek.com"
+                        placeholder="https://api.deepseek.com"
                         contentBefore={<Globe20Regular style={{ opacity: 0.5 }} />}
                         disabled={isAiLoading}
                       />
                     </Field>
 
                     {/* 模型名称 */}
-                    <Field label="模型标识 (Model Name)" required>
+                    <Field label="模型名称" required>
                       <Input
                         value={aiModelName}
                         onChange={(_, d) => setAiModelName(d.value)}
-                        placeholder="例如 deepseek-reasoner 或 gpt-4o"
+                        placeholder="deepseek-reasoner"
                         contentBefore={<Bot20Regular style={{ opacity: 0.5 }} />}
                         disabled={isAiLoading}
                       />
@@ -703,10 +696,10 @@ export const UnifiedSettingsModal: React.FC = () => {
                     <Field
                       label={
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span>API 密钥 (API Key)</span>
+                          <span>API Key</span>
                           {aiHasKey && (
                             <Badge appearance="tint" color="success" size="small">
-                              已配置 ({aiMaskedKey})
+                              已配置 {aiMaskedKey}
                             </Badge>
                           )}
                         </div>
@@ -716,7 +709,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                         type={showAiKey ? "text" : "password"}
                         value={aiApiKey}
                         onChange={(_, d) => setAiApiKey(d.value)}
-                        placeholder={aiHasKey ? "留空表示保持当前密钥不变" : "sk-..."}
+                        placeholder={aiHasKey ? "留空保持不变" : "sk-..."}
                         contentBefore={<Key20Regular style={{ opacity: 0.5 }} />}
                         contentAfter={
                           <Button
@@ -758,7 +751,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                         onClick={handleTestAi}
                         disabled={isAiTesting || isAiSaving || isAiLoading}
                       >
-                        {isAiTesting ? "正在测试..." : "测试连接"}
+                        {isAiTesting ? "测试中..." : "测试连接"}
                       </Button>
 
                       <Button
@@ -768,7 +761,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                         disabled={isAiTesting || isAiSaving || isAiLoading}
                         style={{ backgroundColor: "#5B7B8D", fontWeight: 600 }}
                       >
-                        {isAiSaving ? "正在保存..." : "保存 AI 配置"}
+                        {isAiSaving ? "保存中..." : "保存"}
                       </Button>
                     </div>
                   </div>
@@ -776,48 +769,17 @@ export const UnifiedSettingsModal: React.FC = () => {
 
                 {/* 2. 背景壁纸设置 TAB */}
                 {activeTab === "wallpaper" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                        <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>
-                          系统动态壁纸与视觉背景
-                        </h4>
-                        {isTiany ? (
-                          <Badge appearance="tint" color="brand" size="small">
-                            管理员控制台
-                          </Badge>
-                        ) : (
-                          <Badge appearance="tint" color="warning" size="small">
-                            仅供预览
-                          </Badge>
-                        )}
-                      </div>
-                      <Caption1 style={{ opacity: 0.65, fontSize: "12px" }}>
-                        {isTiany
-                          ? "您是超级管理员，配置的壁纸和磨砂效果将保存到系统数据库并向所有访客生效"
-                          : "背景壁纸由超级管理员统一管理配置，当前账号仅可预览，无法修改"}
-                      </Caption1>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>
+                        背景壁纸
+                      </h4>
+                      {!isTiany && (
+                        <Badge appearance="tint" color="warning" size="small">
+                          只读
+                        </Badge>
+                      )}
                     </div>
-
-                    {/* 权限限制提示 */}
-                    {!isTiany && (
-                      <div
-                        style={{
-                          padding: "10px 14px",
-                          borderRadius: "8px",
-                          backgroundColor: isDark ? "rgba(221, 107, 32, 0.15)" : "rgba(221, 107, 32, 0.1)",
-                          border: isDark ? "1px solid rgba(221, 107, 32, 0.3)" : "1px solid rgba(221, 107, 32, 0.2)",
-                          color: isDark ? "#fbd38d" : "#c05621",
-                          fontSize: "12.5px",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                        }}
-                      >
-                        <LockClosed20Regular style={{ flexShrink: 0, fontSize: "16px" }} />
-                        <span>背景壁纸属于系统级全局外观，仅超级管理员 @tiany 拥有修改与持久化权限。</span>
-                      </div>
-                    )}
 
                     {/* 动态壁纸总开关 */}
                     <div
@@ -831,14 +793,8 @@ export const UnifiedSettingsModal: React.FC = () => {
                         opacity: isTiany ? 1 : 0.75,
                       }}
                     >
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: "13.5px", display: "flex", alignItems: "center", gap: "6px" }}>
-                          <Sparkle20Regular style={{ color: "#5B7B8D", fontSize: "16px" }} />
-                          动态壁纸渲染
-                        </div>
-                        <Caption1 style={{ opacity: 0.65, fontSize: "12px" }}>
-                          开启后页面底部渲染自然风光动态壁纸与亚克力磨砂
-                        </Caption1>
+                      <div style={{ fontWeight: 600, fontSize: "13.5px" }}>
+                        启用壁纸
                       </div>
                       <Switch
                         checked={wpEnabled}
@@ -931,7 +887,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                     {wpEnabled && (
                       <div>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                          <span style={{ fontSize: "13px", fontWeight: 600 }}>背景磨砂模糊度</span>
+                          <span style={{ fontSize: "13px", fontWeight: 600 }}>模糊度</span>
                           <span style={{ fontSize: "12px", opacity: 0.7 }}>{wpBlur}px</span>
                         </div>
                         <Slider
@@ -949,7 +905,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                     {wpEnabled && (
                       <div>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                          <span style={{ fontSize: "13px", fontWeight: 600 }}>背景层不透明度</span>
+                          <span style={{ fontSize: "13px", fontWeight: 600 }}>不透明度</span>
                           <span style={{ fontSize: "12px", opacity: 0.7 }}>{Math.round(wpOpacity * 100)}%</span>
                         </div>
                         <Slider
@@ -975,7 +931,7 @@ export const UnifiedSettingsModal: React.FC = () => {
 
                     {/* 管理员保存按钮 */}
                     {isTiany && (
-                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "8px" }}>
+                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
                         <Button
                           appearance="primary"
                           icon={isWpSaving ? <Spinner size="tiny" /> : <Save20Regular />}
@@ -983,24 +939,19 @@ export const UnifiedSettingsModal: React.FC = () => {
                           onClick={handleSaveWallpaper}
                           style={{ backgroundColor: "#5B7B8D", fontWeight: 600 }}
                         >
-                          {isWpSaving ? "正在同步到系统..." : "保存背景设置到数据库"}
+                          {isWpSaving ? "保存中..." : "保存"}
                         </Button>
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* 3. 个人资料与账号 TAB */}
+                {/* 3. 个人资料 TAB */}
                 {activeTab === "profile" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                    <div>
-                      <h4 style={{ margin: "0 0 4px", fontSize: "15px", fontWeight: 600 }}>
-                        个人资料与账号安全
-                      </h4>
-                      <Caption1 style={{ opacity: 0.65, fontSize: "12px" }}>
-                        管理您的个人展示头像、个性昵称以及登录身份密码
-                      </Caption1>
-                    </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                    <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>
+                      个人资料
+                    </h4>
 
                     {/* 头像展示与操作 */}
                     <div
@@ -1008,7 +959,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                         display: "flex",
                         alignItems: "center",
                         gap: "16px",
-                        padding: "16px",
+                        padding: "14px",
                         borderRadius: "10px",
                         backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.02)",
                         border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.06)",
@@ -1018,11 +969,11 @@ export const UnifiedSettingsModal: React.FC = () => {
                         name={user?.nickname || user?.username || "用户"}
                         image={user?.avatar ? { src: user.avatar } : undefined}
                         color="brand"
-                        size={64}
+                        size={56}
                         style={{ boxShadow: "0 4px 14px rgba(0, 0, 0, 0.15)" }}
                       />
 
-                      <div style={{ display: "flex", flexDirection: "column", gap: "6px", flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600, fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {user?.nickname || user?.username}
                         </div>
@@ -1051,28 +1002,28 @@ export const UnifiedSettingsModal: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* 用户名 (只读标识) */}
-                    <Field label="账号用户名 (不可更改)">
+                    {/* 用户名 */}
+                    <Field label="用户名">
                       <Input
                         value={user?.username || ""}
                         readOnly
                         contentBefore={<Person20Regular style={{ opacity: 0.5 }} />}
                         contentAfter={
                           <Badge appearance="tint" color="informative" size="small">
-                            唯一标识
+                            只读
                           </Badge>
                         }
                       />
                     </Field>
 
-                    {/* 昵称 (可编辑修改) */}
+                    {/* 昵称 */}
                     <div>
-                      <Field label="个性昵称">
+                      <Field label="昵称">
                         <div style={{ display: "flex", gap: "8px" }}>
                           <Input
                             value={nicknameInput}
                             onChange={(_, d) => setNicknameInput(d.value)}
-                            placeholder="输入您的昵称"
+                            placeholder="输入昵称"
                             style={{ flex: 1 }}
                           />
                           <Button
@@ -1082,7 +1033,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                             onClick={handleSaveNickname}
                             style={{ backgroundColor: "#5B7B8D", fontWeight: 600 }}
                           >
-                            保存昵称
+                            {isUpdatingNickname ? "保存中..." : "保存"}
                           </Button>
                         </div>
                       </Field>
@@ -1113,33 +1064,33 @@ export const UnifiedSettingsModal: React.FC = () => {
                     >
                       <div style={{ fontWeight: 600, fontSize: "13.5px", display: "flex", alignItems: "center", gap: "6px" }}>
                         <LockClosed20Regular style={{ color: "#5B7B8D" }} />
-                        修改登录密码
+                        修改密码
                       </div>
 
-                      <Field label="当前原密码" required>
+                      <Field label="原密码" required>
                         <Input
                           type="password"
                           value={oldPassword}
                           onChange={(_, d) => setOldPassword(d.value)}
-                          placeholder="请输入您当前的账号原密码"
+                          placeholder="当前密码"
                         />
                       </Field>
 
-                      <Field label="新密码 (不少于 6 位)" required>
+                      <Field label="新密码" required>
                         <Input
                           type="password"
                           value={newPassword}
                           onChange={(_, d) => setNewPassword(d.value)}
-                          placeholder="请输入新密码"
+                          placeholder="至少 6 位"
                         />
                       </Field>
 
-                      <Field label="确认新密码" required>
+                      <Field label="确认密码" required>
                         <Input
                           type="password"
                           value={confirmPassword}
                           onChange={(_, d) => setConfirmPassword(d.value)}
-                          placeholder="再次输入新密码"
+                          placeholder="再次输入"
                         />
                       </Field>
 
@@ -1160,24 +1111,19 @@ export const UnifiedSettingsModal: React.FC = () => {
                           onClick={handleChangePassword}
                           style={{ backgroundColor: "#5B7B8D", fontWeight: 600 }}
                         >
-                          {isUpdatingPassword ? "正在核验更新..." : "确认修改密码"}
+                          {isUpdatingPassword ? "修改中..." : "修改密码"}
                         </Button>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* 4. 外观与主题偏好 TAB */}
+                {/* 4. 界面外观 TAB */}
                 {activeTab === "theme" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <div>
-                      <h4 style={{ margin: "0 0 4px", fontSize: "15px", fontWeight: 600 }}>
-                        外观与主题偏好
-                      </h4>
-                      <Caption1 style={{ opacity: 0.65, fontSize: "12px" }}>
-                        自定义全站界面色彩、深浅色模式与阅读体验
-                      </Caption1>
-                    </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>
+                      界面外观
+                    </h4>
 
                     {/* 主题选择卡片 */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
@@ -1185,19 +1131,16 @@ export const UnifiedSettingsModal: React.FC = () => {
                         {
                           mode: "auto" as ThemeMode,
                           title: "跟随系统",
-                          desc: "自动匹配设备模式",
                           icon: <Desktop20Regular style={{ fontSize: "22px" }} />,
                         },
                         {
                           mode: "dark" as ThemeMode,
-                          title: "深色模式",
-                          desc: "沉浸柔和夜间深色",
+                          title: "深色",
                           icon: <WeatherMoon20Regular style={{ fontSize: "22px" }} />,
                         },
                         {
                           mode: "light" as ThemeMode,
-                          title: "浅色模式",
-                          desc: "明朗纯粹白昼浅色",
+                          title: "浅色",
                           icon: <WeatherSunny20Regular style={{ fontSize: "22px" }} />,
                         },
                       ].map((item) => {
@@ -1207,7 +1150,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                             key={item.mode}
                             onClick={() => setThemeMode(item.mode)}
                             style={{
-                              padding: "14px 10px",
+                              padding: "16px 10px",
                               borderRadius: "10px",
                               border: isSelected
                                 ? "2px solid #5B7B8D"
@@ -1234,9 +1177,6 @@ export const UnifiedSettingsModal: React.FC = () => {
                               {item.icon}
                             </span>
                             <span style={{ fontWeight: 600, fontSize: "13px" }}>{item.title}</span>
-                            <Caption1 style={{ opacity: 0.6, fontSize: "11px", lineHeight: "1.2" }}>
-                              {item.desc}
-                            </Caption1>
                           </div>
                         );
                       })}
@@ -1255,10 +1195,10 @@ export const UnifiedSettingsModal: React.FC = () => {
                     >
                       <div>
                         <div style={{ fontWeight: 600, fontSize: "13.5px" }}>
-                          代码块始终保持深色主题
+                          代码块始终深色
                         </div>
-                        <Caption1 style={{ opacity: 0.65, fontSize: "12px" }}>
-                          即使在浅色界面下，日记与 AI 回复中的代码块也使用高对比度深色高亮渲染
+                        <Caption1 style={{ opacity: 0.6, fontSize: "12px" }}>
+                          浅色模式下保持代码深色高亮
                         </Caption1>
                       </div>
                       <Switch
