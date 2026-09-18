@@ -2730,20 +2730,155 @@ html.force-code-dark .hljs-formula {
   min-height: 0;
 }
 
-/* AI 对话工作台 Win10 磁贴页面容器 */
+/* ==========================================================================
+   AI Workspace Absolute Pinned Layout (AI 工作台永久脱离文档流固定布局系统)
+   1. 外部大容器固定于顶栏下方至视窗最底边 (y: 64px/48px -> 100vh / 100dvh)
+   2. 左侧栏 (aside) 物理脱离文档流绝对定位在左侧，底边与网页底边对齐 (top: 0, bottom: 0, height: 100%)
+   3. 右侧对话主视窗 (main) 绝对定位在左侧栏右侧至视窗最右侧 (left: 280px, right: 0, top: 0, bottom: 0)
+   4. 聊天顶栏 (header) 物理脱离文档流固定在对话视窗顶部 (top: 0, left: 0, right: 0, height: 48px)
+   5. 消息滚动区 (section) 位于顶部与底部之间独立滚动 (top: 48px, bottom: 0, left: 0, right: 0)
+   6. 聊天发送底栏 (footer) 物理脱离文档流固定在对话视窗底部 (bottom: 0, left: 0, right: 0)
+      并配备纯色半透明背景 (深色/浅色) 与毛玻璃光效，绝不随消息滚动进入文档流
+   ========================================================================== */
+
 .ai-chat-page-container {
-  display: flex !important;
-  flex-direction: row !important;
+  position: fixed !important;
+  top: var(--header-height, 64px) !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100vw !important;
   height: calc(100vh - var(--header-height, 64px)) !important;
   height: calc(100dvh - var(--header-height, 64px)) !important;
   max-height: calc(100vh - var(--header-height, 64px)) !important;
   max-height: calc(100dvh - var(--header-height, 64px)) !important;
-  width: 100% !important;
   overflow: hidden !important;
-  position: relative !important;
   box-sizing: border-box !important;
-  bottom: 0 !important;
+  z-index: 100 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
 }
+
+@media (max-width: 768px) {
+  .ai-chat-page-container {
+    top: var(--header-height, 48px) !important;
+    height: calc(100vh - var(--header-height, 48px)) !important;
+    height: calc(100dvh - var(--header-height, 48px)) !important;
+    max-height: calc(100vh - var(--header-height, 48px)) !important;
+    max-height: calc(100dvh - var(--header-height, 48px)) !important;
+  }
+}
+
+/* 1. 左侧会话侧边栏：脱离文档流绝对定位，高 100%，底边绝对贴合网页底边 */
+.ai-chat-sidebar-fixed {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 280px !important;
+  min-width: 280px !important;
+  max-width: 280px !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  z-index: 40 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-bottom: none !important;
+}
+
+/* 2. 右侧对话主视窗：脱离文档流绝对定位 */
+.ai-chat-main-viewport {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 280px !important;
+  right: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  z-index: 10 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+@media (max-width: 768px) {
+  .ai-chat-main-viewport {
+    left: 0 !important;
+  }
+}
+
+/* 3. 对话顶部信息栏：脱离文档流固定在顶部 */
+.ai-chat-header-pinned {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 16px !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  z-index: 30 !important;
+  box-sizing: border-box !important;
+  background-color: rgba(255, 255, 255, 0.75) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+html.dark .ai-chat-header-pinned,
+.dark .ai-chat-header-pinned {
+  background-color: rgba(24, 24, 28, 0.75) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* 4. 消息滚动区：在顶部 48px 与视窗底边之间绝对定位，仅在此区域内部由 ChatMessageList 自主滚动 */
+.ai-chat-messages-scroll-region {
+  position: absolute !important;
+  top: 48px !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  z-index: 10 !important;
+  box-sizing: border-box !important;
+}
+
+/* 5. 底部发送输入框：脱离文档流固定在底部，配备纯色半透明背景 (白/黑)，下边与底边严丝合缝 */
+.ai-chat-footer-pinned {
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  z-index: 30 !important;
+  box-sizing: border-box !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.dark .ai-chat-footer-pinned,
+.dark .ai-chat-footer-pinned {
+  background-color: rgba(0, 0, 0, 0.82) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
 
 /* 独立浮现元素 */
 .win10-tile-rise {

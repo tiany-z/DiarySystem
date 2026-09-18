@@ -49,7 +49,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
       style={{
         flex: 1,
         overflowY: "auto",
-        padding: isMobile ? "12px 10px 20px" : "20px 24px",
+        padding: isMobile ? "12px 10px 140px" : "20px 24px 150px",
         display: "flex",
         flexDirection: "column",
         height: "100%",
@@ -61,7 +61,6 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
         <WelcomeSlate onSelectPrompt={onSelectPrompt} />
       ) : (
         <div
-          className="win10-tile-rise win10-delay-1"
           style={{ maxWidth: "860px", width: "100%", margin: "0 auto" }}
         >
           {messages.map((msg) => (

@@ -364,28 +364,31 @@ export const AIChatView: React.FC = () => {
 
   return (
     <div
-      className="win10-page-transition-host ai-chat-page-container"
+      className="ai-chat-page-container"
       style={{
-        display: "flex",
-        flexDirection: "row",
-        height: "calc(100vh - var(--header-height, 64px))",
-        maxHeight: "calc(100vh - var(--header-height, 64px))",
+        position: "fixed",
+        top: isMobile ? "var(--header-height, 48px)" : "var(--header-height, 64px)",
+        bottom: 0,
+        left: 0,
+        right: 0,
         width: "100%",
         overflow: "hidden",
-        position: "relative",
         boxSizing: "border-box",
+        zIndex: 10,
       }}
     >
-      {/* 1. PC 端左侧亚克力侧边栏 (280px) 顶天立地，下边与网页底边对齐 */}
+      {/* 1. PC 端左侧亚克力侧边栏 (280px) 物理脱离文档流固定在左侧，底边绝对对齐网页底边 */}
       {!isMobile && (
         <aside
+          className="ai-chat-sidebar-fixed"
           style={{
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            left: 0,
             width: "280px",
-            minWidth: "280px",
-            maxWidth: "280px",
             height: "100%",
-            maxHeight: "100%",
-            flexShrink: 0,
+            zIndex: 40,
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
@@ -393,7 +396,6 @@ export const AIChatView: React.FC = () => {
             margin: 0,
             padding: 0,
             borderBottom: "none",
-            bottom: 0,
           }}
         >
           <ConversationSidebar
@@ -462,37 +464,41 @@ export const AIChatView: React.FC = () => {
         </div>
       )}
 
-      {/* 3. 右侧对话中枢视窗 */}
+      {/* 3. 右侧对话中枢视窗 - 物理脱离文档流固定定位在左侧栏右侧与整个视口右侧 */}
       <main
-        className="win10-tile-rise win10-delay-2"
+        className="ai-chat-main-viewport"
         style={{
-          flex: 1,
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          left: isMobile ? 0 : "280px",
+          right: 0,
+          height: "100%",
           display: "flex",
           flexDirection: "column",
-          height: "100%",
-          maxHeight: "100%",
-          position: "relative",
-          minWidth: 0,
           overflow: "hidden",
           boxSizing: "border-box",
+          zIndex: 10,
         }}
       >
-        {/* 对话顶栏 - 永久固定顶部 */}
+        {/* 对话顶栏 - 绝对脱离文档流固定在顶部 */}
         <header
-          className="win10-tile-rise win10-delay-1"
+          className="ai-chat-header-pinned"
           style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
             height: "48px",
-            minHeight: "48px",
-            maxHeight: "48px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             padding: "0 16px",
             borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.06)",
-            backgroundColor: isDark ? "rgba(24, 24, 28, 0.65)" : "rgba(255, 255, 255, 0.45)",
+            backgroundColor: isDark ? "rgba(24, 24, 28, 0.75)" : "rgba(255, 255, 255, 0.75)",
             backdropFilter: "blur(16px)",
-            flexShrink: 0,
-            zIndex: 10,
+            WebkitBackdropFilter: "blur(16px)",
+            zIndex: 30,
             boxSizing: "border-box",
           }}
         >
@@ -571,18 +577,20 @@ export const AIChatView: React.FC = () => {
           </div>
         </header>
 
-        {/* 消息历史滚动区 - 仅此内部独立滚动 */}
+        {/* 消息历史滚动区 - 仅此内部独立滚动，顶部在顶栏下方，底部延伸至页面底边 */}
         <section
           key={activeId || "welcome"}
-          className="win10-tile-rise win10-delay-2"
+          className="ai-chat-messages-scroll-region"
           style={{
-            flex: 1,
+            position: "absolute",
+            top: "48px",
+            bottom: 0,
+            left: 0,
+            right: 0,
             display: "flex",
             flexDirection: "column",
-            minHeight: 0,
             overflow: "hidden",
-            position: "relative",
-            width: "100%",
+            zIndex: 10,
           }}
         >
           <ChatMessageList
@@ -593,14 +601,16 @@ export const AIChatView: React.FC = () => {
           />
         </section>
 
-        {/* 底部悬浮/固定输入中枢 - 整个底部纯色半透明背景 (白/黑)，下边与底边严丝合缝 */}
+        {/* 底部输入发送中枢 - 绝对脱离文档流固定在右侧视窗最底部，拥有纯色半透明背景 */}
         <footer
-          className="win10-tile-rise win10-delay-3"
+          className="ai-chat-footer-pinned"
           style={{
-            flexShrink: 0,
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
             width: "100%",
-            zIndex: 10,
-            position: "relative",
+            zIndex: 30,
             boxSizing: "border-box",
             backgroundColor: isDark ? "rgba(0, 0, 0, 0.78)" : "rgba(255, 255, 255, 0.88)",
             backdropFilter: "blur(20px)",
