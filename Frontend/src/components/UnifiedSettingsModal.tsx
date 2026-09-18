@@ -234,7 +234,7 @@ export const UnifiedSettingsModal: React.FC = () => {
 
       if (res.status === 1 && res.data?.success) {
         setAiTestStatus("success");
-        setAiTestMessage(`连接成功 (${res.data.latencyMs ?? 0}ms)`);
+        setAiTestMessage(`连接成功 · ${res.data.latencyMs ?? 0}ms`);
       } else {
         setAiTestStatus("error");
         setAiTestMessage(res.data?.message || res.content || "连接失败");
@@ -662,7 +662,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                     </div>
 
                     {/* API 服务地址 */}
-                    <Field label="服务地址 (Base URL)" required>
+                    <Field label="服务地址" required>
                       <Input
                         value={aiBaseUrl}
                         onChange={(_, d) => setAiBaseUrl(d.value)}

@@ -519,7 +519,6 @@ export const PublicShowcase: React.FC = () => {
             renderItem={(note) => (
               <NoteCard
                 diary={note}
-                showVisibilityBadge={false}
                 showAuthor={true}
                 onClick={() => handleOpenNote(note)}
               />

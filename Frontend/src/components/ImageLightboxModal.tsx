@@ -382,7 +382,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
           {displayPercentage}%
         </span>
 
-        <Tooltip content="放大 (Ctrl + 滚轮向上)" relationship="label">
+        <Tooltip content="放大" relationship="label">
           <Button
             appearance="subtle"
             size="small"
@@ -400,7 +400,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
           />
         </Tooltip>
 
-        <Tooltip content="缩小 (Ctrl + 滚轮向下)" relationship="label">
+        <Tooltip content="缩小" relationship="label">
           <Button
             appearance="subtle"
             size="small"
@@ -418,7 +418,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
           />
         </Tooltip>
 
-        <Tooltip content="复位比例与居中 (双击图片)" relationship="label">
+        <Tooltip content="复位比例" relationship="label">
           <Button
             appearance="subtle"
             size="small"
@@ -445,7 +445,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
           }}
         />
 
-        <Tooltip content="关闭预览 (Esc)" relationship="label">
+        <Tooltip content="关闭" relationship="label">
           <Button
             appearance="subtle"
             size="small"

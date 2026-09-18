@@ -1,45 +1,12 @@
 import React from "react";
-import {
-  Sparkle20Regular,
-  DataPie20Regular,
-  Search20Regular,
-  DocumentEdit20Regular,
-  Globe20Regular,
-} from "@fluentui/react-icons";
+import { Sparkle20Regular } from "@fluentui/react-icons";
 import { useAppTheme } from "../../context/ThemeContext";
 
 interface WelcomeSlateProps {
-  onSelectPrompt: (prompt: string) => void;
+  onSelectPrompt?: (prompt: string) => void;
 }
 
-const INSPIRATION_CARDS = [
-  {
-    icon: <DataPie20Regular style={{ color: "#5B7B8D", fontSize: "20px" }} />,
-    title: "分析近期心情走势",
-    desc: "统计近期情绪分布与记录规律",
-    prompt: "请分析我近期日记中的心情走势和记录习惯。",
-  },
-  {
-    icon: <Search20Regular style={{ color: "#38a169", fontSize: "20px" }} />,
-    title: "查找特定日记",
-    desc: "快速定位旅行或重要事件的记录",
-    prompt: "帮我检索日记中关于旅行和重要事件的记录。",
-  },
-  {
-    icon: <DocumentEdit20Regular style={{ color: "#d69e2e", fontSize: "20px" }} />,
-    title: "起草今日随笔",
-    desc: "将碎片想法整理成篇",
-    prompt: "我今天有些想法，请帮我梳理并起草一篇日记。",
-  },
-  {
-    icon: <Globe20Regular style={{ color: "#3182ce", fontSize: "20px" }} />,
-    title: "实时网络搜索",
-    desc: "查询最新资讯与客观资料",
-    prompt: "搜索并总结近期科技领域的重要动态。",
-  },
-];
-
-export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) => {
+export const WelcomeSlate: React.FC<WelcomeSlateProps> = () => {
   const { isDark } = useAppTheme();
 
   return (
@@ -50,9 +17,9 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) =>
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "24px 12px",
+        padding: "0 16px",
         textAlign: "center",
-        maxWidth: "760px",
+        maxWidth: "600px",
         margin: "0 auto",
       }}
     >
@@ -60,8 +27,8 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) =>
       <div
         className="win10-tile-rise win10-delay-1"
         style={{
-          width: "56px",
-          height: "56px",
+          width: "54px",
+          height: "54px",
           borderRadius: "16px",
           background: "linear-gradient(135deg, #5B7B8D 0%, #3e5866 100%)",
           display: "flex",
@@ -70,7 +37,7 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) =>
           color: "#ffffff",
           boxShadow: isDark
             ? "0 8px 24px rgba(0, 0, 0, 0.45)"
-            : "0 8px 24px rgba(91, 123, 141, 0.3)",
+            : "0 8px 24px rgba(91, 123, 141, 0.28)",
           marginBottom: "16px",
         }}
       >
@@ -92,102 +59,17 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) =>
       <p
         className="win10-tile-rise win10-delay-2"
         style={{
-          margin: "0 0 32px 0",
+          margin: "0 0 16px 0",
           fontSize: "14px",
           color: isDark ? "#a0aec0" : "#718096",
-          maxWidth: "480px",
+          maxWidth: "460px",
           lineHeight: "1.6",
         }}
       >
         可以帮你检索日记、分析情绪走势、起草内容或查找网络信息。
       </p>
-
-      {/* 灵感卡片 2x2 栅格 - 经典 Win10 磁贴依次错落浮现 */}
-      <div
-        className="win10-stagger-grid"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(min(260px, 100%), 1fr))",
-          gap: "12px",
-          width: "100%",
-        }}
-      >
-        {INSPIRATION_CARDS.map((card, idx) => (
-          <div
-            key={idx}
-            onClick={() => onSelectPrompt(card.prompt)}
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "12px",
-              padding: "16px",
-              borderRadius: "12px",
-              backgroundColor: isDark ? "rgba(32, 32, 38, 0.75)" : "rgba(255, 255, 255, 0.7)",
-              backdropFilter: "blur(16px)",
-              border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(255, 255, 255, 0.5)",
-              boxShadow: isDark ? "0 4px 16px rgba(0, 0, 0, 0.25)" : "0 4px 16px rgba(0, 0, 0, 0.04)",
-              cursor: "pointer",
-              textAlign: "left",
-              transition: "all 0.2s cubic-bezier(0.1, 0.9, 0.2, 1)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-2px)";
-              e.currentTarget.style.boxShadow = isDark
-                ? "0 8px 24px rgba(0, 0, 0, 0.45)"
-                : "0 8px 24px rgba(91, 123, 141, 0.15)";
-              e.currentTarget.style.borderColor = isDark
-                ? "rgba(91, 123, 141, 0.5)"
-                : "rgba(91, 123, 141, 0.4)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = isDark
-                ? "0 4px 16px rgba(0, 0, 0, 0.25)"
-                : "0 4px 16px rgba(0, 0, 0, 0.04)";
-              e.currentTarget.style.borderColor = isDark
-                ? "rgba(255, 255, 255, 0.08)"
-                : "rgba(255, 255, 255, 0.5)";
-            }}
-          >
-            <div
-              style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "10px",
-                backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              {card.icon}
-            </div>
-
-            <div>
-              <div
-                style={{
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  color: isDark ? "#edf2f7" : "#2d3748",
-                  marginBottom: "4px",
-                }}
-              >
-                {card.title}
-              </div>
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: isDark ? "#a0aec0" : "#718096",
-                  lineHeight: "1.4",
-                }}
-              >
-                {card.desc}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 };
+
+export default WelcomeSlate;

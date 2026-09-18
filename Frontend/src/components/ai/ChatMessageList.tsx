@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { AiMessageItem } from "../../api/ai";
 import { ChatMessageItem } from "./ChatMessageItem";
-import { WelcomeSlate } from "./WelcomeSlate";
 
 interface ChatMessageListProps {
   messages: AiMessageItem[];
@@ -57,9 +56,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
         minHeight: 0,
       }}
     >
-      {isEmpty ? (
-        <WelcomeSlate onSelectPrompt={onSelectPrompt} />
-      ) : (
+      {isEmpty ? null : (
         <div
           style={{ maxWidth: "860px", width: "100%", margin: "0 auto" }}
         >

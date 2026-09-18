@@ -85,18 +85,21 @@ html {
   width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
-  overflow-y: overlay;
   touch-action: pan-x pan-y;
   -webkit-text-size-adjust: 100%;
-  /* Chrome / Edge 浮动悬浮滚动条，完全不占用网页横向排版宽度 */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+}
+
+html.dark {
+  scrollbar-color: rgba(203, 213, 225, 0.3) transparent;
 }
 
 body {
   min-height: 100%;
   width: 100%;
   overflow-x: hidden;
-  overflow-y: auto;
-  overflow-y: overlay;
+  overflow-y: visible;
   touch-action: pan-x pan-y;
   -webkit-text-size-adjust: 100%;
   transition: background-color 0.25s ease, color 0.25s ease;
@@ -130,52 +133,37 @@ body {
 }
 
 /* ==========================================================================
-   Zero-Footprint Non-Occupying Scrollbar (零占位无感滚动条体系)
-   仿照 cDataTable.vue 与数字档案管理系统：彻底去除默认滚动条物理占位，
-   在所有滚动场景下内容宽度始终保持恒定（0 宽度挤压、0 布局跳动）
+   Fluent 2 Modern Floating Scrollbar (现代流体悬浮无感滚动条体系)
+   主视窗具备 8px 半透明悬浮圆角滑块，拖拽感知清晰；子滚动区域保持轻量
    ========================================================================== */
 
-/* 1. 现代标准与各浏览器全局消除滚动条占位 */
-*,
-*::before,
-*::after,
-html,
-body,
-#root {
-  scrollbar-width: none !important;
-  /* Firefox / 现代标准规范 */
-  -ms-overflow-style: none !important;
-  /* IE 10+ / 老版 Edge */
+html::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-/* 2. WebKit / Chromium (Chrome, Edge, Safari) 彻底隐藏滚动条轨道与滑块，实现 0px 物理空间占位 */
-*::-webkit-scrollbar,
-html::-webkit-scrollbar,
-body::-webkit-scrollbar,
-#root::-webkit-scrollbar,
-::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  background: transparent !important;
+html::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-*::-webkit-scrollbar-track,
-::-webkit-scrollbar-track {
-  display: none !important;
-  background: transparent !important;
+html::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.3);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease;
 }
 
-*::-webkit-scrollbar-thumb,
-::-webkit-scrollbar-thumb {
-  display: none !important;
-  background: transparent !important;
+html::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.55);
 }
 
-*::-webkit-scrollbar-corner,
-::-webkit-scrollbar-corner {
-  display: none !important;
-  background: transparent !important;
+html.dark::-webkit-scrollbar-thumb {
+  background: rgba(203, 213, 225, 0.25);
+}
+
+html.dark::-webkit-scrollbar-thumb:hover {
+  background: rgba(203, 213, 225, 0.5);
 }
 
 /* 3. 通用 .hideScrollbar 类名（与数字档案管理系统 cDataTable.vue 保持 100% 命名统一） */
@@ -2821,6 +2809,43 @@ html.force-code-dark .hljs-formula {
   border-bottom: none !important;
 }
 
+/* 移动端会话抽屉：绝对定位在工作台内，顶部紧顶标题栏底边，左侧滑入动效 */
+.ai-mobile-drawer-overlay {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: 100% !important;
+  width: 100% !important;
+  z-index: 200 !important;
+  display: flex !important;
+  overflow: hidden !important;
+}
+
+.ai-mobile-drawer-content {
+  position: relative !important;
+  width: min(288px, 85vw) !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  box-sizing: border-box !important;
+  z-index: 201 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  animation: aiDrawerSlideInLeft 0.22s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+
+@keyframes aiDrawerSlideInLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 /* 2. 右侧对话主视窗：脱离文档流绝对定位 */
 .ai-chat-main-viewport {
   position: absolute !important;
@@ -2886,15 +2911,39 @@ html.dark .ai-chat-header-pinned,
   box-sizing: border-box !important;
 }
 
-/* 5. 底部发送输入框：脱离文档流固定在底部，配备纯色半透明背景 (白/黑)，下边与底边严丝合缝 */
+/* 5. 底部发送输入框：脱离文档流固定，支持从页面中央平滑飘落至吸底 */
 .ai-chat-footer-pinned {
   position: absolute !important;
-  bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
   width: 100% !important;
   z-index: 30 !important;
   box-sizing: border-box !important;
+}
+
+/* 动效过渡类：仅在首条消息发送或新建会话切换时启用，保证 60fps 丝滑飘落/回位 */
+.ai-chat-footer-pinned.with-glide-animation {
+  transition: bottom 0.52s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.4s ease,
+              border-color 0.4s ease,
+              box-shadow 0.4s ease,
+              backdrop-filter 0.4s ease,
+              -webkit-backdrop-filter 0.4s ease !important;
+}
+
+/* 居中态：新会话/空会话时位于页面中间 */
+.ai-chat-footer-pinned.is-centered {
+  bottom: calc(50% - 64px) !important;
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-top: 1px solid transparent !important;
+  box-shadow: none !important;
+}
+
+/* 吸底态：消息对话进行中吸附底边，配备纯色磨砂毛玻璃底栏 */
+.ai-chat-footer-pinned.is-docked {
+  bottom: 0 !important;
   backdrop-filter: blur(20px) !important;
   -webkit-backdrop-filter: blur(20px) !important;
   background-color: rgba(255, 255, 255, 0.88) !important;
@@ -2902,8 +2951,8 @@ html.dark .ai-chat-header-pinned,
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.03) !important;
 }
 
-html.dark .ai-chat-footer-pinned,
-.dark .ai-chat-footer-pinned {
+html.dark .ai-chat-footer-pinned.is-docked,
+.dark .ai-chat-footer-pinned.is-docked {
   background-color: rgba(0, 0, 0, 0.82) !important;
   border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5) !important;

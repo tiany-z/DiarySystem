@@ -313,7 +313,7 @@ export const NoteReaderModal: React.FC<NoteReaderModalProps> = ({
                   display: isNarrowScreen ? "none" : undefined,
                 }}
               >
-                <Tooltip content="默认宽度 (780px)" relationship="label">
+                <Tooltip content="默认宽度" relationship="label">
                   <button
                     type="button"
                     className={`reader-width-btn ${widthMode === "default" ? "active" : ""}`}
@@ -325,7 +325,7 @@ export const NoteReaderModal: React.FC<NoteReaderModalProps> = ({
                   </button>
                 </Tooltip>
 
-                <Tooltip content="更宽视窗 (1080px)" relationship="label">
+                <Tooltip content="更宽视窗" relationship="label">
                   <button
                     type="button"
                     className={`reader-width-btn ${widthMode === "wider" ? "active" : ""}`}
@@ -337,7 +337,7 @@ export const NoteReaderModal: React.FC<NoteReaderModalProps> = ({
                   </button>
                 </Tooltip>
 
-                <Tooltip content="全宽视窗 (1520px)" relationship="label">
+                <Tooltip content="全宽视窗" relationship="label">
                   <button
                     type="button"
                     className={`reader-width-btn ${widthMode === "full" ? "active" : ""}`}
@@ -349,7 +349,7 @@ export const NoteReaderModal: React.FC<NoteReaderModalProps> = ({
                   </button>
                 </Tooltip>
 
-                <Tooltip content="全屏沉浸阅读 (覆盖全屏)" relationship="label">
+                <Tooltip content="全屏沉浸" relationship="label">
                   <button
                     type="button"
                     className={`reader-width-btn ${widthMode === "fullscreen" ? "active" : ""}`}

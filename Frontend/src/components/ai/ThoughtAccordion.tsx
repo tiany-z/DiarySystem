@@ -108,14 +108,15 @@ export const ThoughtAccordion: React.FC<ThoughtAccordionProps> = ({
             }}
           >
             {isGenerating
-              ? `正在深度思考中 ${formattedTime ? `· ${formattedTime}` : ""} (点击展开)`
+              ? `思考中${formattedTime ? ` · ${formattedTime}` : ""}`
               : formattedTime
-              ? `已深度思考 · 耗时 ${formattedTime} (点击展开)`
-              : "深度思考过程 (点击展开)"}
+              ? `深度思考 · ${formattedTime}`
+              : "深度思考"}
           </span>
         </div>
 
         <div
+          title={isExpanded ? "收起" : "展开"}
           style={{
             display: "flex",
             alignItems: "center",

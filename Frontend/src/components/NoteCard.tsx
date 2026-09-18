@@ -29,7 +29,6 @@ interface NoteCardProps {
   onDelete?: () => void;
   onTogglePublic?: () => void;
   showActions?: boolean;
-  showVisibilityBadge?: boolean;
   showAuthor?: boolean;
 }
 
@@ -134,7 +133,6 @@ export const NoteCard: React.FC<NoteCardProps> = ({
   onDelete,
   onTogglePublic,
   showActions = false,
-  showVisibilityBadge = false,
   showAuthor,
 }) => {
   const { isDark } = useAppTheme();
@@ -238,41 +236,6 @@ export const NoteCard: React.FC<NoteCardProps> = ({
                   <Caption1 style={{ opacity: 0.65, fontSize: "11px" }}>
                     {formatDate(diary.created_at)}
                   </Caption1>
-                  {showVisibilityBadge && (
-                    isPublic ? (
-                      <span
-                        style={{
-                          fontSize: "10px",
-                          padding: "1px 5px",
-                          borderRadius: "4px",
-                          backgroundColor: isDark ? "rgba(91, 123, 141, 0.22)" : "rgba(91, 123, 141, 0.1)",
-                          color: isDark ? "#8EAEC0" : "#5B7B8D",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "2px",
-                          fontWeight: 500,
-                        }}
-                      >
-                        <Globe20Regular style={{ fontSize: "11px" }} /> 公开
-                      </span>
-                    ) : (
-                      <span
-                        style={{
-                          fontSize: "10px",
-                          padding: "1px 5px",
-                          borderRadius: "4px",
-                          backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.05)",
-                          color: isDark ? "rgba(255, 255, 255, 0.65)" : "rgba(0, 0, 0, 0.6)",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "2px",
-                          fontWeight: 500,
-                        }}
-                      >
-                        <LockClosed20Regular style={{ fontSize: "11px" }} /> 私密
-                      </span>
-                    )
-                  )}
                 </div>
               }
             />

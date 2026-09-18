@@ -28,13 +28,23 @@ const AppContent: React.FC = () => {
   const location = useLocation();
   const transitionKey = getRouteTransitionKey(location.pathname);
   const isAiPage = location.pathname.startsWith("/workspace/ai");
+  const isEditorPage = location.pathname === "/workspace/new" || location.pathname.startsWith("/workspace/edit/");
 
-  // 跨主页面切换时全局自动瞬间滚动重置到顶部（同一工作区内，如 AI 会话切换不触发页面跳动）
+  // 跨主页面切换时全局自动瞬间滚动重置到顶部，并在常规页面强制恢复全局滚动流
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-  }, [transitionKey]);
+
+    // 当处于非全屏锁定页面（如 笔记广场 / 我的笔记 / 用户管理 / 登录页 等普通文档流页面）时，
+    // 强制彻底清除任何残留的 overflow: hidden 锁定，确保全站丝滑滚动
+    if (!isAiPage && !isEditorPage) {
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = "";
+      document.documentElement.style.overflowY = "auto";
+      document.body.style.overflowY = "visible";
+    }
+  }, [transitionKey, isAiPage, isEditorPage]);
 
   return (
     <>

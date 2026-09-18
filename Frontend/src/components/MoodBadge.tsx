@@ -493,7 +493,7 @@ export const MoodPicker: React.FC<{
             {/* 分类名称输入框 */}
             <Input
               size="small"
-              placeholder="分类名称 (如: 惬意、放空)"
+              placeholder="分类名称"
               value={newLabel}
               onChange={(_, data) => setNewLabel(data.value)}
               maxLength={16}

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   PanelLeft20Regular,
-  Add20Regular,
   Settings20Regular,
   Dismiss20Regular,
 } from "@fluentui/react-icons";
@@ -21,6 +20,7 @@ import {
 import { ConversationSidebar } from "../../components/ai/ConversationSidebar";
 import { ChatMessageList } from "../../components/ai/ChatMessageList";
 import { ChatInputArea } from "../../components/ai/ChatInputArea";
+import { WelcomeSlate } from "../../components/ai/WelcomeSlate";
 import { useSettings } from "../../context/SettingsContext";
 import { useAppTheme } from "../../context/ThemeContext";
 
@@ -94,17 +94,25 @@ export const AIChatView: React.FC = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const skipNextFetchRef = useRef<string | null>(null);
 
-  // 页面挂载时锁定 document.body 与 html 滚动，彻底杜绝全局滚动条和页面下窜散架
+  // 居中到吸底滑动动效控制
+  const [shouldAnimateDock, setShouldAnimateDock] = useState<boolean>(false);
+  const animTimerRef = useRef<any>(null);
+
+  const triggerDockAnimation = useCallback(() => {
+    if (animTimerRef.current) clearTimeout(animTimerRef.current);
+    setShouldAnimateDock(true);
+    animTimerRef.current = setTimeout(() => {
+      setShouldAnimateDock(false);
+      animTimerRef.current = null;
+    }, 700);
+  }, []);
+
   useEffect(() => {
-    const prevBodyOverflow = document.body.style.overflow;
-    const prevHtmlOverflow = document.documentElement.style.overflow;
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = prevBodyOverflow;
-      document.documentElement.style.overflow = prevHtmlOverflow;
+      if (animTimerRef.current) clearTimeout(animTimerRef.current);
     };
   }, []);
+
 
   // 监听窗口宽度变动
   useEffect(() => {
@@ -186,22 +194,14 @@ export const AIChatView: React.FC = () => {
     };
   }, []);
 
-  // 页面进入 AI 工作台时锁定网页全局溢出滚动，确保左侧栏与底部严丝合缝对齐视窗底边
-  useEffect(() => {
-    const origHtmlOverflow = document.documentElement.style.overflow;
-    const origBodyOverflow = document.body.style.overflow;
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.documentElement.style.overflow = origHtmlOverflow;
-      document.body.style.overflow = origBodyOverflow;
-    };
-  }, []);
 
   // 新建会话
   const handleNewChat = () => {
     handleStopGeneration();
     skipNextFetchRef.current = null;
+    if (messages.length > 0) {
+      triggerDockAnimation();
+    }
     setActiveId(null);
     setMessages([]);
     navigate("/workspace/ai");
@@ -254,6 +254,10 @@ export const AIChatView: React.FC = () => {
     if (!aiConfig?.hasKey) {
       openSettings("ai");
       return;
+    }
+
+    if (messages.length === 0) {
+      triggerDockAnimation();
     }
 
     const userMsg: AiMessageItem = {
@@ -381,7 +385,7 @@ export const AIChatView: React.FC = () => {
           const partialMsg: AiMessageItem = {
             id: `partial-${Date.now()}`,
             role: "assistant",
-            content: streamState.content + "\n\n*(已停止生成)*",
+            content: streamState.content + "\n\n*已停止*",
             thought: streamState.thought || null,
             toolCalls: streamState.toolCalls.length > 0 ? streamState.toolCalls : null,
             createdAt: new Date().toISOString(),
@@ -404,6 +408,8 @@ export const AIChatView: React.FC = () => {
 
   const currentTitle =
     conversations.find((c) => c.id === activeId)?.title || "新对话";
+
+  const isEmpty = messages.length === 0 && !isStreaming;
 
   return (
     <div
@@ -471,16 +477,17 @@ export const AIChatView: React.FC = () => {
         </>
       )}
 
-      {/* 2. 移动端抽屉侧边栏 */}
+      {/* 2. 移动端抽屉侧边栏 - 绝对定位在工作台内，顶部紧顶标题栏底边，绝不上窜遮挡大标题栏 */}
       {isMobile && isSidebarOpen && (
         <div
+          className="ai-mobile-drawer-overlay"
           style={{
-            position: "fixed",
+            position: "absolute",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            zIndex: 1000,
+            zIndex: 200,
             display: "flex",
           }}
         >
@@ -495,20 +502,23 @@ export const AIChatView: React.FC = () => {
               bottom: 0,
               backgroundColor: isDark ? "rgba(0, 0, 0, 0.65)" : "rgba(0, 0, 0, 0.4)",
               backdropFilter: "blur(4px)",
+              WebkitBackdropFilter: "blur(4px)",
             }}
           />
 
-          {/* 抽屉内容区 */}
+          {/* 抽屉内容区 - 顶部严丝合缝顶着大标题栏底边 */}
           <div
-            className="win10-tile-rise win10-delay-1"
+            className="ai-mobile-drawer-content"
             style={{
               position: "relative",
-              width: "280px",
+              width: "min(288px, 85vw)",
               height: "100%",
               backgroundColor: isDark ? "#1e1e24" : "#ffffff",
               boxShadow: isDark ? "4px 0 24px rgba(0, 0, 0, 0.5)" : "4px 0 24px rgba(0, 0, 0, 0.2)",
-              borderRight: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
-              zIndex: 1001,
+              borderRight: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
+              zIndex: 201,
+              display: "flex",
+              flexDirection: "column",
             }}
           >
             <ConversationSidebar
@@ -597,29 +607,6 @@ export const AIChatView: React.FC = () => {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {activeId && (
-              <button
-                onClick={handleNewChat}
-                title="新对话"
-                style={{
-                  background: isDark ? "rgba(91, 123, 141, 0.18)" : "rgba(91, 123, 141, 0.08)",
-                  border: isDark ? "1px solid rgba(91, 123, 141, 0.3)" : "none",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  fontSize: "12px",
-                  color: isDark ? "#8EAEC0" : "#5B7B8D",
-                  padding: "4px 8px",
-                  borderRadius: "6px",
-                  fontWeight: 500,
-                }}
-              >
-                <Add20Regular style={{ fontSize: "16px" }} />
-                新对话
-              </button>
-            )}
-
             <button
               onClick={() => openSettings("ai")}
               title="设置"
@@ -637,6 +624,30 @@ export const AIChatView: React.FC = () => {
             </button>
           </div>
         </header>
+
+        {/* 欢迎中央舞台 (仅在新会话/空会话时居中呈现) */}
+        <div
+          className={`ai-welcome-hero-stage ${isEmpty ? "is-visible" : "is-hidden"}`}
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: "calc(50% + 20px)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: isEmpty ? "auto" : "none",
+            opacity: isEmpty ? 1 : 0,
+            transform: isEmpty ? "translateY(0)" : "translateY(-24px)",
+            transition: shouldAnimateDock
+              ? "opacity 0.4s ease, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)"
+              : "opacity 0.2s ease",
+            zIndex: 15,
+          }}
+        >
+          <WelcomeSlate />
+        </div>
 
         {/* 消息历史滚动区 - 仅此内部独立滚动，顶部在顶栏下方，底部延伸至页面底边 */}
         <section
@@ -662,25 +673,11 @@ export const AIChatView: React.FC = () => {
           />
         </section>
 
-        {/* 底部输入发送中枢 - 绝对脱离文档流固定在右侧视窗最底部，拥有纯色半透明背景 */}
+        {/* 底部输入发送中枢 - 支持从居中平滑飘落至吸底 */}
         <footer
-          className="ai-chat-footer-pinned"
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            width: "100%",
-            zIndex: 30,
-            boxSizing: "border-box",
-            backgroundColor: isDark ? "rgba(0, 0, 0, 0.78)" : "rgba(255, 255, 255, 0.88)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.06)",
-            boxShadow: isDark
-              ? "0 -4px 20px rgba(0, 0, 0, 0.4)"
-              : "0 -4px 20px rgba(0, 0, 0, 0.03)",
-          }}
+          className={`ai-chat-footer-pinned ${
+            isEmpty ? "is-centered" : "is-docked"
+          } ${shouldAnimateDock ? "with-glide-animation" : ""}`}
         >
           <ChatInputArea
             onSendMessage={handleSendMessage}

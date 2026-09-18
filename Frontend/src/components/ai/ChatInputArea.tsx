@@ -114,7 +114,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
         >
           <Warning20Regular style={{ fontSize: "16px", flexShrink: 0 }} />
           <span style={{ flex: 1 }}>
-            尚未配置模型参数，点击此处前往设置
+            请先配置模型
           </span>
           <Settings20Regular style={{ fontSize: "16px" }} />
         </div>

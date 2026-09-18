@@ -266,8 +266,8 @@ export const MarkdownStudio: React.FC = () => {
 
     return () => {
       cancelAnimationFrame(rafId);
-      document.documentElement.style.overflow = prevHtmlOverflow;
-      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow === "hidden" ? "" : prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow === "hidden" ? "" : prevBodyOverflow;
     };
   }, [activeId]);
 

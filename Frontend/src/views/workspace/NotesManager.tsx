@@ -596,7 +596,6 @@ export const NotesManager: React.FC = () => {
               <NoteCard
                 diary={note}
                 showActions={true}
-                showVisibilityBadge={true}
                 onClick={() => navigate(`/workspace/edit/${note.id}`)}
                 onEdit={() => navigate(`/workspace/edit/${note.id}`)}
                 onDelete={() => setDeleteTarget(note)}
