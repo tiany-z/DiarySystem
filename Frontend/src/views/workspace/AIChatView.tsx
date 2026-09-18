@@ -143,6 +143,18 @@ export const AIChatView: React.FC = () => {
     };
   }, []);
 
+  // 页面进入 AI 工作台时锁定网页全局溢出滚动，确保左侧栏与底部严丝合缝对齐视窗底边
+  useEffect(() => {
+    const origHtmlOverflow = document.documentElement.style.overflow;
+    const origBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = origHtmlOverflow;
+      document.body.style.overflow = origBodyOverflow;
+    };
+  }, []);
+
   // 新建会话
   const handleNewChat = () => {
     handleStopGeneration();
@@ -364,20 +376,24 @@ export const AIChatView: React.FC = () => {
         boxSizing: "border-box",
       }}
     >
-      {/* 1. PC 端左侧亚克力侧边栏 (280px) 顶天立地 */}
+      {/* 1. PC 端左侧亚克力侧边栏 (280px) 顶天立地，下边与网页底边对齐 */}
       {!isMobile && (
         <aside
-          className="win10-tile-rise win10-delay-1"
           style={{
             width: "280px",
             minWidth: "280px",
             maxWidth: "280px",
             height: "100%",
+            maxHeight: "100%",
             flexShrink: 0,
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
             boxSizing: "border-box",
+            margin: 0,
+            padding: 0,
+            borderBottom: "none",
+            bottom: 0,
           }}
         >
           <ConversationSidebar
@@ -577,7 +593,7 @@ export const AIChatView: React.FC = () => {
           />
         </section>
 
-        {/* 底部悬浮/固定输入中枢 - 永久固定底部 */}
+        {/* 底部悬浮/固定输入中枢 - 整个底部纯色半透明背景 (白/黑)，下边与底边严丝合缝 */}
         <footer
           className="win10-tile-rise win10-delay-3"
           style={{
@@ -586,6 +602,13 @@ export const AIChatView: React.FC = () => {
             zIndex: 10,
             position: "relative",
             boxSizing: "border-box",
+            backgroundColor: isDark ? "rgba(0, 0, 0, 0.78)" : "rgba(255, 255, 255, 0.88)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.06)",
+            boxShadow: isDark
+              ? "0 -4px 20px rgba(0, 0, 0, 0.4)"
+              : "0 -4px 20px rgba(0, 0, 0, 0.03)",
           }}
         >
           <ChatInputArea

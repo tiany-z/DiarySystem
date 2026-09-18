@@ -124,6 +124,8 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         userSelect: "none",
         overflow: "hidden",
         boxSizing: "border-box",
+        borderBottom: "none",
+        marginBottom: 0,
       }}
     >
       {/* 顶部操作区 */}

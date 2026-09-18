@@ -179,7 +179,7 @@ export const Header: React.FC = () => {
       {/* Nav Links (Desktop) - 绝不受右侧更多按钮影响，始终全网页严格水平居中 */}
       {isAuthenticated && (
         <nav
-          className="desktop-only"
+          className="desktop-only header-nav-bar"
           style={{
             position: "absolute",
             left: "50%",
@@ -190,81 +190,93 @@ export const Header: React.FC = () => {
             pointerEvents: "auto",
           }}
         >
-          <Button
-            appearance={location.pathname === "/" ? "primary" : "subtle"}
-            icon={<Globe20Regular />}
-            onClick={() => handleNav("/")}
-            style={{
-              borderRadius: "8px",
-              fontWeight: location.pathname === "/" ? 600 : 500,
-            }}
-          >
-            公共广场
-          </Button>
+          <Tooltip content="公共广场" relationship="label">
+            <Button
+              className="header-nav-btn"
+              appearance={location.pathname === "/" ? "primary" : "subtle"}
+              icon={<Globe20Regular />}
+              onClick={() => handleNav("/")}
+              style={{
+                borderRadius: "8px",
+                fontWeight: location.pathname === "/" ? 600 : 500,
+              }}
+            >
+              <span className="header-nav-btn-text">公共广场</span>
+            </Button>
+          </Tooltip>
 
-          <Button
-            appearance={
-              location.pathname.startsWith("/workspace") &&
-                !location.pathname.startsWith("/workspace/users") &&
-                !location.pathname.startsWith("/workspace/ai") &&
-                location.pathname !== "/workspace/new"
-                ? "primary"
-                : "subtle"
-            }
-            icon={<Folder20Regular />}
-            onClick={() => handleNav("/workspace")}
-            style={{
-              borderRadius: "8px",
-              fontWeight:
+          <Tooltip content="我的笔记" relationship="label">
+            <Button
+              className="header-nav-btn"
+              appearance={
                 location.pathname.startsWith("/workspace") &&
                   !location.pathname.startsWith("/workspace/users") &&
                   !location.pathname.startsWith("/workspace/ai") &&
                   location.pathname !== "/workspace/new"
-                  ? 600
-                  : 500,
-            }}
-          >
-            我的笔记
-          </Button>
-
-          <Button
-            appearance={location.pathname.startsWith("/workspace/ai") ? "primary" : "subtle"}
-            icon={<Bot20Regular />}
-            onClick={() => handleNav("/workspace/ai")}
-            style={{
-              borderRadius: "8px",
-              fontWeight: location.pathname.startsWith("/workspace/ai") ? 600 : 500,
-              backgroundColor: location.pathname.startsWith("/workspace/ai")
-                ? "#5B7B8D"
-                : undefined,
-              color: location.pathname.startsWith("/workspace/ai") ? "#ffffff" : undefined,
-              boxShadow: location.pathname.startsWith("/workspace/ai")
-                ? "0 2px 8px rgba(91, 123, 141, 0.3)"
-                : undefined,
-            }}
-          >
-            AI 助手
-          </Button>
-
-          {user?.username === "tiany" && (
-            <Button
-              appearance={location.pathname.startsWith("/workspace/users") ? "primary" : "subtle"}
-              icon={<PeopleCommunity20Regular />}
-              onClick={() => handleNav("/workspace/users")}
+                  ? "primary"
+                  : "subtle"
+              }
+              icon={<Folder20Regular />}
+              onClick={() => handleNav("/workspace")}
               style={{
                 borderRadius: "8px",
-                fontWeight: location.pathname.startsWith("/workspace/users") ? 600 : 500,
-                backgroundColor: location.pathname.startsWith("/workspace/users")
+                fontWeight:
+                  location.pathname.startsWith("/workspace") &&
+                    !location.pathname.startsWith("/workspace/users") &&
+                    !location.pathname.startsWith("/workspace/ai") &&
+                    location.pathname !== "/workspace/new"
+                    ? 600
+                    : 500,
+              }}
+            >
+              <span className="header-nav-btn-text">我的笔记</span>
+            </Button>
+          </Tooltip>
+
+          <Tooltip content="AI 助手" relationship="label">
+            <Button
+              className="header-nav-btn"
+              appearance={location.pathname.startsWith("/workspace/ai") ? "primary" : "subtle"}
+              icon={<Bot20Regular />}
+              onClick={() => handleNav("/workspace/ai")}
+              style={{
+                borderRadius: "8px",
+                fontWeight: location.pathname.startsWith("/workspace/ai") ? 600 : 500,
+                backgroundColor: location.pathname.startsWith("/workspace/ai")
                   ? "#5B7B8D"
                   : undefined,
-                color: location.pathname.startsWith("/workspace/users") ? "#ffffff" : undefined,
-                boxShadow: location.pathname.startsWith("/workspace/users")
+                color: location.pathname.startsWith("/workspace/ai") ? "#ffffff" : undefined,
+                boxShadow: location.pathname.startsWith("/workspace/ai")
                   ? "0 2px 8px rgba(91, 123, 141, 0.3)"
                   : undefined,
               }}
             >
-              用户管理
+              <span className="header-nav-btn-text">AI 助手</span>
             </Button>
+          </Tooltip>
+
+          {user?.username === "tiany" && (
+            <Tooltip content="用户管理" relationship="label">
+              <Button
+                className="header-nav-btn"
+                appearance={location.pathname.startsWith("/workspace/users") ? "primary" : "subtle"}
+                icon={<PeopleCommunity20Regular />}
+                onClick={() => handleNav("/workspace/users")}
+                style={{
+                  borderRadius: "8px",
+                  fontWeight: location.pathname.startsWith("/workspace/users") ? 600 : 500,
+                  backgroundColor: location.pathname.startsWith("/workspace/users")
+                    ? "#5B7B8D"
+                    : undefined,
+                  color: location.pathname.startsWith("/workspace/users") ? "#ffffff" : undefined,
+                  boxShadow: location.pathname.startsWith("/workspace/users")
+                    ? "0 2px 8px rgba(91, 123, 141, 0.3)"
+                    : undefined,
+                }}
+              >
+                <span className="header-nav-btn-text">用户管理</span>
+              </Button>
+            </Tooltip>
           )}
         </nav>
       )}
@@ -301,6 +313,7 @@ export const Header: React.FC = () => {
               <MenuTrigger disableButtonEnhancement>
                 <Tooltip content={`当前用户: ${user.nickname || user.username}`} relationship="label">
                   <Button
+                    className="header-avatar-btn"
                     appearance="subtle"
                     style={{
                       padding: "3px 10px 3px 4px",
@@ -320,6 +333,7 @@ export const Header: React.FC = () => {
                       size={28}
                     />
                     <span
+                      className="header-avatar-name"
                       style={{
                         fontWeight: 600,
                         fontSize: "13px",

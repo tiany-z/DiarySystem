@@ -89,7 +89,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
   return (
     <div
       style={{
-        padding: isMobile ? "4px 8px max(10px, env(safe-area-inset-bottom))" : "8px 20px 16px",
+        padding: isMobile ? "6px 8px max(10px, env(safe-area-inset-bottom))" : "8px 20px 12px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -152,9 +152,9 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                 whiteSpace: "nowrap",
                 padding: "4px 12px",
                 borderRadius: "14px",
-                backgroundColor: isDark ? "rgba(36, 40, 48, 0.75)" : "rgba(255, 255, 255, 0.65)",
+                backgroundColor: isDark ? "rgba(45, 48, 56, 0.85)" : "rgba(240, 243, 246, 0.85)",
                 backdropFilter: "blur(8px)",
-                border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)",
                 fontSize: "12px",
                 color: isDark ? "#cbd5e0" : "#4a5568",
                 cursor: "pointer",
@@ -191,10 +191,10 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
         style={{
           width: "100%",
           borderRadius: "14px",
-          backgroundColor: isDark ? "rgba(26, 28, 34, 0.85)" : "rgba(255, 255, 255, 0.82)",
+          backgroundColor: isDark ? "rgba(30, 32, 38, 0.95)" : "#ffffff",
           backdropFilter: "blur(24px)",
-          border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(255, 255, 255, 0.5)",
-          boxShadow: isDark ? "0 8px 32px rgba(0, 0, 0, 0.4)" : "0 6px 28px rgba(0, 0, 0, 0.08)",
+          border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)",
+          boxShadow: isDark ? "0 4px 20px rgba(0, 0, 0, 0.35)" : "0 4px 16px rgba(0, 0, 0, 0.05)",
           display: "flex",
           alignItems: "flex-end",
           padding: isMobile ? "4px 8px 4px 12px" : "6px 12px 6px 16px",
