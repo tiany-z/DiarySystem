@@ -32,178 +32,128 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         style={{
           display: "flex",
           justifyContent: "flex-end",
-          marginBottom: "20px",
-          padding: "0 8px",
+          marginBottom: "18px",
+          padding: "0 2px",
+          width: "100%",
+          boxSizing: "border-box",
         }}
       >
         <div
           style={{
-            maxWidth: "80%",
-            display: "flex",
-            alignItems: "flex-start",
-            gap: "10px",
+            maxWidth: "85%",
+            padding: "10px 16px",
+            borderRadius: "18px 18px 4px 18px",
+            background: "linear-gradient(135deg, #5B7B8D 0%, #4a6676 100%)",
+            color: "#ffffff",
+            fontSize: "14px",
+            lineHeight: "1.6",
+            boxShadow: isDark
+              ? "0 4px 16px rgba(0, 0, 0, 0.3)"
+              : "0 4px 14px rgba(91, 123, 141, 0.22)",
+            wordBreak: "break-word",
+            whiteSpace: "pre-wrap",
+            userSelect: "text",
           }}
         >
-          <div
-            style={{
-              padding: "12px 18px",
-              borderRadius: "16px 16px 4px 16px",
-              background: "linear-gradient(135deg, #5B7B8D 0%, #4a6676 100%)",
-              color: "#ffffff",
-              fontSize: "14px",
-              lineHeight: "1.6",
-              boxShadow: "0 4px 14px rgba(91, 123, 141, 0.25)",
-              wordBreak: "break-word",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {message.content}
-          </div>
-
-          <div
-            style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "50%",
-              backgroundColor: isDark ? "rgba(91, 123, 141, 0.3)" : "rgba(91, 123, 141, 0.15)",
-              color: isDark ? "#8EAEC0" : "#5B7B8D",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Person20Regular style={{ fontSize: "18px" }} />
-          </div>
+          {message.content}
         </div>
       </div>
     );
   }
 
-  // Assistant 消息渲染
+  // Assistant 消息渲染：取消四周气泡、取消左上角头像、无底层地板直接横向最宽排版
   return (
     <div
       style={{
         display: "flex",
-        justifyContent: "flex-start",
+        flexDirection: "column",
+        width: "100%",
         marginBottom: "24px",
-        padding: "0 8px",
+        padding: "0 2px",
+        boxSizing: "border-box",
       }}
     >
       <div
         style={{
-          maxWidth: "92%",
-          display: "flex",
-          alignItems: "flex-start",
-          gap: "12px",
           width: "100%",
+          maxWidth: "100%",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        {/* AI 头像徽章 */}
-        <div
-          style={{
-            width: "34px",
-            height: "34px",
-            borderRadius: "10px",
-            background: "linear-gradient(135deg, #5B7B8D 0%, #3a505c 100%)",
-            color: "#ffffff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-            boxShadow: "0 4px 12px rgba(91, 123, 141, 0.2)",
-          }}
-        >
-          <Bot20Regular style={{ fontSize: "20px" }} />
-        </div>
+        {/* 思维链折叠卡片 (默认收起，用户手动点击后展开查看) */}
+        {(message.thought || (isStreaming && !message.content)) && (
+          <ThoughtAccordion
+            thought={message.thought || ""}
+            isGenerating={isStreaming && !message.content}
+          />
+        )}
 
-        {/* 消息正文与辅助卡片区 */}
-        <div
-          className="ai-bubble-acrylic"
-          style={{
-            flex: 1,
-            padding: "16px 20px",
-            borderRadius: "4px 16px 16px 16px",
-            backgroundColor: isDark ? "rgba(30, 33, 40, 0.85)" : "rgba(255, 255, 255, 0.75)",
-            backdropFilter: "blur(20px)",
-            position: "relative",
-            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(255, 255, 255, 0.25)",
-            boxShadow: isDark ? "0 4px 20px rgba(0, 0, 0, 0.3)" : "0 4px 16px rgba(0, 0, 0, 0.04)",
-          }}
-        >
-          {/* 思维链折叠卡片 (若存在思维链或正在生成中) */}
-          {(message.thought || (isStreaming && !message.content)) && (
-            <ThoughtAccordion
-              thought={message.thought || ""}
-              isGenerating={isStreaming && !message.content}
-            />
-          )}
+        {/* 工具调用过程：单行动效渐变条 / 微胶囊链条 */}
+        {message.toolCalls && message.toolCalls.length > 0 && (
+          <AgentActivityBar
+            toolCalls={message.toolCalls}
+            isStreaming={isStreaming}
+          />
+        )}
 
-          {/* 工具调用过程：单行动效渐变条 / 微胶囊链条 */}
-          {message.toolCalls && message.toolCalls.length > 0 && (
-            <AgentActivityBar
-              toolCalls={message.toolCalls}
-              isStreaming={isStreaming}
-            />
-          )}
-
-          {/* 正文 Markdown 与渐变打字机 */}
+        {/* 正文 Markdown 与渐变打字机 (无底层地板，全宽通栏呈现) */}
+        <div style={{ width: "100%", minWidth: 0 }}>
           <TypewriterMarkdown
             content={message.content}
             isStreaming={isStreaming}
           />
-
-          {/* 底部小工具栏 (复制) */}
-          {message.content && !isStreaming && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                marginTop: "10px",
-                borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.05)",
-                paddingTop: "6px",
-              }}
-            >
-              <button
-                onClick={handleCopy}
-                title="复制"
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  fontSize: "12px",
-                  color: isDark ? "#a0aec0" : "#718096",
-                  padding: "4px 8px",
-                  borderRadius: "6px",
-                  transition: "background 0.2s",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = isDark
-                    ? "rgba(255, 255, 255, 0.08)"
-                    : "rgba(0, 0, 0, 0.04)")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = "transparent")
-                }
-              >
-                {copied ? (
-                  <>
-                    <Checkmark20Regular style={{ color: "#38a169", fontSize: "14px" }} />
-                    <span style={{ color: "#38a169" }}>已复制</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy20Regular style={{ fontSize: "14px" }} />
-                    <span>复制</span>
-                  </>
-                )}
-              </button>
-            </div>
-          )}
         </div>
+
+        {/* 底部轻量复制栏 */}
+        {message.content && !isStreaming && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              marginTop: "8px",
+              paddingTop: "4px",
+            }}
+          >
+            <button
+              onClick={handleCopy}
+              title="复制回答"
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+                fontSize: "12px",
+                color: isDark ? "#a0aec0" : "#718096",
+                padding: "3px 8px",
+                borderRadius: "6px",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = isDark
+                  ? "rgba(255, 255, 255, 0.08)"
+                  : "rgba(0, 0, 0, 0.05)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "transparent")
+              }
+            >
+              {copied ? (
+                <>
+                  <Checkmark20Regular style={{ color: "#38a169", fontSize: "14px" }} />
+                  <span style={{ color: "#38a169", fontWeight: 500 }}>已复制</span>
+                </>
+              ) : (
+                <>
+                  <Copy20Regular style={{ fontSize: "14px" }} />
+                  <span>复制</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

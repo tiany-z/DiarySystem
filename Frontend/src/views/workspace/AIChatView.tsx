@@ -21,11 +21,12 @@ import {
 import { ConversationSidebar } from "../../components/ai/ConversationSidebar";
 import { ChatMessageList } from "../../components/ai/ChatMessageList";
 import { ChatInputArea } from "../../components/ai/ChatInputArea";
-import { AiSettingsModal } from "../../components/AiSettingsModal";
+import { useSettings } from "../../context/SettingsContext";
 import { useAppTheme } from "../../context/ThemeContext";
 
 export const AIChatView: React.FC = () => {
   const { isDark } = useAppTheme();
+  const { openSettings } = useSettings();
   const { conversationId } = useParams<{ conversationId?: string }>();
   const navigate = useNavigate();
 
@@ -34,7 +35,6 @@ export const AIChatView: React.FC = () => {
   const [activeId, setActiveId] = useState<string | null>(conversationId || null);
   const [messages, setMessages] = useState<AiMessageItem[]>([]);
   const [aiConfig, setAiConfig] = useState<UserAiConfig | null>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
   // 流式输出临时状态
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
@@ -49,7 +49,19 @@ export const AIChatView: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
-  const currentActiveConvIdRef = useRef<string | null>(activeId);
+  const skipNextFetchRef = useRef<string | null>(null);
+
+  // 页面挂载时锁定 document.body 与 html 滚动，彻底杜绝全局滚动条和页面下窜散架
+  useEffect(() => {
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, []);
 
   // 监听窗口宽度变动
   useEffect(() => {
@@ -72,6 +84,9 @@ export const AIChatView: React.FC = () => {
 
   useEffect(() => {
     fetchConfig();
+    const handleConfigUpdate = () => fetchConfig();
+    window.addEventListener("ai:config_updated", handleConfigUpdate);
+    return () => window.removeEventListener("ai:config_updated", handleConfigUpdate);
   }, [fetchConfig]);
 
   // 2. 拉取会话列表
@@ -91,15 +106,11 @@ export const AIChatView: React.FC = () => {
   // 3. 路由变化时同步 activeId 并加载该会话消息
   useEffect(() => {
     if (conversationId) {
-      // 若变动的路由正好是当前已处于活跃交互态的同一会话（例如首条消息发送时就地 replace URL），
-      // 避免重复触发空/半拉取覆盖内存中正在流式生成的对话上下文
-      if (
-        currentActiveConvIdRef.current === conversationId &&
-        (messages.length > 0 || isStreaming)
-      ) {
+      // 若变动是由首条消息发送内部 URL replace 触发，跳过重复拉取，保持流式输出连贯性
+      if (skipNextFetchRef.current === conversationId) {
+        skipNextFetchRef.current = null;
         return;
       }
-      currentActiveConvIdRef.current = conversationId;
       setActiveId(conversationId);
       getAiMessages(conversationId).then((res) => {
         if (res.status === 1 && res.data?.messages) {
@@ -107,7 +118,6 @@ export const AIChatView: React.FC = () => {
         }
       });
     } else {
-      currentActiveConvIdRef.current = null;
       setActiveId(null);
       setMessages([]);
     }
@@ -136,7 +146,7 @@ export const AIChatView: React.FC = () => {
   // 新建会话
   const handleNewChat = () => {
     handleStopGeneration();
-    currentActiveConvIdRef.current = null;
+    skipNextFetchRef.current = null;
     setActiveId(null);
     setMessages([]);
     navigate("/workspace/ai");
@@ -147,7 +157,7 @@ export const AIChatView: React.FC = () => {
   const handleSelectConversation = (id: string) => {
     if (id === activeId) return;
     handleStopGeneration();
-    currentActiveConvIdRef.current = id;
+    skipNextFetchRef.current = null;
     setActiveId(id);
     navigate(`/workspace/ai/${id}`);
     setIsSidebarOpen(false);
@@ -187,7 +197,7 @@ export const AIChatView: React.FC = () => {
     if (!userText.trim()) return;
 
     if (!aiConfig?.hasKey) {
-      setIsSettingsOpen(true);
+      openSettings("ai");
       return;
     }
 
@@ -221,7 +231,7 @@ export const AIChatView: React.FC = () => {
         },
         {
           onConversation: (conv) => {
-            currentActiveConvIdRef.current = conv.conversationId;
+            skipNextFetchRef.current = conv.conversationId;
             setActiveId(conv.conversationId);
             targetConvId = conv.conversationId;
 
@@ -268,15 +278,26 @@ export const AIChatView: React.FC = () => {
           },
           onChunk: (delta) => {
             streamState.content += delta;
+            // 一旦正文内容开始吐出，说明上轮工具已经全部执行完毕，所有工具状态收敛为已完成，流光运行态立即隐去
+            for (const tc of streamState.toolCalls) {
+              if (tc.status === "running") {
+                tc.status = "success";
+              }
+            }
             setStreamingMessage({ ...streamState });
           },
           onFinish: (data) => {
+            // 回答结束时，确保所有工具调用均收敛为已完成态，彻底消除任何残留的运行中动画
+            const finalizedToolCalls = streamState.toolCalls.map((tc) => ({
+              ...tc,
+              status: tc.status === "running" ? "success" : tc.status,
+            }));
             const assistantMsg: AiMessageItem = {
               id: data.messageId || `msg-${Date.now()}`,
               role: "assistant",
               content: streamState.content,
               thought: streamState.thought || null,
-              toolCalls: streamState.toolCalls.length > 0 ? streamState.toolCalls : null,
+              toolCalls: finalizedToolCalls.length > 0 ? finalizedToolCalls : null,
               createdAt: new Date().toISOString(),
             };
             setMessages((prev) => [...prev, assistantMsg]);
@@ -336,16 +357,28 @@ export const AIChatView: React.FC = () => {
         display: "flex",
         flexDirection: "row",
         height: "calc(100vh - var(--header-height, 64px))",
+        maxHeight: "calc(100vh - var(--header-height, 64px))",
         width: "100%",
         overflow: "hidden",
         position: "relative",
+        boxSizing: "border-box",
       }}
     >
-      {/* 1. PC 端左侧亚克力侧边栏 (280px) */}
+      {/* 1. PC 端左侧亚克力侧边栏 (280px) 顶天立地 */}
       {!isMobile && (
-        <div
+        <aside
           className="win10-tile-rise win10-delay-1"
-          style={{ width: "280px", height: "100%", flexShrink: 0 }}
+          style={{
+            width: "280px",
+            minWidth: "280px",
+            maxWidth: "280px",
+            height: "100%",
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            boxSizing: "border-box",
+          }}
         >
           <ConversationSidebar
             conversations={conversations}
@@ -356,7 +389,7 @@ export const AIChatView: React.FC = () => {
             onTogglePin={handleTogglePin}
             onDeleteConversation={handleDelete}
           />
-        </div>
+        </aside>
       )}
 
       {/* 2. 移动端抽屉侧边栏 */}
@@ -414,22 +447,27 @@ export const AIChatView: React.FC = () => {
       )}
 
       {/* 3. 右侧对话中枢视窗 */}
-      <div
+      <main
         className="win10-tile-rise win10-delay-2"
         style={{
           flex: 1,
           display: "flex",
           flexDirection: "column",
           height: "100%",
+          maxHeight: "100%",
           position: "relative",
           minWidth: 0,
+          overflow: "hidden",
+          boxSizing: "border-box",
         }}
       >
-        {/* 对话顶栏 */}
-        <div
+        {/* 对话顶栏 - 永久固定顶部 */}
+        <header
           className="win10-tile-rise win10-delay-1"
           style={{
             height: "48px",
+            minHeight: "48px",
+            maxHeight: "48px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -438,6 +476,8 @@ export const AIChatView: React.FC = () => {
             backgroundColor: isDark ? "rgba(24, 24, 28, 0.65)" : "rgba(255, 255, 255, 0.45)",
             backdropFilter: "blur(16px)",
             flexShrink: 0,
+            zIndex: 10,
+            boxSizing: "border-box",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
@@ -498,7 +538,7 @@ export const AIChatView: React.FC = () => {
             )}
 
             <button
-              onClick={() => setIsSettingsOpen(true)}
+              onClick={() => openSettings("ai")}
               title="设置"
               style={{
                 background: "transparent",
@@ -513,10 +553,10 @@ export const AIChatView: React.FC = () => {
               <Settings20Regular style={{ fontSize: "18px" }} />
             </button>
           </div>
-        </div>
+        </header>
 
-        {/* 消息历史滚动区 */}
-        <div
+        {/* 消息历史滚动区 - 仅此内部独立滚动 */}
+        <section
           key={activeId || "welcome"}
           className="win10-tile-rise win10-delay-2"
           style={{
@@ -525,6 +565,8 @@ export const AIChatView: React.FC = () => {
             flexDirection: "column",
             minHeight: 0,
             overflow: "hidden",
+            position: "relative",
+            width: "100%",
           }}
         >
           <ChatMessageList
@@ -533,25 +575,29 @@ export const AIChatView: React.FC = () => {
             isStreaming={isStreaming}
             onSelectPrompt={handleSendMessage}
           />
-        </div>
+        </section>
 
-        {/* 底部悬浮输入中枢 */}
-        <ChatInputArea
-          onSendMessage={handleSendMessage}
-          onStopGeneration={handleStopGeneration}
-          isStreaming={isStreaming}
-          modelName={aiConfig?.modelName}
-          hasConfig={Boolean(aiConfig?.hasKey)}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-        />
-      </div>
-
-      {/* 用户私有 AI 模型参数设置模态框 */}
-      <AiSettingsModal
-        open={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        onConfigSaved={fetchConfig}
-      />
+        {/* 底部悬浮/固定输入中枢 - 永久固定底部 */}
+        <footer
+          className="win10-tile-rise win10-delay-3"
+          style={{
+            flexShrink: 0,
+            width: "100%",
+            zIndex: 10,
+            position: "relative",
+            boxSizing: "border-box",
+          }}
+        >
+          <ChatInputArea
+            onSendMessage={handleSendMessage}
+            onStopGeneration={handleStopGeneration}
+            isStreaming={isStreaming}
+            modelName={aiConfig?.modelName}
+            hasConfig={Boolean(aiConfig?.hasKey)}
+            onOpenSettings={() => openSettings("ai")}
+          />
+        </footer>
+      </main>
     </div>
   );
 };

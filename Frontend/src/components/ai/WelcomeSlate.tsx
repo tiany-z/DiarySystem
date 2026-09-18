@@ -50,7 +50,7 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) =>
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "40px 20px",
+        padding: "24px 12px",
         textAlign: "center",
         maxWidth: "760px",
         margin: "0 auto",
@@ -107,8 +107,8 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) =>
         className="win10-stagger-grid"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: "14px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(260px, 100%), 1fr))",
+          gap: "12px",
           width: "100%",
         }}
       >

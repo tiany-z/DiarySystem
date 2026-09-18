@@ -76,5 +76,13 @@ export const userApi = {
   getProfile: async (): Promise<ApiResponse<any>> => {
     return apiClient.get<any>("/api/user/profile");
   },
+
+  updateProfile: async (data: {
+    nickname?: string;
+    oldPassword?: string;
+    newPassword?: string;
+  }): Promise<ApiResponse<any>> => {
+    return apiClient.post<any>("/api/user/profile", data);
+  },
 };
 

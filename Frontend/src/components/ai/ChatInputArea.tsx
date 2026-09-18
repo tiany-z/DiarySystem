@@ -34,6 +34,15 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
   const { isDark } = useAppTheme();
   const [text, setText] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isMobile, setIsMobile] = useState<boolean>(
+    typeof window !== "undefined" ? window.innerWidth <= 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // 自动根据文本行数调整高度 (44px ~ 160px)
   const adjustHeight = () => {
@@ -79,15 +88,15 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
 
   return (
     <div
-      className="win10-tile-rise win10-delay-3"
       style={{
-        padding: "10px 20px 18px",
+        padding: isMobile ? "4px 8px max(10px, env(safe-area-inset-bottom))" : "8px 20px 16px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         width: "100%",
         maxWidth: "880px",
         margin: "0 auto",
+        boxSizing: "border-box",
       }}
     >
       {/* 未配置模型时的提示条 */}
@@ -188,7 +197,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           boxShadow: isDark ? "0 8px 32px rgba(0, 0, 0, 0.4)" : "0 6px 28px rgba(0, 0, 0, 0.08)",
           display: "flex",
           alignItems: "flex-end",
-          padding: "6px 12px 6px 16px",
+          padding: isMobile ? "4px 8px 4px 12px" : "6px 12px 6px 16px",
           gap: "8px",
         }}
       >

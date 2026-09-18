@@ -12,7 +12,7 @@ import {
   Document20Regular,
   Sparkle20Regular,
   Clock20Regular,
-  CalendarLtr20Regular,
+  Calendar20Regular,
   Emoji20Regular,
 } from "@fluentui/react-icons";
 import { useAppTheme } from "../../context/ThemeContext";
@@ -38,7 +38,7 @@ export const TOOL_META: Record<
   },
   get_diaries_by_date: {
     label: "日期手记",
-    icon: <CalendarLtr20Regular style={{ fontSize: "13px" }} />,
+    icon: <Calendar20Regular style={{ fontSize: "13px" }} />,
     hint: "正在调取指定日期的专属手记...",
   },
   analyze_mood_trends: {
@@ -100,6 +100,7 @@ export interface AgentActivityBarProps {
  */
 export const AgentActivityBar: React.FC<AgentActivityBarProps> = ({
   toolCalls,
+  isStreaming = false,
 }) => {
   const { isDark } = useAppTheme();
 
@@ -107,11 +108,12 @@ export const AgentActivityBar: React.FC<AgentActivityBarProps> = ({
     return null;
   }
 
+  // 仅在生成中且工具确实正在执行时呈现运行态流光；回答结束时进行中动画坚决消失不见
   const runningTool = toolCalls.find((tc) => tc.status === "running");
-  const hasRunning = Boolean(runningTool);
+  const isActuallyRunning = isStreaming && Boolean(runningTool);
 
   // 1. 运行中态：单行动效流光渐变胶囊条
-  if (hasRunning && runningTool) {
+  if (isActuallyRunning && runningTool) {
     const rawToolName = runningTool.tool || runningTool.name || "unknown";
     const meta = TOOL_META[rawToolName] || {
       label: rawToolName,
@@ -214,8 +216,8 @@ export const AgentActivityBar: React.FC<AgentActivityBarProps> = ({
           icon: <Document20Regular style={{ fontSize: "12px" }} />,
           hint: "",
         };
-        const isSuccess = tc.status === "success" || tc.status === undefined;
         const isFailed = tc.status === "failed";
+        const isSuccess = !isFailed;
 
         // 简短标签文案
         const textDisplay = tc.summary

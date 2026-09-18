@@ -27,22 +27,19 @@ import {
   WeatherMoon20Regular,
   WeatherSunny20Regular,
   Bot20Regular,
+  Sparkle20Regular,
 } from "@fluentui/react-icons";
 import { useAuth } from "../context/AuthContext";
 import { useAppTheme } from "../context/ThemeContext";
-import { useWallpaper } from "../context/WallpaperContext";
-import { AvatarCropModal } from "./AvatarCropModal";
+import { useSettings } from "../context/SettingsContext";
 import { BrandLogo } from "./BrandLogo";
-import { AiSettingsModal } from "./AiSettingsModal";
 
 export const Header: React.FC = () => {
   const { isDark, themeMode, setThemeMode, forceCodeDark, toggleForceCodeDark } = useAppTheme();
   const { user, isAuthenticated, logout } = useAuth();
-  const { setIsSettingsOpen } = useWallpaper();
+  const { openSettings } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isAvatarCropOpen, setIsAvatarCropOpen] = React.useState(false);
-  const [isAiSettingsOpen, setIsAiSettingsOpen] = React.useState(false);
 
   const handleNav = (targetPath: string) => {
     if (typeof window !== "undefined" && window.__checkUnsavedBeforeNavigate) {
@@ -289,17 +286,15 @@ export const Header: React.FC = () => {
             {/* 2. 主题模式下拉菜单 */}
             {renderThemeMenu("medium")}
 
-            {/* 3. 设置按钮（仅超级管理员 tiany 可见） */}
-            {user.username === "tiany" && (
-              <Tooltip content="背景设置" relationship="label">
-                <Button
-                  appearance="subtle"
-                  icon={<Settings20Regular />}
-                  onClick={() => setIsSettingsOpen(true)}
-                  aria-label="背景设置"
-                />
-              </Tooltip>
-            )}
+            {/* 3. 系统设置按钮 */}
+            <Tooltip content="系统设置" relationship="label">
+              <Button
+                appearance="subtle"
+                icon={<Settings20Regular />}
+                onClick={() => openSettings(user.username === "tiany" ? "wallpaper" : "profile")}
+                aria-label="系统设置"
+              />
+            </Tooltip>
 
             {/* 4. 用户头像按钮（同时显示用户头像与用户名称） */}
             <Menu>
@@ -374,15 +369,27 @@ export const Header: React.FC = () => {
                   </div>
                   <MenuItem
                     icon={<Camera20Regular />}
-                    onClick={() => setIsAvatarCropOpen(true)}
+                    onClick={() => openSettings("profile")}
                   >
-                    修改头像
+                    个人资料 / 修改头像
                   </MenuItem>
                   <MenuItem
                     icon={<Bot20Regular style={{ color: "#5B7B8D" }} />}
-                    onClick={() => setIsAiSettingsOpen(true)}
+                    onClick={() => openSettings("ai")}
                   >
                     AI 助手设置
+                  </MenuItem>
+                  <MenuItem
+                    icon={<Settings20Regular />}
+                    onClick={() => openSettings("wallpaper")}
+                  >
+                    背景壁纸设置
+                  </MenuItem>
+                  <MenuItem
+                    icon={<Sparkle20Regular style={{ color: "#5B7B8D" }} />}
+                    onClick={() => openSettings("theme")}
+                  >
+                    外观偏好
                   </MenuItem>
                   <MenuItem
                     icon={<Folder20Regular />}
@@ -396,14 +403,6 @@ export const Header: React.FC = () => {
                       onClick={() => handleNav("/workspace/users")}
                     >
                       用户管理
-                    </MenuItem>
-                  )}
-                  {user.username === "tiany" && (
-                    <MenuItem
-                      icon={<Settings20Regular />}
-                      onClick={() => setIsSettingsOpen(true)}
-                    >
-                      背景设置
                     </MenuItem>
                   )}
                   <MenuItem
@@ -454,18 +453,16 @@ export const Header: React.FC = () => {
             {/* 2. 主题模式下拉菜单 */}
             {renderThemeMenu("small")}
 
-            {/* 3. 设置按钮（仅 tiany） */}
-            {user.username === "tiany" && (
-              <Tooltip content="背景设置" relationship="label">
-                <Button
-                  appearance="subtle"
-                  size="small"
-                  icon={<Settings20Regular />}
-                  onClick={() => setIsSettingsOpen(true)}
-                  aria-label="背景设置"
-                />
-              </Tooltip>
-            )}
+            {/* 3. 系统设置按钮 */}
+            <Tooltip content="系统设置" relationship="label">
+              <Button
+                appearance="subtle"
+                size="small"
+                icon={<Settings20Regular />}
+                onClick={() => openSettings(user.username === "tiany" ? "wallpaper" : "profile")}
+                aria-label="系统设置"
+              />
+            </Tooltip>
 
             {/* 4. 用户头像按钮（同时显示用户头像与用户名称） */}
             <Menu>
@@ -541,15 +538,27 @@ export const Header: React.FC = () => {
                   </div>
                   <MenuItem
                     icon={<Camera20Regular />}
-                    onClick={() => setIsAvatarCropOpen(true)}
+                    onClick={() => openSettings("profile")}
                   >
-                    修改头像
+                    个人资料 / 修改头像
                   </MenuItem>
                   <MenuItem
                     icon={<Bot20Regular style={{ color: "#5B7B8D" }} />}
-                    onClick={() => setIsAiSettingsOpen(true)}
+                    onClick={() => openSettings("ai")}
                   >
                     AI 助手设置
+                  </MenuItem>
+                  <MenuItem
+                    icon={<Settings20Regular />}
+                    onClick={() => openSettings("wallpaper")}
+                  >
+                    背景壁纸设置
+                  </MenuItem>
+                  <MenuItem
+                    icon={<Sparkle20Regular style={{ color: "#5B7B8D" }} />}
+                    onClick={() => openSettings("theme")}
+                  >
+                    外观偏好
                   </MenuItem>
                   <MenuItem icon={<Globe20Regular />} onClick={() => handleNav("/")}>
                     公共广场
@@ -569,11 +578,6 @@ export const Header: React.FC = () => {
                       onClick={() => handleNav("/workspace/users")}
                     >
                       用户管理
-                    </MenuItem>
-                  )}
-                  {user?.username === "tiany" && (
-                    <MenuItem icon={<Settings20Regular />} onClick={() => setIsSettingsOpen(true)}>
-                      背景设置
                     </MenuItem>
                   )}
                   <MenuItem icon={<SignOut20Regular />} onClick={handleLogout}>
@@ -610,18 +614,6 @@ export const Header: React.FC = () => {
           </>
         )}
       </div>
-
-      {/* 头像在线裁剪与上传弹窗 */}
-      <AvatarCropModal
-        isOpen={isAvatarCropOpen}
-        onClose={() => setIsAvatarCropOpen(false)}
-      />
-
-      {/* AI 助手大模型私有化配置弹窗 */}
-      <AiSettingsModal
-        open={isAiSettingsOpen}
-        onClose={() => setIsAiSettingsOpen(false)}
-      />
     </header>
   );
 };

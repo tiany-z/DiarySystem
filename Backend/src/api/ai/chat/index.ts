@@ -208,10 +208,14 @@ export const api = {
         },
       });
 
-      // 7. 将 Assistant 结果持久化入库
+      // 7. 将 Assistant 结果持久化入库 (确保所有工具调用状态已收敛，数据库绝不保存未结束的 running 态)
       if (accumulatedContent || accumulatedThoughts || executedToolCalls.length > 0) {
+        const finalizedToolCalls = executedToolCalls.map((tc) => ({
+          ...tc,
+          status: tc.status === "running" ? "success" : tc.status,
+        }));
         const toolCallsJson =
-          executedToolCalls.length > 0 ? JSON.stringify(executedToolCalls) : null;
+          finalizedToolCalls.length > 0 ? JSON.stringify(finalizedToolCalls) : null;
 
         await executeQuery(
           `INSERT INTO ai_messages (id, conversation_id, user_id, role, content, thought, tool_calls)

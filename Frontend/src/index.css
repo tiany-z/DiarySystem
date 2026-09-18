@@ -2691,9 +2691,11 @@ html.force-code-dark .hljs-formula {
   display: flex !important;
   flex-direction: row !important;
   height: calc(100vh - var(--header-height, 64px)) !important;
+  max-height: calc(100vh - var(--header-height, 64px)) !important;
   width: 100% !important;
   overflow: hidden !important;
   position: relative !important;
+  box-sizing: border-box !important;
 }
 
 /* 独立浮现元素 */

@@ -122,10 +122,12 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         height: "100%",
         width: "100%",
         userSelect: "none",
+        overflow: "hidden",
+        boxSizing: "border-box",
       }}
     >
       {/* 顶部操作区 */}
-      <div className="win10-tile-rise win10-delay-1" style={{ padding: "16px 14px 10px" }}>
+      <div className="win10-tile-rise win10-delay-1" style={{ padding: "16px 14px 10px", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <button
             onClick={() => {
@@ -221,6 +223,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         className="win10-stagger-grid"
         style={{
           flex: 1,
+          minHeight: 0,
           overflowY: "auto",
           padding: "4px 8px 16px",
         }}

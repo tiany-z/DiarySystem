@@ -20,23 +20,41 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
   isStreaming = false,
   onSelectPrompt,
 }) => {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = React.useState<boolean>(
+    typeof window !== "undefined" ? window.innerWidth <= 768 : false
+  );
 
-  // 消息变化或流式输出时自动滚动到底部
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingMessage?.content, streamingMessage?.thought, streamingMessage?.toolCalls]);
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // 消息变化或流式输出时自动滚动到底部（使用容器原生 scrollTo，绝对不会影响外部顶栏或引发整个页面滚动）
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.scrollTo({
+      top: el.scrollHeight,
+      behavior: isStreaming ? "auto" : "smooth",
+    });
+  }, [messages, streamingMessage?.content, streamingMessage?.thought, streamingMessage?.toolCalls, isStreaming]);
 
   const isEmpty = messages.length === 0 && !isStreaming;
 
   return (
     <div
+      ref={containerRef}
       style={{
         flex: 1,
         overflowY: "auto",
-        padding: "20px 24px",
+        padding: isMobile ? "12px 10px 20px" : "20px 24px",
         display: "flex",
         flexDirection: "column",
+        height: "100%",
+        boxSizing: "border-box",
+        minHeight: 0,
       }}
     >
       {isEmpty ? (
@@ -65,7 +83,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
             />
           )}
 
-          <div ref={bottomRef} style={{ height: "1px" }} />
+          <div style={{ height: "1px" }} />
         </div>
       )}
     </div>

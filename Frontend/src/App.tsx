@@ -4,9 +4,10 @@ import { FluentProvider, Toaster } from "@fluentui/react-components";
 import { Header } from "./components/Header";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { WallpaperLayer } from "./components/WallpaperLayer";
-import { WallpaperSettingsModal } from "./components/WallpaperSettingsModal";
+import { UnifiedSettingsModal } from "./components/UnifiedSettingsModal";
 import { AuthProvider } from "./context/AuthContext";
 import { PageCacheProvider } from "./context/PageCacheContext";
+import { SettingsProvider } from "./context/SettingsContext";
 import { useAppTheme } from "./context/ThemeContext";
 import { WallpaperProvider } from "./context/WallpaperContext";
 import { AuthPortal } from "./views/auth/AuthPortal";
@@ -16,15 +17,24 @@ import { NotesManager } from "./views/workspace/NotesManager";
 import { UserManager } from "./views/workspace/UserManager";
 import { AIChatView } from "./views/workspace/AIChatView";
 
+const getRouteTransitionKey = (pathname: string) => {
+  if (pathname.startsWith("/workspace/ai")) return "/workspace/ai";
+  if (pathname.startsWith("/note/")) return "/note";
+  if (pathname.startsWith("/workspace/edit/")) return "/workspace/edit";
+  return pathname;
+};
+
 const AppContent: React.FC = () => {
   const location = useLocation();
+  const transitionKey = getRouteTransitionKey(location.pathname);
+  const isAiPage = location.pathname.startsWith("/workspace/ai");
 
-  // 路由/页面切换时全局自动平滑/瞬间滚动重置到顶部
+  // 跨主页面切换时全局自动瞬间滚动重置到顶部（同一工作区内，如 AI 会话切换不触发页面跳动）
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
-  }, [location.pathname]);
+  }, [transitionKey]);
 
   return (
     <>
@@ -39,9 +49,20 @@ const AppContent: React.FC = () => {
           boxSizing: "border-box",
           minHeight: 0,
           paddingTop: "var(--header-height, 64px)",
+          height: isAiPage ? "100vh" : undefined,
+          maxHeight: isAiPage ? "100vh" : undefined,
+          overflow: isAiPage ? "hidden" : undefined,
         }}
       >
-        <div key={location.pathname} className="win10-page-transition-host">
+        <div
+          key={transitionKey}
+          className="win10-page-transition-host"
+          style={{
+            height: isAiPage ? "100%" : undefined,
+            maxHeight: isAiPage ? "100%" : undefined,
+            overflow: isAiPage ? "hidden" : undefined,
+          }}
+        >
           <Routes location={location}>
             {/* 模块一：对外公开展示笔记界面（支持首页广场与指定笔记直达） */}
             <Route path="/" element={<PublicShowcase />} />
@@ -136,11 +157,13 @@ export const App: React.FC = () => {
       <AuthProvider>
         <PageCacheProvider>
           <WallpaperProvider>
-            <WallpaperLayer />
-            <WallpaperSettingsModal />
-            <BrowserRouter>
-              <AppContent />
-            </BrowserRouter>
+            <SettingsProvider>
+              <WallpaperLayer />
+              <UnifiedSettingsModal />
+              <BrowserRouter>
+                <AppContent />
+              </BrowserRouter>
+            </SettingsProvider>
           </WallpaperProvider>
         </PageCacheProvider>
       </AuthProvider>

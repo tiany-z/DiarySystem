@@ -16,7 +16,8 @@ export const ThoughtAccordion: React.FC<ThoughtAccordionProps> = ({
   isGenerating = false,
 }) => {
   const { isDark } = useAppTheme();
-  const [isExpanded, setIsExpanded] = useState<boolean>(isGenerating);
+  // 思考过程默认隐藏，绝不自动展开，仅在用户手动点击后展开查看
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const startTimeRef = useRef<number>(Date.now());
   const hasEverGeneratedRef = useRef<boolean>(isGenerating);
@@ -29,11 +30,6 @@ export const ThoughtAccordion: React.FC<ThoughtAccordionProps> = ({
       timer = setInterval(() => {
         setElapsedSeconds((Date.now() - startTimeRef.current) / 1000);
       }, 100);
-    } else {
-      if (hasEverGeneratedRef.current) {
-        // 生成结束时，默认自动收起思考过程，使正文成为视觉焦点
-        setIsExpanded(false);
-      }
     }
     return () => {
       if (timer) clearInterval(timer);
@@ -112,10 +108,10 @@ export const ThoughtAccordion: React.FC<ThoughtAccordionProps> = ({
             }}
           >
             {isGenerating
-              ? `思考中 ${formattedTime}`
+              ? `正在深度思考中 ${formattedTime ? `· ${formattedTime}` : ""} (点击展开)`
               : formattedTime
-              ? `已思考 ${formattedTime}`
-              : "思考过程"}
+              ? `已深度思考 · 耗时 ${formattedTime} (点击展开)`
+              : "深度思考过程 (点击展开)"}
           </span>
         </div>
 
