@@ -140,6 +140,14 @@ export const NoteCard: React.FC<NoteCardProps> = ({
   const { isDark } = useAppTheme();
   const isPublic = diary.is_public !== 0 && diary.is_public !== false;
   const coverImage = extractFirstImage(diary.content);
+  const [imgLoadError, setImgLoadError] = useState(false);
+
+  // 当日记内容或封面图片 URL 改变时，重置加载错误状态
+  useEffect(() => {
+    setImgLoadError(false);
+  }, [coverImage]);
+
+  const hasValidCover = !!coverImage && !imgLoadError;
   const snippet = extractSnippet(diary.content);
   const shouldShowAuthor = showAuthor !== undefined ? showAuthor : !showActions;
   const authorName = diary.nickname || diary.username || "拾光用户";
@@ -173,7 +181,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
       ro.observe(el);
       return () => ro.disconnect();
     }
-  }, [previewHtml, coverImage]);
+  }, [previewHtml, hasValidCover]);
 
   return (
     <Card
@@ -269,7 +277,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
               }
             />
           </div>
-          {coverImage && previewHtml && (
+          {hasValidCover && previewHtml && (
             <div
               className="note-card-thumb-badge"
               style={{
@@ -283,9 +291,10 @@ export const NoteCard: React.FC<NoteCardProps> = ({
               }}
             >
               <img
-                src={coverImage}
+                src={coverImage!}
                 alt={diary.title || "随笔插图"}
                 loading="lazy"
+                onError={() => setImgLoadError(true)}
                 style={{
                   width: "100%",
                   height: "100%",
@@ -298,7 +307,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
         </div>
 
         {/* 纯图片随笔（无文本预览时，图片撑满卡片主体） */}
-        {!previewHtml && coverImage && (
+        {!previewHtml && hasValidCover && (
           <div
             className="note-card-cover-container is-pure-image"
             style={{
@@ -312,9 +321,10 @@ export const NoteCard: React.FC<NoteCardProps> = ({
             }}
           >
             <img
-              src={coverImage}
+              src={coverImage!}
               alt={diary.title || "随笔插图"}
               loading="lazy"
+              onError={() => setImgLoadError(true)}
               style={{
                 width: "100%",
                 height: "100%",
@@ -329,7 +339,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
         {previewHtml ? (
           <div
             ref={previewRef}
-            className={`note-card-preview-wrapper ${coverImage ? "has-cover" : ""} ${isOverflowing ? "is-overflowing" : ""}`}
+            className={`note-card-preview-wrapper ${hasValidCover ? "has-cover" : ""} ${isOverflowing ? "is-overflowing" : ""}`}
             style={{
               position: "relative",
               flex: "1 1 auto",
@@ -348,7 +358,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
               dangerouslySetInnerHTML={{ __html: previewHtml }}
             />
           </div>
-        ) : !coverImage ? (
+        ) : !hasValidCover ? (
           <div
             style={{
               opacity: 0.5,
@@ -363,7 +373,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
       </div>
 
       {/* 底部渐变遮罩：底边到用户信息遮住处为纯色遮罩，往上平滑过渡渐变到全透明 */}
-      {(previewHtml || coverImage) && (
+      {(previewHtml || hasValidCover) && (
         <div
           className="note-card-bottom-fade"
           aria-hidden="true"

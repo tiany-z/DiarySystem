@@ -8,7 +8,9 @@
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:init": "node src/db/initSchema.mjs",
+    "db:seed": "node src/db/seedData.mjs"
   },
   "imports": {
     "#core": "./src/core/index.ts"

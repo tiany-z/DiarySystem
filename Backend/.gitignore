@@ -1,0 +1,33 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data & locks
+.instance.lock
+.test-instance.lock
+pids
+*.pid
+*.pid.lock
+
+# Dependency directories
+node_modules/
+
+# TypeScript build output
+dist/
+
+# Uploads
+uploads/
+
+# Test coverage
+coverage/
+
+# dotenv environment variable files (Sensitive configs)
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+!.env.example

@@ -617,6 +617,9 @@ export const NotesManager: React.FC = () => {
                   <img
                     src={extractFirstImage(note.content)!}
                     alt="封面"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = "none";
+                    }}
                     style={{
                       width: "44px",
                       height: "44px",

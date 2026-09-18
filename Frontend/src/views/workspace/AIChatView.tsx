@@ -22,8 +22,10 @@ import { ConversationSidebar } from "../../components/ai/ConversationSidebar";
 import { ChatMessageList } from "../../components/ai/ChatMessageList";
 import { ChatInputArea } from "../../components/ai/ChatInputArea";
 import { AiSettingsModal } from "../../components/AiSettingsModal";
+import { useAppTheme } from "../../context/ThemeContext";
 
 export const AIChatView: React.FC = () => {
+  const { isDark } = useAppTheme();
   const { conversationId } = useParams<{ conversationId?: string }>();
   const navigate = useNavigate();
 
@@ -329,8 +331,10 @@ export const AIChatView: React.FC = () => {
 
   return (
     <div
+      className="win10-page-transition-host ai-chat-page-container"
       style={{
         display: "flex",
+        flexDirection: "row",
         height: "calc(100vh - var(--header-height, 64px))",
         width: "100%",
         overflow: "hidden",
@@ -339,7 +343,10 @@ export const AIChatView: React.FC = () => {
     >
       {/* 1. PC 端左侧亚克力侧边栏 (280px) */}
       {!isMobile && (
-        <div style={{ width: "280px", height: "100%", flexShrink: 0 }}>
+        <div
+          className="win10-tile-rise win10-delay-1"
+          style={{ width: "280px", height: "100%", flexShrink: 0 }}
+        >
           <ConversationSidebar
             conversations={conversations}
             activeId={activeId}
@@ -374,19 +381,21 @@ export const AIChatView: React.FC = () => {
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: "rgba(0, 0, 0, 0.4)",
+              backgroundColor: isDark ? "rgba(0, 0, 0, 0.65)" : "rgba(0, 0, 0, 0.4)",
               backdropFilter: "blur(4px)",
             }}
           />
 
           {/* 抽屉内容区 */}
           <div
+            className="win10-tile-rise win10-delay-1"
             style={{
               position: "relative",
               width: "280px",
               height: "100%",
-              backgroundColor: "#ffffff",
-              boxShadow: "4px 0 24px rgba(0, 0, 0, 0.2)",
+              backgroundColor: isDark ? "#1e1e24" : "#ffffff",
+              boxShadow: isDark ? "4px 0 24px rgba(0, 0, 0, 0.5)" : "4px 0 24px rgba(0, 0, 0, 0.2)",
+              borderRight: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
               zIndex: 1001,
             }}
           >
@@ -406,6 +415,7 @@ export const AIChatView: React.FC = () => {
 
       {/* 3. 右侧对话中枢视窗 */}
       <div
+        className="win10-tile-rise win10-delay-2"
         style={{
           flex: 1,
           display: "flex",
@@ -417,14 +427,15 @@ export const AIChatView: React.FC = () => {
       >
         {/* 对话顶栏 */}
         <div
+          className="win10-tile-rise win10-delay-1"
           style={{
             height: "48px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             padding: "0 16px",
-            borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
-            backgroundColor: "rgba(255, 255, 255, 0.45)",
+            borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.06)",
+            backgroundColor: isDark ? "rgba(24, 24, 28, 0.65)" : "rgba(255, 255, 255, 0.45)",
             backdropFilter: "blur(16px)",
             flexShrink: 0,
           }}
@@ -441,7 +452,7 @@ export const AIChatView: React.FC = () => {
                   display: "flex",
                   alignItems: "center",
                   padding: "4px",
-                  color: "#4a5568",
+                  color: isDark ? "#cbd5e0" : "#4a5568",
                 }}
               >
                 <PanelLeft20Regular style={{ fontSize: "20px" }} />
@@ -452,7 +463,7 @@ export const AIChatView: React.FC = () => {
               style={{
                 fontSize: "14px",
                 fontWeight: 600,
-                color: "#2d3748",
+                color: isDark ? "#f7fafc" : "#2d3748",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
@@ -468,16 +479,17 @@ export const AIChatView: React.FC = () => {
                 onClick={handleNewChat}
                 title="新对话"
                 style={{
-                  background: "transparent",
-                  border: "none",
+                  background: isDark ? "rgba(91, 123, 141, 0.18)" : "rgba(91, 123, 141, 0.08)",
+                  border: isDark ? "1px solid rgba(91, 123, 141, 0.3)" : "none",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   gap: "4px",
                   fontSize: "12px",
-                  color: "#5B7B8D",
+                  color: isDark ? "#8EAEC0" : "#5B7B8D",
                   padding: "4px 8px",
                   borderRadius: "6px",
+                  fontWeight: 500,
                 }}
               >
                 <Add20Regular style={{ fontSize: "16px" }} />
@@ -495,7 +507,7 @@ export const AIChatView: React.FC = () => {
                 display: "flex",
                 alignItems: "center",
                 padding: "4px",
-                color: "#718096",
+                color: isDark ? "#a0aec0" : "#718096",
               }}
             >
               <Settings20Regular style={{ fontSize: "18px" }} />
@@ -504,12 +516,24 @@ export const AIChatView: React.FC = () => {
         </div>
 
         {/* 消息历史滚动区 */}
-        <ChatMessageList
-          messages={messages}
-          streamingMessage={streamingMessage}
-          isStreaming={isStreaming}
-          onSelectPrompt={handleSendMessage}
-        />
+        <div
+          key={activeId || "welcome"}
+          className="win10-tile-rise win10-delay-2"
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
+            overflow: "hidden",
+          }}
+        >
+          <ChatMessageList
+            messages={messages}
+            streamingMessage={streamingMessage}
+            isStreaming={isStreaming}
+            onSelectPrompt={handleSendMessage}
+          />
+        </div>
 
         {/* 底部悬浮输入中枢 */}
         <ChatInputArea

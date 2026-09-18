@@ -299,16 +299,7 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({
       >
         <DialogBody style={{ padding: 0, margin: 0, flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
           {/* Header */}
-          <DialogTitle
-            action={
-              <Button
-                appearance="subtle"
-                aria-label="关闭"
-                icon={<Dismiss20Regular />}
-                onClick={onClose}
-                style={{ borderRadius: "8px" }}
-              />
-            }
+          <header
             style={{
               padding: "16px 20px",
               margin: 0,
@@ -316,29 +307,43 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
+              flexShrink: 0,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "8px",
-                  backgroundColor: "rgba(91, 123, 141, 0.15)",
-                  color: "#5B7B8D",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Bot20Regular />
+            <DialogTitle style={{ padding: 0, margin: 0, flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "8px",
+                    backgroundColor: "rgba(91, 123, 141, 0.15)",
+                    color: "#5B7B8D",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Bot20Regular />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: "16px", lineHeight: "1.3" }}>AI 助手设置</div>
+                  <Caption1 style={{ opacity: 0.65, display: "block" }}>配置大模型服务接入地址与密钥</Caption1>
+                </div>
               </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: "16px" }}>AI 助手设置</div>
-                <Caption1 style={{ opacity: 0.65 }}>配置大模型服务接入地址与密钥</Caption1>
-              </div>
-            </div>
-          </DialogTitle>
+            </DialogTitle>
+
+            <Tooltip content="关闭" relationship="label">
+              <Button
+                appearance="subtle"
+                aria-label="关闭"
+                icon={<Dismiss20Regular />}
+                onClick={onClose}
+                style={{ borderRadius: "8px", flexShrink: 0, marginLeft: "12px" }}
+              />
+            </Tooltip>
+          </header>
 
           {/* Content */}
           <DialogContent

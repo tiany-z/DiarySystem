@@ -4,6 +4,7 @@ import {
   ChevronDown20Regular,
   ChevronRight20Regular,
 } from "@fluentui/react-icons";
+import { useAppTheme } from "../../context/ThemeContext";
 
 interface ThoughtAccordionProps {
   thought: string;
@@ -14,6 +15,7 @@ export const ThoughtAccordion: React.FC<ThoughtAccordionProps> = ({
   thought,
   isGenerating = false,
 }) => {
+  const { isDark } = useAppTheme();
   const [isExpanded, setIsExpanded] = useState<boolean>(isGenerating);
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const startTimeRef = useRef<number>(Date.now());
@@ -54,8 +56,12 @@ export const ThoughtAccordion: React.FC<ThoughtAccordionProps> = ({
       style={{
         marginBottom: "12px",
         borderRadius: "8px",
-        border: "1px solid rgba(91, 123, 141, 0.2)",
-        backgroundColor: "rgba(91, 123, 141, 0.05)",
+        border: isDark
+          ? "1px solid rgba(91, 123, 141, 0.35)"
+          : "1px solid rgba(91, 123, 141, 0.2)",
+        backgroundColor: isDark
+          ? "rgba(91, 123, 141, 0.12)"
+          : "rgba(91, 123, 141, 0.05)",
         overflow: "hidden",
         transition: "all 0.2s ease-in-out",
       }}
@@ -71,7 +77,9 @@ export const ThoughtAccordion: React.FC<ThoughtAccordionProps> = ({
           cursor: "pointer",
           userSelect: "none",
           backgroundColor: isExpanded
-            ? "rgba(91, 123, 141, 0.08)"
+            ? isDark
+              ? "rgba(91, 123, 141, 0.2)"
+              : "rgba(91, 123, 141, 0.08)"
             : "transparent",
         }}
       >
@@ -86,15 +94,23 @@ export const ThoughtAccordion: React.FC<ThoughtAccordionProps> = ({
               height: "24px",
               borderRadius: "50%",
               backgroundColor: isGenerating
-                ? "rgba(91, 123, 141, 0.2)"
+                ? "rgba(91, 123, 141, 0.25)"
+                : isDark
+                ? "rgba(91, 123, 141, 0.18)"
                 : "rgba(91, 123, 141, 0.1)",
-              color: "#5B7B8D",
+              color: isDark ? "#8EAEC0" : "#5B7B8D",
             }}
           >
             <BrainCircuit20Regular style={{ fontSize: "15px" }} />
           </div>
 
-          <span style={{ fontSize: "13px", fontWeight: 600, color: "#5B7B8D" }}>
+          <span
+            style={{
+              fontSize: "13px",
+              fontWeight: 600,
+              color: isDark ? "#8EAEC0" : "#5B7B8D",
+            }}
+          >
             {isGenerating
               ? `思考中 ${formattedTime}`
               : formattedTime
@@ -103,7 +119,13 @@ export const ThoughtAccordion: React.FC<ThoughtAccordionProps> = ({
           </span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", color: "#8a9ba8" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            color: isDark ? "#718096" : "#8a9ba8",
+          }}
+        >
           {isExpanded ? (
             <ChevronDown20Regular style={{ fontSize: "16px" }} />
           ) : (
@@ -121,12 +143,14 @@ export const ThoughtAccordion: React.FC<ThoughtAccordionProps> = ({
             lineHeight: "1.6",
             fontFamily:
               'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-            color: "#607274",
+            color: isDark ? "#cbd5e0" : "#607274",
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
             maxHeight: "360px",
             overflowY: "auto",
-            borderTop: "1px solid rgba(91, 123, 141, 0.1)",
+            borderTop: isDark
+              ? "1px solid rgba(91, 123, 141, 0.2)"
+              : "1px solid rgba(91, 123, 141, 0.1)",
           }}
         >
           {thought || "正在思考..."}

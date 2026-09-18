@@ -24,13 +24,21 @@ export function parseCliEnvFile(args = process.argv) {
 export function loadEnvFile(envPath) {
     try {
         const targetPath = envPath || parseCliEnvFile() || ".env";
-        const absolutePath = path.isAbsolute(targetPath) ? targetPath : path.resolve(process.cwd(), targetPath);
+        let absolutePath = path.isAbsolute(targetPath) ? targetPath : path.resolve(process.cwd(), targetPath);
         if (!fs.existsSync(absolutePath)) {
-            // 若指定的不是 .env 默认文件则报错，若默认 .env 不存在允许使用进程环境变量
-            if (envPath || parseCliEnvFile()) {
+            // 容错回退：如果在仓库根目录执行，尝试寻找 Backend/.env
+            const backendSubPath = path.resolve(process.cwd(), "Backend", targetPath);
+            if (fs.existsSync(backendSubPath)) {
+                absolutePath = backendSubPath;
+            }
+            else if (envPath || parseCliEnvFile()) {
+                // 若指定了具体文件路径但不存在则报错
                 return returnError(`Env 配置文件不存在: ${absolutePath}`);
             }
-            return returnSuccess({});
+            else {
+                // 默认 .env 不存在允许使用已有环境变量
+                return returnSuccess({});
+            }
         }
         const content = fs.readFileSync(absolutePath, "utf-8");
         const envObj = {};

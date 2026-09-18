@@ -42,7 +42,10 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
       {isEmpty ? (
         <WelcomeSlate onSelectPrompt={onSelectPrompt} />
       ) : (
-        <div style={{ maxWidth: "860px", width: "100%", margin: "0 auto" }}>
+        <div
+          className="win10-tile-rise win10-delay-1"
+          style={{ maxWidth: "860px", width: "100%", margin: "0 auto" }}
+        >
           {messages.map((msg) => (
             <ChatMessageItem key={msg.id} message={msg} />
           ))}

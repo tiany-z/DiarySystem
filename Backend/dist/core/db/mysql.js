@@ -21,6 +21,9 @@ export function initMysqlPool(config) {
             waitForConnections: true,
             connectionLimit: parseInt(process.env.MYSQL_MAX_CONNECTIONS || "20", 10),
             queueLimit: 0,
+            connectTimeout: parseInt(process.env.MYSQL_CONNECT_TIMEOUT || "10000", 10),
+            timezone: process.env.MYSQL_TIMEZONE || "+08:00",
+            charset: process.env.MYSQL_CHARSET || "utf8mb4",
             dateStrings: true,
             decimalNumbers: true,
         };

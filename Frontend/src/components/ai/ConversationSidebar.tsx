@@ -11,6 +11,7 @@ import {
   Chat20Regular,
 } from "@fluentui/react-icons";
 import { AiConversation } from "../../api/ai";
+import { useAppTheme } from "../../context/ThemeContext";
 
 interface ConversationSidebarProps {
   conversations: AiConversation[];
@@ -33,6 +34,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   onDeleteConversation,
   onCloseMobile,
 }) => {
+  const { isDark } = useAppTheme();
   const [keyword, setKeyword] = useState<string>("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState<string>("");
@@ -123,7 +125,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
       }}
     >
       {/* 顶部操作区 */}
-      <div style={{ padding: "16px 14px 10px" }}>
+      <div className="win10-tile-rise win10-delay-1" style={{ padding: "16px 14px 10px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <button
             onClick={() => {
@@ -162,9 +164,9 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 width: "38px",
                 height: "38px",
                 borderRadius: "10px",
-                border: "1px solid rgba(0, 0, 0, 0.1)",
-                backgroundColor: "rgba(0, 0, 0, 0.04)",
-                color: "#718096",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.1)",
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
+                color: isDark ? "#cbd5e0" : "#718096",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -186,11 +188,11 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
             padding: "0 10px",
             height: "32px",
             borderRadius: "8px",
-            backgroundColor: "rgba(0, 0, 0, 0.04)",
-            border: "1px solid rgba(0, 0, 0, 0.06)",
+            backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.06)",
           }}
         >
-          <Search20Regular style={{ fontSize: "14px", color: "#a0aec0", marginRight: "6px" }} />
+          <Search20Regular style={{ fontSize: "14px", color: isDark ? "#718096" : "#a0aec0", marginRight: "6px" }} />
           <input
             type="text"
             value={keyword}
@@ -202,13 +204,13 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
               backgroundColor: "transparent",
               fontSize: "12px",
               width: "100%",
-              color: "#2d3748",
+              color: isDark ? "#f7fafc" : "#2d3748",
             }}
           />
           {keyword && (
             <Dismiss20Regular
               onClick={() => setKeyword("")}
-              style={{ fontSize: "14px", color: "#a0aec0", cursor: "pointer" }}
+              style={{ fontSize: "14px", color: isDark ? "#718096" : "#a0aec0", cursor: "pointer" }}
             />
           )}
         </div>
@@ -216,6 +218,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 
       {/* 会话时间分组滚动列表 */}
       <div
+        className="win10-stagger-grid"
         style={{
           flex: 1,
           overflowY: "auto",
@@ -227,7 +230,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
             style={{
               textAlign: "center",
               padding: "40px 10px",
-              color: "#a0aec0",
+              color: isDark ? "#718096" : "#a0aec0",
               fontSize: "13px",
             }}
           >
@@ -240,7 +243,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 style={{
                   fontSize: "11px",
                   fontWeight: 600,
-                  color: "#8a9ba8",
+                  color: isDark ? "#718096" : "#8a9ba8",
                   padding: "4px 10px",
                   letterSpacing: "0.5px",
                 }}
@@ -270,7 +273,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                       margin: "2px 0",
                       borderRadius: "8px",
                       backgroundColor: isSelected
-                        ? "rgba(91, 123, 141, 0.16)"
+                        ? (isDark ? "rgba(91, 123, 141, 0.28)" : "rgba(91, 123, 141, 0.16)")
                         : "transparent",
                       borderLeft: isSelected
                         ? "3px solid #5B7B8D"
@@ -281,7 +284,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                     }}
                     onMouseEnter={(e) => {
                       if (!isSelected) {
-                        e.currentTarget.style.backgroundColor = "rgba(0, 0, 0, 0.04)";
+                        e.currentTarget.style.backgroundColor = isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)";
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -309,6 +312,8 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                             borderRadius: "4px",
                             border: "1px solid #5B7B8D",
                             outline: "none",
+                            backgroundColor: isDark ? "#1a202c" : "#ffffff",
+                            color: isDark ? "#f7fafc" : "#2d3748",
                           }}
                         />
                         <button
@@ -371,8 +376,9 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                               setDeletingId(null);
                             }}
                             style={{
-                              border: "1px solid #ccc",
-                              backgroundColor: "#fff",
+                              border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #ccc",
+                              backgroundColor: isDark ? "#2d3748" : "#fff",
+                              color: isDark ? "#e2e8f0" : "#4a5568",
                               borderRadius: "4px",
                               padding: "2px 6px",
                               fontSize: "11px",
@@ -397,7 +403,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                           <Chat20Regular
                             style={{
                               fontSize: "15px",
-                              color: isSelected ? "#5B7B8D" : "#8a9ba8",
+                              color: isSelected ? "#5B7B8D" : (isDark ? "#718096" : "#8a9ba8"),
                               flexShrink: 0,
                             }}
                           />
@@ -406,7 +412,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                             onDoubleClick={(e) => handleStartRename(c, e)}
                             style={{
                               fontSize: "13px",
-                              color: isSelected ? "#2d3748" : "#4a5568",
+                              color: isSelected ? (isDark ? "#ffffff" : "#2d3748") : (isDark ? "#cbd5e0" : "#4a5568"),
                               fontWeight: isSelected ? 600 : 400,
                               overflow: "hidden",
                               textOverflow: "ellipsis",

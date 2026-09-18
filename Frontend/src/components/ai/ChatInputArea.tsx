@@ -5,6 +5,7 @@ import {
   Settings20Regular,
   Warning20Regular,
 } from "@fluentui/react-icons";
+import { useAppTheme } from "../../context/ThemeContext";
 
 interface ChatInputAreaProps {
   onSendMessage: (message: string) => void;
@@ -30,6 +31,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
   hasConfig = true,
   onOpenSettings,
 }) => {
+  const { isDark } = useAppTheme();
   const [text, setText] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -77,6 +79,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
 
   return (
     <div
+      className="win10-tile-rise win10-delay-3"
       style={{
         padding: "10px 20px 18px",
         display: "flex",
@@ -98,9 +101,9 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             padding: "8px 14px",
             marginBottom: "10px",
             borderRadius: "8px",
-            backgroundColor: "rgba(221, 107, 32, 0.12)",
-            border: "1px solid rgba(221, 107, 32, 0.3)",
-            color: "#c05621",
+            backgroundColor: isDark ? "rgba(221, 107, 32, 0.2)" : "rgba(221, 107, 32, 0.12)",
+            border: isDark ? "1px solid rgba(237, 137, 54, 0.4)" : "1px solid rgba(221, 107, 32, 0.3)",
+            color: isDark ? "#fbd38d" : "#c05621",
             fontSize: "13px",
             cursor: "pointer",
             width: "100%",
@@ -118,6 +121,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
       {/* 快捷 Prompt 提示条 */}
       {!isStreaming && (
         <div
+          className="win10-stagger-grid"
           style={{
             display: "flex",
             alignItems: "center",
@@ -139,23 +143,31 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
                 whiteSpace: "nowrap",
                 padding: "4px 12px",
                 borderRadius: "14px",
-                backgroundColor: "rgba(255, 255, 255, 0.65)",
+                backgroundColor: isDark ? "rgba(36, 40, 48, 0.75)" : "rgba(255, 255, 255, 0.65)",
                 backdropFilter: "blur(8px)",
-                border: "1px solid rgba(0, 0, 0, 0.08)",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(0, 0, 0, 0.08)",
                 fontSize: "12px",
-                color: "#4a5568",
+                color: isDark ? "#cbd5e0" : "#4a5568",
                 cursor: "pointer",
                 transition: "all 0.2s",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "rgba(91, 123, 141, 0.15)";
-                e.currentTarget.style.borderColor = "rgba(91, 123, 141, 0.3)";
-                e.currentTarget.style.color = "#5B7B8D";
+                e.currentTarget.style.backgroundColor = isDark
+                  ? "rgba(91, 123, 141, 0.25)"
+                  : "rgba(91, 123, 141, 0.15)";
+                e.currentTarget.style.borderColor = isDark
+                  ? "rgba(142, 174, 192, 0.45)"
+                  : "rgba(91, 123, 141, 0.3)";
+                e.currentTarget.style.color = isDark ? "#8EAEC0" : "#5B7B8D";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.65)";
-                e.currentTarget.style.borderColor = "rgba(0, 0, 0, 0.08)";
-                e.currentTarget.style.color = "#4a5568";
+                e.currentTarget.style.backgroundColor = isDark
+                  ? "rgba(36, 40, 48, 0.75)"
+                  : "rgba(255, 255, 255, 0.65)";
+                e.currentTarget.style.borderColor = isDark
+                  ? "rgba(255, 255, 255, 0.1)"
+                  : "rgba(0, 0, 0, 0.08)";
+                e.currentTarget.style.color = isDark ? "#cbd5e0" : "#4a5568";
               }}
             >
               {prompt}
@@ -170,10 +182,10 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
         style={{
           width: "100%",
           borderRadius: "14px",
-          backgroundColor: "rgba(255, 255, 255, 0.82)",
+          backgroundColor: isDark ? "rgba(26, 28, 34, 0.85)" : "rgba(255, 255, 255, 0.82)",
           backdropFilter: "blur(24px)",
-          border: "1px solid rgba(255, 255, 255, 0.5)",
-          boxShadow: "0 6px 28px rgba(0, 0, 0, 0.08)",
+          border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(255, 255, 255, 0.5)",
+          boxShadow: isDark ? "0 8px 32px rgba(0, 0, 0, 0.4)" : "0 6px 28px rgba(0, 0, 0, 0.08)",
           display: "flex",
           alignItems: "flex-end",
           padding: "6px 12px 6px 16px",
@@ -198,7 +210,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
             backgroundColor: "transparent",
             fontSize: "14px",
             lineHeight: "1.5",
-            color: "#2d3748",
+            color: isDark ? "#f7fafc" : "#2d3748",
             resize: "none",
             padding: "8px 0",
             maxHeight: "160px",
@@ -219,8 +231,10 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
               ? "#e53e3e"
               : text.trim()
               ? "#5B7B8D"
+              : isDark
+              ? "rgba(91, 123, 141, 0.25)"
               : "rgba(91, 123, 141, 0.3)",
-            color: "#ffffff",
+            color: isStreaming || text.trim() ? "#ffffff" : isDark ? "#718096" : "#ffffff",
             border: "none",
             display: "flex",
             alignItems: "center",
@@ -248,7 +262,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           width: "100%",
           padding: "6px 8px 0",
           fontSize: "11px",
-          color: "#a0aec0",
+          color: isDark ? "#718096" : "#a0aec0",
         }}
       >
         <span>
@@ -259,7 +273,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           onClick={onOpenSettings}
           style={{
             cursor: "pointer",
-            color: "#5B7B8D",
+            color: isDark ? "#8EAEC0" : "#5B7B8D",
             display: "flex",
             alignItems: "center",
             gap: "3px",

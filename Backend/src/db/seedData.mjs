@@ -1,13 +1,38 @@
 import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 优先查找 Backend/.env，以及当前工作目录下的 .env
+const envPaths = [
+  path.resolve(__dirname, '../../.env'),
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(process.cwd(), 'Backend/.env')
+];
+
+for (const p of envPaths) {
+  if (fs.existsSync(p)) {
+    dotenv.config({ path: p });
+    break;
+  }
+}
+
+const dbConfig = {
+  host: process.env.MYSQL_HOST || 'localhost',
+  port: parseInt(process.env.MYSQL_PORT || '3306', 10),
+  user: process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || '',
+  database: process.env.MYSQL_DB || 'diary_system',
+  connectTimeout: parseInt(process.env.MYSQL_CONNECT_TIMEOUT || '10000', 10),
+  charset: process.env.MYSQL_CHARSET || 'utf8mb4'
+};
 
 async function seed() {
-  const conn = await mysql.createConnection({
-    host: 'localhost',
-    port: 3306,
-    user: 'root',
-    password: 'root',
-    database: 'diary_system'
-  });
+  const conn = await mysql.createConnection(dbConfig);
 
   const [users] = await conn.query("SELECT id FROM users WHERE username = 'demo_user'");
   if (!users || users.length === 0) {

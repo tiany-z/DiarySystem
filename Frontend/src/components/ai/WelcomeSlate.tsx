@@ -6,6 +6,7 @@ import {
   DocumentEdit20Regular,
   Globe20Regular,
 } from "@fluentui/react-icons";
+import { useAppTheme } from "../../context/ThemeContext";
 
 interface WelcomeSlateProps {
   onSelectPrompt: (prompt: string) => void;
@@ -39,8 +40,11 @@ const INSPIRATION_CARDS = [
 ];
 
 export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) => {
+  const { isDark } = useAppTheme();
+
   return (
     <div
+      className="win10-tile-rise win10-delay-1"
       style={{
         display: "flex",
         flexDirection: "column",
@@ -54,6 +58,7 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) =>
     >
       {/* 机器人头像徽标 */}
       <div
+        className="win10-tile-rise win10-delay-1"
         style={{
           width: "56px",
           height: "56px",
@@ -63,7 +68,9 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) =>
           alignItems: "center",
           justifyContent: "center",
           color: "#ffffff",
-          boxShadow: "0 8px 24px rgba(91, 123, 141, 0.3)",
+          boxShadow: isDark
+            ? "0 8px 24px rgba(0, 0, 0, 0.45)"
+            : "0 8px 24px rgba(91, 123, 141, 0.3)",
           marginBottom: "16px",
         }}
       >
@@ -71,21 +78,23 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) =>
       </div>
 
       <h2
+        className="win10-tile-rise win10-delay-1"
         style={{
           margin: "0 0 8px 0",
           fontSize: "22px",
           fontWeight: 600,
-          color: "#2d3748",
+          color: isDark ? "#f7fafc" : "#2d3748",
         }}
       >
         AI 助手
       </h2>
 
       <p
+        className="win10-tile-rise win10-delay-2"
         style={{
           margin: "0 0 32px 0",
           fontSize: "14px",
-          color: "#718096",
+          color: isDark ? "#a0aec0" : "#718096",
           maxWidth: "480px",
           lineHeight: "1.6",
         }}
@@ -93,8 +102,9 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) =>
         可以帮你检索日记、分析情绪走势、起草内容或查找网络信息。
       </p>
 
-      {/* 灵感卡片 2x2 栅格 */}
+      {/* 灵感卡片 2x2 栅格 - 经典 Win10 磁贴依次错落浮现 */}
       <div
+        className="win10-stagger-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
@@ -112,24 +122,31 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) =>
               gap: "12px",
               padding: "16px",
               borderRadius: "12px",
-              backgroundColor: "rgba(255, 255, 255, 0.7)",
+              backgroundColor: isDark ? "rgba(32, 32, 38, 0.75)" : "rgba(255, 255, 255, 0.7)",
               backdropFilter: "blur(16px)",
-              border: "1px solid rgba(255, 255, 255, 0.4)",
-              boxShadow: "0 4px 16px rgba(0, 0, 0, 0.04)",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(255, 255, 255, 0.5)",
+              boxShadow: isDark ? "0 4px 16px rgba(0, 0, 0, 0.25)" : "0 4px 16px rgba(0, 0, 0, 0.04)",
               cursor: "pointer",
               textAlign: "left",
               transition: "all 0.2s cubic-bezier(0.1, 0.9, 0.2, 1)",
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-2px)";
-              e.currentTarget.style.boxShadow =
-                "0 8px 24px rgba(91, 123, 141, 0.15)";
-              e.currentTarget.style.borderColor = "rgba(91, 123, 141, 0.4)";
+              e.currentTarget.style.boxShadow = isDark
+                ? "0 8px 24px rgba(0, 0, 0, 0.45)"
+                : "0 8px 24px rgba(91, 123, 141, 0.15)";
+              e.currentTarget.style.borderColor = isDark
+                ? "rgba(91, 123, 141, 0.5)"
+                : "rgba(91, 123, 141, 0.4)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "0 4px 16px rgba(0, 0, 0, 0.04)";
-              e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.4)";
+              e.currentTarget.style.boxShadow = isDark
+                ? "0 4px 16px rgba(0, 0, 0, 0.25)"
+                : "0 4px 16px rgba(0, 0, 0, 0.04)";
+              e.currentTarget.style.borderColor = isDark
+                ? "rgba(255, 255, 255, 0.08)"
+                : "rgba(255, 255, 255, 0.5)";
             }}
           >
             <div
@@ -137,7 +154,7 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) =>
                 width: "36px",
                 height: "36px",
                 borderRadius: "10px",
-                backgroundColor: "rgba(0, 0, 0, 0.04)",
+                backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -152,7 +169,7 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) =>
                 style={{
                   fontSize: "14px",
                   fontWeight: 600,
-                  color: "#2d3748",
+                  color: isDark ? "#edf2f7" : "#2d3748",
                   marginBottom: "4px",
                 }}
               >
@@ -161,7 +178,7 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = ({ onSelectPrompt }) =>
               <div
                 style={{
                   fontSize: "12px",
-                  color: "#718096",
+                  color: isDark ? "#a0aec0" : "#718096",
                   lineHeight: "1.4",
                 }}
               >

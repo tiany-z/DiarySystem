@@ -2686,6 +2686,16 @@ html.force-code-dark .hljs-formula {
   min-height: 0;
 }
 
+/* AI 对话工作台 Win10 磁贴页面容器 */
+.ai-chat-page-container {
+  display: flex !important;
+  flex-direction: row !important;
+  height: calc(100vh - var(--header-height, 64px)) !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
 /* 独立浮现元素 */
 .win10-tile-rise {
   animation: win10TileRise 0.45s cubic-bezier(0.1, 0.9, 0.2, 1) both;
@@ -3713,9 +3723,15 @@ html.dark .image-undo-toast {
 .ai-bubble-acrylic {
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
   transition: all 0.25s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+html.dark .ai-bubble-acrylic,
+.dark .ai-bubble-acrylic {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
 }
 
 .ai-sidebar-acrylic {
@@ -3723,11 +3739,80 @@ html.dark .image-undo-toast {
   -webkit-backdrop-filter: blur(30px) saturate(190%);
   background: rgba(255, 255, 255, 0.65);
   border-right: 1px solid rgba(255, 255, 255, 0.3);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+html.dark .ai-sidebar-acrylic,
+.dark .ai-sidebar-acrylic {
+  background: rgba(24, 24, 28, 0.78);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 @media (prefers-color-scheme: dark) {
   .ai-sidebar-acrylic {
-    background: rgba(30, 35, 42, 0.72);
+    background: rgba(24, 24, 28, 0.78);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
   }
+}
+
+/* AI Agent 单行流光动效与工具状态条 */
+@keyframes agentGradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes agentSpinSlow {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes agentGlowPulse {
+  0%, 100% {
+    opacity: 0.9;
+    box-shadow: 0 0 8px rgba(91, 123, 141, 0.15);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 16px rgba(91, 123, 141, 0.35);
+  }
+}
+
+.agent-gradient-running-bar {
+  background: linear-gradient(
+    90deg,
+    rgba(91, 123, 141, 0.12) 0%,
+    rgba(142, 174, 192, 0.28) 25%,
+    rgba(91, 123, 141, 0.22) 50%,
+    rgba(74, 102, 118, 0.32) 75%,
+    rgba(91, 123, 141, 0.12) 100%
+  );
+  background-size: 250% 100%;
+  animation: agentGradientFlow 3.5s ease infinite, agentGlowPulse 2.5s ease-in-out infinite;
+  border: 1px solid rgba(91, 123, 141, 0.35);
+}
+
+html.dark .agent-gradient-running-bar,
+.dark .agent-gradient-running-bar {
+  background: linear-gradient(
+    90deg,
+    rgba(91, 123, 141, 0.2) 0%,
+    rgba(142, 174, 192, 0.38) 25%,
+    rgba(91, 123, 141, 0.3) 50%,
+    rgba(58, 80, 92, 0.42) 75%,
+    rgba(91, 123, 141, 0.2) 100%
+  );
+  background-size: 250% 100%;
+  animation: agentGradientFlow 3.5s ease infinite, agentGlowPulse 2.5s ease-in-out infinite;
+  border: 1px solid rgba(142, 174, 192, 0.3);
 }

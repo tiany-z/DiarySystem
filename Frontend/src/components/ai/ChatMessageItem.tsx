@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { Bot20Regular, Person20Regular, Copy20Regular, Checkmark20Regular } from "@fluentui/react-icons";
 import { AiMessageItem } from "../../api/ai";
+import { useAppTheme } from "../../context/ThemeContext";
 import { ThoughtAccordion } from "./ThoughtAccordion";
-import { ToolCallBadge } from "./ToolCallBadge";
+import { AgentActivityBar } from "./ToolCallBadge";
 import { TypewriterMarkdown } from "./TypewriterMarkdown";
 
 interface ChatMessageItemProps {
@@ -14,6 +15,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
   message,
   isStreaming = false,
 }) => {
+  const { isDark } = useAppTheme();
   const isUser = message.role === "user";
   const [copied, setCopied] = useState<boolean>(false);
 
@@ -63,8 +65,8 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
               width: "32px",
               height: "32px",
               borderRadius: "50%",
-              backgroundColor: "rgba(91, 123, 141, 0.15)",
-              color: "#5B7B8D",
+              backgroundColor: isDark ? "rgba(91, 123, 141, 0.3)" : "rgba(91, 123, 141, 0.15)",
+              color: isDark ? "#8EAEC0" : "#5B7B8D",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -122,9 +124,11 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             flex: 1,
             padding: "16px 20px",
             borderRadius: "4px 16px 16px 16px",
-            backgroundColor: "rgba(255, 255, 255, 0.75)",
+            backgroundColor: isDark ? "rgba(30, 33, 40, 0.85)" : "rgba(255, 255, 255, 0.75)",
             backdropFilter: "blur(20px)",
             position: "relative",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(255, 255, 255, 0.25)",
+            boxShadow: isDark ? "0 4px 20px rgba(0, 0, 0, 0.3)" : "0 4px 16px rgba(0, 0, 0, 0.04)",
           }}
         >
           {/* 思维链折叠卡片 (若存在思维链或正在生成中) */}
@@ -135,19 +139,12 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
             />
           )}
 
-          {/* 工具调用过程胶囊 */}
+          {/* 工具调用过程：单行动效渐变条 / 微胶囊链条 */}
           {message.toolCalls && message.toolCalls.length > 0 && (
-            <div style={{ marginBottom: "12px" }}>
-              {message.toolCalls.map((tc, idx) => (
-                <ToolCallBadge
-                  key={tc.id || idx}
-                  tool={tc.tool || tc.name || "unknown"}
-                  args={tc.args}
-                  summary={tc.summary}
-                  status={tc.status || "success"}
-                />
-              ))}
-            </div>
+            <AgentActivityBar
+              toolCalls={message.toolCalls}
+              isStreaming={isStreaming}
+            />
           )}
 
           {/* 正文 Markdown 与渐变打字机 */}
@@ -163,7 +160,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                 display: "flex",
                 justifyContent: "flex-end",
                 marginTop: "10px",
-                borderTop: "1px solid rgba(0, 0, 0, 0.05)",
+                borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.05)",
                 paddingTop: "6px",
               }}
             >
@@ -178,14 +175,15 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
                   alignItems: "center",
                   gap: "4px",
                   fontSize: "12px",
-                  color: "#718096",
+                  color: isDark ? "#a0aec0" : "#718096",
                   padding: "4px 8px",
                   borderRadius: "6px",
                   transition: "background 0.2s",
                 }}
                 onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor =
-                    "rgba(0, 0, 0, 0.04)")
+                  (e.currentTarget.style.backgroundColor = isDark
+                    ? "rgba(255, 255, 255, 0.08)"
+                    : "rgba(0, 0, 0, 0.04)")
                 }
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.backgroundColor = "transparent")
