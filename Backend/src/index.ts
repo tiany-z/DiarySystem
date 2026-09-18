@@ -3,6 +3,8 @@ import {
   closeMysqlPool,
   ensureSuperAdminAccount,
   ensureSystemSettingsTable,
+  ensureUserAiConfigColumns,
+  ensureAiConversationTables,
   ensureUserAvatarColumn,
   executeQuery,
   initMysqlPool,
@@ -93,6 +95,18 @@ async function main() {
     const avatarColRes = await ensureUserAvatarColumn();
     if (avatarColRes.status === 0) {
       LogClient.error(`用户头像字段核验失败: ${avatarColRes.content}`, undefined, "DiaryBackend");
+    }
+
+    // 核心保障：自愈核验并补充 users.ai_* 模型私有化配置字段
+    const aiColRes = await ensureUserAiConfigColumns();
+    if (aiColRes.status === 0) {
+      LogClient.error(`用户 AI 模型配置字段核验失败: ${aiColRes.content}`, undefined, "DiaryBackend");
+    }
+
+    // 核心保障：自愈核验并创建 AI 会话持久化数据表 (ai_conversations / ai_messages)
+    const aiTablesRes = await ensureAiConversationTables();
+    if (aiTablesRes.status === 0) {
+      LogClient.error(`AI 会话数据表自愈核验失败: ${aiTablesRes.content}`, undefined, "DiaryBackend");
     }
   }
 

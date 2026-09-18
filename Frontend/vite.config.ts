@@ -6,9 +6,11 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-    },
+    alias: [
+      { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
+      { find: /^@fluentui\/react-icons\/lib\/providers$/, replacement: fileURLToPath(new URL('./node_modules/@fluentui/react-icons/lib-cjs/providers.cjs', import.meta.url)) },
+      { find: /^@fluentui\/react-icons$/, replacement: fileURLToPath(new URL('./node_modules/@fluentui/react-icons/lib-cjs/index.cjs', import.meta.url)) },
+    ],
   },
   server: {
     port: 5173,

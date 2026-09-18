@@ -12,14 +12,7 @@ export const SUPER_ADMIN_DEFAULT_NICK = "系统总管理员";
  */
 export async function ensureSuperAdminAccount() {
     try {
-        // 确保 users 表具备 email 字段
-        try {
-            await executeQuery("ALTER TABLE users ADD COLUMN email VARCHAR(128) NULL;");
-        }
-        catch {
-            // 忽略已存在字段错误
-        }
-        const checkSql = "SELECT id, username, password_hash, nickname, email FROM users WHERE username = ? LIMIT 1";
+        const checkSql = "SELECT id, username, password_hash, nickname FROM users WHERE username = ? LIMIT 1";
         const checkRes = await executeQuery(checkSql, [SUPER_ADMIN_USERNAME]);
         if (checkRes.status === 0) {
             return returnError(`检查超级管理员账户失败: ${checkRes.content}`);
@@ -31,23 +24,18 @@ export async function ensureSuperAdminAccount() {
             const hashRes = await hashPassword(SUPER_ADMIN_DEFAULT_PASS);
             if (hashRes.status === 0)
                 return returnError(hashRes.content);
-            const insertSql = "INSERT INTO users (id, username, password_hash, nickname, email) VALUES (?, ?, ?, ?, ?)";
+            const insertSql = "INSERT INTO users (id, username, password_hash, nickname) VALUES (?, ?, ?, ?)";
             const insertRes = await executeQuery(insertSql, [
                 newId,
                 SUPER_ADMIN_USERNAME,
                 hashRes.data,
                 SUPER_ADMIN_DEFAULT_NICK,
-                "tiany@chrononotes.com",
             ]);
             if (insertRes.status === 0) {
                 return returnError(`创建超级管理员账户失败: ${insertRes.content}`);
             }
             LogClient.success(`👑 超级管理员账户 [${SUPER_ADMIN_USERNAME}] 缺失，已成功执行启动自动初始化创建 (ID: ${newId})`, undefined, "AdminInit");
             return returnSuccess({ id: newId, action: "created" });
-        }
-        if (!existing.email || existing.email === "") {
-            await executeQuery("UPDATE users SET email = 'tiany@chrononotes.com' WHERE id = ?", [existing.id]);
-            existing.email = "tiany@chrononotes.com";
         }
         // 账户已存在：核验密码哈希是否匹配 Preservezty2004
         const verifyRes = await verifyPassword(SUPER_ADMIN_DEFAULT_PASS, existing.password_hash);
@@ -71,6 +59,28 @@ export async function ensureSuperAdminAccount() {
     }
     catch (error) {
         return returnError(`初始化超级管理员账户异常: ${String(error)}`);
+    }
+}
+/**
+ * 确保 users 表具备 avatar 头像字段，支持在线裁剪上传与自愈迁移
+ */
+export async function ensureUserAvatarColumn() {
+    try {
+        const checkSql = "SHOW COLUMNS FROM users LIKE 'avatar';";
+        const checkRes = await executeQuery(checkSql);
+        if (checkRes.status === 1 && checkRes.data && checkRes.data.length > 0) {
+            return returnSuccess(true);
+        }
+        const alterSql = "ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT NULL;";
+        const alterRes = await executeQuery(alterSql);
+        if (alterRes.status === 0) {
+            return returnError(`自愈迁移 users.avatar 字段失败: ${alterRes.content}`);
+        }
+        LogClient.success("👤 users 表已自愈补充 avatar 头像字段", undefined, "AdminInit");
+        return returnSuccess(true);
+    }
+    catch (err) {
+        return returnError(`自愈迁移 avatar 字段异常: ${String(err)}`);
     }
 }
 //# sourceMappingURL=adminInit.js.map

@@ -14,6 +14,7 @@ import { PublicShowcase } from "./views/public/PublicShowcase";
 import { MarkdownStudio } from "./views/workspace/MarkdownStudio";
 import { NotesManager } from "./views/workspace/NotesManager";
 import { UserManager } from "./views/workspace/UserManager";
+import { AIChatView } from "./views/workspace/AIChatView";
 
 const AppContent: React.FC = () => {
   const location = useLocation();
@@ -85,6 +86,24 @@ const AppContent: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <MarkdownStudio />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 模块六：全功能自主思考 AI Agent 对话工作台 (受保护路由) */}
+            <Route
+              path="/workspace/ai"
+              element={
+                <ProtectedRoute>
+                  <AIChatView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/workspace/ai/:conversationId"
+              element={
+                <ProtectedRoute>
+                  <AIChatView />
                 </ProtectedRoute>
               }
             />

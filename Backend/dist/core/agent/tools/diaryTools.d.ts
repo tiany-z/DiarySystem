@@ -1,0 +1,18 @@
+import { AgentToolDefinition, AgentToolExecutor } from "./types.js";
+export declare const searchDiariesTool: AgentToolDefinition;
+export declare const searchDiariesExecutor: AgentToolExecutor;
+export declare const locateDiaryContentTool: AgentToolDefinition;
+export declare const locateDiaryContentExecutor: AgentToolExecutor;
+export declare const readDiaryDetailTool: AgentToolDefinition;
+export declare const readDiaryDetailExecutor: AgentToolExecutor;
+export declare const getDiaryTimelineStatsTool: AgentToolDefinition;
+export declare const getDiaryTimelineStatsExecutor: AgentToolExecutor;
+export declare const createDiaryTool: AgentToolDefinition;
+export declare const createDiaryExecutor: AgentToolExecutor;
+export declare const updateDiaryTool: AgentToolDefinition;
+export declare const updateDiaryExecutor: AgentToolExecutor;
+export declare const deleteDiaryTool: AgentToolDefinition;
+export declare const deleteDiaryExecutor: AgentToolExecutor;
+export declare const diaryTools: AgentToolDefinition[];
+export declare const diaryExecutors: Record<string, AgentToolExecutor>;
+//# sourceMappingURL=diaryTools.d.ts.map

@@ -134,6 +134,7 @@ export async function dispatchHttpRequest(req, res) {
         req.user = userPayload;
         const reqCtx = {
             req,
+            res,
             query,
             body,
             files,
@@ -143,6 +144,12 @@ export async function dispatchHttpRequest(req, res) {
         };
         // 执行接口 Handler (依赖连接池自动提交，无数据库显式死锁事务)
         const handlerRes = await route.handler(reqCtx, ctx);
+        // 若响应头已被 Handler 接管下发 (如 SSE 流式传输)，网关不重复发送 JSON 响应
+        if (res.headersSent) {
+            await releaseMemoryLocks(lockedRows, true);
+            recordAccessLog(req.method || "GET", pathname, 200, clientIp, Date.now() - startTime, currentUserId);
+            return;
+        }
         if (handlerRes.status === 1) {
             // 成功：释放 Redis 分布式行锁
             await releaseMemoryLocks(lockedRows, true);
@@ -159,6 +166,10 @@ export async function dispatchHttpRequest(req, res) {
     catch (error) {
         const errMsg = tryCatchErrorToString(error);
         await handleDispatchFailure(withdrawStack, lockedRows, errMsg);
+        if (res.headersSent) {
+            recordAccessLog(req.method || "GET", pathname, 500, clientIp, Date.now() - startTime, currentUserId);
+            return;
+        }
         sendJsonResponse(res, returnError(`Server Internal Dispatch Error: ${errMsg}`), 500);
         recordAccessLog(req.method || "GET", pathname, 500, clientIp, Date.now() - startTime, currentUserId);
     }

@@ -1,41 +1,22 @@
-import { declare, returnError, returnSuccess, } from "#core";
-const diariesTable = declare.table("diaries");
-const idCol = declare.column(diariesTable, "id");
-const userIdCol = declare.column(diariesTable, "user_id");
-const isPublicCol = declare.column(diariesTable, "is_public");
-const createdAtCol = declare.column(diariesTable, "created_at");
+import { executeQuery, returnError, returnSuccess, } from "#core";
 export const api = {
     routePath: "/api/diary/public",
     authRequired: false,
-    astConfig: {
-        type: "SELECT",
-        compose: {
-            columns: [
-                idCol,
-                userIdCol,
-                declare.column(diariesTable, "title"),
-                declare.column(diariesTable, "content"),
-                declare.column(diariesTable, "weather"),
-                declare.column(diariesTable, "mood"),
-                isPublicCol,
-                createdAtCol,
-            ],
-            where: [declare.where.compare(isPublicCol, "=", declare.customValue("-!!value!!-"))],
-            orderBy: [declare.orderBy.DESC(createdAtCol)],
-            limit: declare.limit.pageSize(1, 20),
-        },
-    },
-    run: null,
-    handler: async (_reqCtx, ctx) => {
+    handler: async (_reqCtx, _ctx) => {
         try {
-            if (!api.run) {
-                return returnError("AST Run function not compiled");
-            }
-            // 执行 AST 预编译二段式 SELECT，严格获取标记为公开 (is_public = 1) 的最新日记
-            const runRes = await api.run({ whereParams: [1] }, ctx);
-            if (runRes.status === 0)
-                return returnError(runRes.content);
-            return returnSuccess(runRes.data || []);
+            const sql = `
+        SELECT d.id, d.user_id, d.title, d.content, d.weather, d.mood, d.is_public, d.created_at,
+               u.username, u.nickname, u.avatar
+        FROM diaries d
+        LEFT JOIN users u ON d.user_id = u.id
+        WHERE d.is_public = 1 AND d.deleted_at IS NULL
+        ORDER BY d.created_at DESC
+        LIMIT 100;
+      `;
+            const res = await executeQuery(sql);
+            if (res.status === 0)
+                return returnError(res.content);
+            return returnSuccess(res.data || []);
         }
         catch (error) {
             return returnError(`获取公开日记列表异常: ${String(error)}`);

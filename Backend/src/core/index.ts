@@ -8,6 +8,7 @@ export * from "./config/envLoader.js";
 export * from "./crypto/uuid.js";
 export * from "./crypto/password.js";
 export * from "./crypto/jwt.js";
+export * from "./crypto/cipher.js";
 
 // SQL AST & Builders
 export * from "./sql/type.js";
@@ -49,9 +50,20 @@ export * from "./heartbeat/heartbeatHelper.js";
 export * from "./protocol/wsProtocol.js";
 export * from "./tokenizer/tokenizerHelper.js";
 
-// Super Admin Init
+// Super Admin & AI Tables Init
 export * from "./admin/adminInit.js";
+export * from "./admin/ensureAiTables.js";
 
 // System Settings (DB Persistence)
 export * from "./settings/systemSettings.js";
+
+// AI Agent Core, Tools & Engine
+export * from "./agent/tools/index.js";
+export * from "./agent/streamParser.js";
+export * from "./agent/promptTemplates.js";
+export * from "./agent/agentEngine.js";
+export * from "./agent/ensureAiTables.js";
+
+// SSE Stream Helper
+export * from "../utils/sseHelper.js";
 

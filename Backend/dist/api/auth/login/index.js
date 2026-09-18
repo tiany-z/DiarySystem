@@ -12,7 +12,7 @@ export const api = {
                 usernameCol,
                 declare.column(usersTable, "password_hash"),
                 declare.column(usersTable, "nickname"),
-                declare.column(usersTable, "email"),
+                declare.column(usersTable, "avatar"),
             ],
             where: [declare.where.compare(usernameCol, "=", declare.customValue("-!!value!!-"))],
         },
@@ -47,7 +47,7 @@ export const api = {
                 userId: user.id,
                 username: user.username,
                 nickname: user.nickname,
-                email: user.email || `${user.username}@chrononotes.com`,
+                avatar: user.avatar || null,
                 token: jwtRes.data,
             });
         }

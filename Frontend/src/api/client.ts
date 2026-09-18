@@ -84,6 +84,14 @@ class ApiClient {
   public post<T = any>(path: string, body?: any) {
     return this.request<T>(path, { method: "POST", body });
   }
+
+  public put<T = any>(path: string, body?: any) {
+    return this.request<T>(path, { method: "PUT", body });
+  }
+
+  public delete<T = any>(path: string, body?: any) {
+    return this.request<T>(path, { method: "DELETE", body });
+  }
 }
 
 export const apiClient = new ApiClient();

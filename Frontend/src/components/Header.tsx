@@ -26,12 +26,14 @@ import {
   SignOut20Regular,
   WeatherMoon20Regular,
   WeatherSunny20Regular,
+  Bot20Regular,
 } from "@fluentui/react-icons";
 import { useAuth } from "../context/AuthContext";
 import { useAppTheme } from "../context/ThemeContext";
 import { useWallpaper } from "../context/WallpaperContext";
 import { AvatarCropModal } from "./AvatarCropModal";
 import { BrandLogo } from "./BrandLogo";
+import { AiSettingsModal } from "./AiSettingsModal";
 
 export const Header: React.FC = () => {
   const { isDark, themeMode, setThemeMode, forceCodeDark, toggleForceCodeDark } = useAppTheme();
@@ -40,6 +42,7 @@ export const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isAvatarCropOpen, setIsAvatarCropOpen] = React.useState(false);
+  const [isAiSettingsOpen, setIsAiSettingsOpen] = React.useState(false);
 
   const handleNav = (targetPath: string) => {
     if (typeof window !== "undefined" && window.__checkUnsavedBeforeNavigate) {
@@ -206,6 +209,7 @@ export const Header: React.FC = () => {
             appearance={
               location.pathname.startsWith("/workspace") &&
                 !location.pathname.startsWith("/workspace/users") &&
+                !location.pathname.startsWith("/workspace/ai") &&
                 location.pathname !== "/workspace/new"
                 ? "primary"
                 : "subtle"
@@ -217,12 +221,32 @@ export const Header: React.FC = () => {
               fontWeight:
                 location.pathname.startsWith("/workspace") &&
                   !location.pathname.startsWith("/workspace/users") &&
+                  !location.pathname.startsWith("/workspace/ai") &&
                   location.pathname !== "/workspace/new"
                   ? 600
                   : 500,
             }}
           >
             我的笔记
+          </Button>
+
+          <Button
+            appearance={location.pathname.startsWith("/workspace/ai") ? "primary" : "subtle"}
+            icon={<Bot20Regular />}
+            onClick={() => handleNav("/workspace/ai")}
+            style={{
+              borderRadius: "8px",
+              fontWeight: location.pathname.startsWith("/workspace/ai") ? 600 : 500,
+              backgroundColor: location.pathname.startsWith("/workspace/ai")
+                ? "#5B7B8D"
+                : undefined,
+              color: location.pathname.startsWith("/workspace/ai") ? "#ffffff" : undefined,
+              boxShadow: location.pathname.startsWith("/workspace/ai")
+                ? "0 2px 8px rgba(91, 123, 141, 0.3)"
+                : undefined,
+            }}
+          >
+            AI 助手
           </Button>
 
           {user?.username === "tiany" && (
@@ -353,6 +377,12 @@ export const Header: React.FC = () => {
                     onClick={() => setIsAvatarCropOpen(true)}
                   >
                     修改头像
+                  </MenuItem>
+                  <MenuItem
+                    icon={<Bot20Regular style={{ color: "#5B7B8D" }} />}
+                    onClick={() => setIsAiSettingsOpen(true)}
+                  >
+                    AI 助手设置
                   </MenuItem>
                   <MenuItem
                     icon={<Folder20Regular />}
@@ -515,11 +545,20 @@ export const Header: React.FC = () => {
                   >
                     修改头像
                   </MenuItem>
+                  <MenuItem
+                    icon={<Bot20Regular style={{ color: "#5B7B8D" }} />}
+                    onClick={() => setIsAiSettingsOpen(true)}
+                  >
+                    AI 助手设置
+                  </MenuItem>
                   <MenuItem icon={<Globe20Regular />} onClick={() => handleNav("/")}>
                     公共广场
                   </MenuItem>
                   <MenuItem icon={<Folder20Regular />} onClick={() => handleNav("/workspace")}>
                     我的笔记
+                  </MenuItem>
+                  <MenuItem icon={<Bot20Regular />} onClick={() => handleNav("/workspace/ai")}>
+                    AI 助手
                   </MenuItem>
                   <MenuItem icon={<NoteAdd20Regular />} onClick={() => handleNav("/workspace/new")}>
                     写日记
@@ -576,6 +615,12 @@ export const Header: React.FC = () => {
       <AvatarCropModal
         isOpen={isAvatarCropOpen}
         onClose={() => setIsAvatarCropOpen(false)}
+      />
+
+      {/* AI 助手大模型私有化配置弹窗 */}
+      <AiSettingsModal
+        open={isAiSettingsOpen}
+        onClose={() => setIsAiSettingsOpen(false)}
       />
     </header>
   );

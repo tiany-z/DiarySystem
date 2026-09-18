@@ -1,0 +1,1 @@
+{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../../../src/api/user/ai-config/index.ts"],"names":[],"mappings":"AAAA,OAAO,EAOL,cAAc,EAEf,MAAM,wBAAwB,CAAC;AAmBhC,eAAO,MAAM,GAAG;;;sBAIJ;QAAE,GAAG,EAAE,GAAG,CAAC;QAAC,IAAI,CAAC,EAAE,GAAG,CAAC;QAAC,IAAI,CAAC,EAAE,GAAG,CAAA;KAAE,OACvC,GAAG,KACP,OAAO,CAAC,cAAc,CAAC,GAAG,CAAC,CAAC;CAsGhC,CAAC;AAEF,eAAe,GAAG,CAAC"}
