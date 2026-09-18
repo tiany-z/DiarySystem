@@ -42,6 +42,7 @@ import {
   ArrowRight20Regular,
   ArrowSync20Regular,
   Delete20Regular,
+  SignOut20Regular,
 } from "@fluentui/react-icons";
 import { getAiConfig, saveAiConfig, testAiConfig } from "../api/ai";
 import { userApi } from "../api/auth";
@@ -107,7 +108,7 @@ export const AI_PRESETS: AiProviderPreset[] = [
 
 export const UnifiedSettingsModal: React.FC = () => {
   const { isSettingsOpen, activeTab, closeSettings, setActiveTab } = useSettings();
-  const { user, refreshProfile, updateAvatar } = useAuth();
+  const { user, refreshProfile, updateAvatar, logout } = useAuth();
   const { isDark, themeMode, setThemeMode, forceCodeDark, setForceCodeDark } = useAppTheme();
   const { surfaceMotion, backdropMotion, isMobile } = useAppDialogMotion();
 
@@ -1092,6 +1093,38 @@ export const UnifiedSettingsModal: React.FC = () => {
                         onClick={() => setIsChangePasswordOpen(true)}
                       >
                         修改密码
+                      </Button>
+                    </div>
+
+                    {/* 退出登录卡片 */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "14px 16px",
+                        borderRadius: "10px",
+                        border: isDark ? "1px solid rgba(209, 52, 56, 0.2)" : "1px solid rgba(209, 52, 56, 0.15)",
+                        backgroundColor: isDark ? "rgba(209, 52, 56, 0.04)" : "rgba(209, 52, 56, 0.02)",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <SignOut20Regular style={{ color: "#d13438", fontSize: "20px" }} />
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: "13.5px", color: "#d13438" }}>退出账号</div>
+                          <div style={{ fontSize: "12px", opacity: 0.6 }}>退出当前登录账号并返回登录页</div>
+                        </div>
+                      </div>
+                      <Button
+                        appearance="secondary"
+                        style={{ color: "#d13438" }}
+                        icon={<SignOut20Regular />}
+                        onClick={() => {
+                          closeSettings();
+                          logout();
+                        }}
+                      >
+                        退出登录
                       </Button>
                     </div>
                   </div>

@@ -12,7 +12,6 @@ import {
   Tooltip,
 } from "@fluentui/react-components";
 import {
-  Camera20Regular,
   Checkmark20Regular,
   Code20Regular,
   Desktop20Regular,
@@ -23,7 +22,6 @@ import {
   PeopleCommunity20Regular,
   Person20Regular,
   Settings20Regular,
-  SignOut20Regular,
   WeatherMoon20Regular,
   WeatherSunny20Regular,
   Bot20Regular,
@@ -36,7 +34,7 @@ import { BrandLogo } from "./BrandLogo";
 
 export const Header: React.FC = () => {
   const { isDark, themeMode, setThemeMode, forceCodeDark, toggleForceCodeDark } = useAppTheme();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { openSettings } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
@@ -71,15 +69,6 @@ export const Header: React.FC = () => {
       if (!allowed) return;
     }
     navigate(targetPath);
-  };
-
-  const handleLogout = () => {
-    if (typeof window !== "undefined" && window.__checkUnsavedBeforeNavigate) {
-      const allowed = window.__checkUnsavedBeforeNavigate("/");
-      if (!allowed) return;
-    }
-    logout();
-    navigate("/");
   };
 
   // 渲染主题下拉菜单（包含：自动、深色、浅色）
@@ -377,80 +366,11 @@ export const Header: React.FC = () => {
               </MenuTrigger>
               <MenuPopover>
                 <MenuList>
-                  <div
-                    style={{
-                      padding: "12px 14px",
-                      borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.06)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}
-                  >
-                    <Avatar
-                      name={user.nickname || user.username}
-                      image={user.avatar ? { src: user.avatar } : undefined}
-                      aria-label={user.nickname || user.username}
-                      color="brand"
-                      size={40}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          fontSize: "13px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {user.nickname || user.username}
-                      </div>
-                      <div style={{ fontSize: "11px", opacity: 0.6 }}>@{user.username}</div>
-                    </div>
-                  </div>
-                  <MenuItem
-                    icon={<Camera20Regular />}
-                    onClick={() => openSettings("profile")}
-                  >
-                    个人资料
-                  </MenuItem>
-                  <MenuItem
-                    icon={<Bot20Regular />}
-                    onClick={() => openSettings("ai")}
-                  >
-                    AI 模型
-                  </MenuItem>
                   <MenuItem
                     icon={<Settings20Regular />}
-                    onClick={() => openSettings("wallpaper")}
+                    onClick={() => openSettings()}
                   >
-                    背景壁纸
-                  </MenuItem>
-                  <MenuItem
-                    icon={<Sparkle20Regular />}
-                    onClick={() => openSettings("theme")}
-                  >
-                    界面外观
-                  </MenuItem>
-                  <MenuItem
-                    icon={<Folder20Regular />}
-                    onClick={() => handleNav("/workspace")}
-                  >
-                    我的笔记
-                  </MenuItem>
-                  {user.username === "tiany" && (
-                    <MenuItem
-                      icon={<PeopleCommunity20Regular />}
-                      onClick={() => handleNav("/workspace/users")}
-                    >
-                      用户管理
-                    </MenuItem>
-                  )}
-                  <MenuItem
-                    icon={<SignOut20Regular />}
-                    onClick={handleLogout}
-                  >
-                    退出登录
+                    设置
                   </MenuItem>
                 </MenuList>
               </MenuPopover>
@@ -545,84 +465,11 @@ export const Header: React.FC = () => {
               </MenuTrigger>
               <MenuPopover>
                 <MenuList>
-                  <div
-                    style={{
-                      padding: "12px 14px",
-                      borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.06)",
-                      marginBottom: "4px",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "12px",
-                    }}
-                  >
-                    <Avatar
-                      name={user.nickname || user.username}
-                      image={user.avatar ? { src: user.avatar } : undefined}
-                      aria-label={user.nickname || user.username}
-                      color="brand"
-                      size={40}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          fontSize: "13px",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {user.nickname || user.username}
-                      </div>
-                      <div style={{ fontSize: "11px", opacity: 0.6 }}>@{user.username}</div>
-                    </div>
-                  </div>
-                  <MenuItem
-                    icon={<Camera20Regular />}
-                    onClick={() => openSettings("profile")}
-                  >
-                    个人资料
-                  </MenuItem>
-                  <MenuItem
-                    icon={<Bot20Regular />}
-                    onClick={() => openSettings("ai")}
-                  >
-                    AI 模型
-                  </MenuItem>
                   <MenuItem
                     icon={<Settings20Regular />}
-                    onClick={() => openSettings("wallpaper")}
+                    onClick={() => openSettings()}
                   >
-                    背景壁纸
-                  </MenuItem>
-                  <MenuItem
-                    icon={<Sparkle20Regular />}
-                    onClick={() => openSettings("theme")}
-                  >
-                    界面外观
-                  </MenuItem>
-                  <MenuItem icon={<Globe20Regular />} onClick={() => handleNav("/")}>
-                    公共广场
-                  </MenuItem>
-                  <MenuItem icon={<Folder20Regular />} onClick={() => handleNav("/workspace")}>
-                    我的笔记
-                  </MenuItem>
-                  <MenuItem icon={<Bot20Regular />} onClick={() => handleNav("/workspace/ai")}>
-                    AI 助手
-                  </MenuItem>
-                  <MenuItem icon={<NoteAdd20Regular />} onClick={() => handleNav("/workspace/new")}>
-                    写日记
-                  </MenuItem>
-                  {user?.username === "tiany" && (
-                    <MenuItem
-                      icon={<PeopleCommunity20Regular />}
-                      onClick={() => handleNav("/workspace/users")}
-                    >
-                      用户管理
-                    </MenuItem>
-                  )}
-                  <MenuItem icon={<SignOut20Regular />} onClick={handleLogout}>
-                    退出登录
+                    设置
                   </MenuItem>
                 </MenuList>
               </MenuPopover>
