@@ -149,6 +149,15 @@ export const NotesManager: React.FC = () => {
     }
   }, []);
 
+  // 监听日记更新事件（如在编辑器中保存了新建或修改），后台静默同步最新日记列表，完全不打扰当前滚动位置
+  useEffect(() => {
+    const handleNotesUpdated = () => {
+      fetchNotes(true);
+    };
+    window.addEventListener("notes:updated", handleNotesUpdated);
+    return () => window.removeEventListener("notes:updated", handleNotesUpdated);
+  }, []);
+
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);

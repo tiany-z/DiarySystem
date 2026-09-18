@@ -358,6 +358,79 @@ export const UnifiedSettingsModal: React.FC = () => {
     } catch {}
   };
 
+  // 统一保存并关闭处理方法
+  const handleSaveAndClose = async () => {
+    if (activeTab === "ai") {
+      setIsAiSaving(true);
+      setAiSaveStatus("idle");
+      setAiSaveMessage("");
+      try {
+        const res = await saveAiConfig({
+          baseUrl: aiBaseUrl.trim(),
+          modelName: aiModelName.trim(),
+          apiKey: aiApiKey.trim() || undefined,
+        });
+
+        if (res.status === 1) {
+          setAiSaveStatus("success");
+          setAiSaveMessage("已保存");
+          setAiHasKey(Boolean(aiApiKey.trim() || aiHasKey));
+          if (aiApiKey.trim()) {
+            const raw = aiApiKey.trim();
+            setAiMaskedKey(
+              raw.length > 8 ? `${raw.slice(0, 3)}...${raw.slice(-4)}` : "******"
+            );
+            setAiApiKey("");
+          }
+          window.dispatchEvent(new CustomEvent("ai:config_updated"));
+          closeSettings();
+        } else {
+          setAiSaveStatus("error");
+          setAiSaveMessage(res.content || "保存失败");
+        }
+      } catch (err: any) {
+        setAiSaveStatus("error");
+        setAiSaveMessage(`保存失败: ${err?.message || "网络异常"}`);
+      } finally {
+        setIsAiSaving(false);
+      }
+    } else if (activeTab === "wallpaper" && isTiany) {
+      setWpSaveStatus("idle");
+      const ok = await saveWpToDatabase();
+      if (ok) {
+        setWpSaveStatus("success");
+        setWpSaveMsg("已保存");
+        closeSettings();
+      } else {
+        setWpSaveStatus("error");
+        setWpSaveMsg("保存失败");
+      }
+    } else if (activeTab === "profile") {
+      const trimmed = nicknameInput.trim();
+      if (trimmed && trimmed !== user?.nickname) {
+        setIsUpdatingNickname(true);
+        setNicknameMsg(null);
+        try {
+          const res = await userApi.updateProfile({ nickname: trimmed });
+          if (res.status === 1) {
+            await refreshProfile();
+            closeSettings();
+          } else {
+            setNicknameMsg({ type: "error", text: res.content || "更新失败" });
+          }
+        } catch (err: any) {
+          setNicknameMsg({ type: "error", text: err?.message || "网络异常" });
+        } finally {
+          setIsUpdatingNickname(false);
+        }
+      } else {
+        closeSettings();
+      }
+    } else {
+      closeSettings();
+    }
+  };
+
   // Navigation tabs definition
   const TABS: { id: SettingsTabKey; label: string; icon: React.ReactElement }[] = [
     { id: "ai", label: "AI 模型", icon: <Bot20Regular /> },
@@ -1117,7 +1190,7 @@ export const UnifiedSettingsModal: React.FC = () => {
               </div>
             </div>
 
-            {/* 底部固定区：统一保存按钮于右下角 */}
+            {/* 底部固定区：统一取消与保存并关闭按钮置于右下角 */}
             <footer
               style={{
                 display: "flex",
@@ -1147,54 +1220,44 @@ export const UnifiedSettingsModal: React.FC = () => {
                 )}
               </div>
 
-              {/* 右下角统一操作按钮 */}
+              {/* 右下角统一操作按钮：取消 + 保存并关闭 */}
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <Button
                   appearance="secondary"
                   onClick={closeSettings}
                   style={{ borderRadius: "8px", minWidth: "72px" }}
                 >
-                  关闭
+                  取消
                 </Button>
 
-                {/* AI 保存 */}
-                {activeTab === "ai" && (
-                  <Button
-                    appearance="primary"
-                    icon={isAiSaving ? <Spinner size="tiny" /> : <Save20Regular />}
-                    onClick={handleSaveAi}
-                    disabled={isAiTesting || isAiSaving || isAiLoading}
-                    style={{ backgroundColor: "#5B7B8D", fontWeight: 600, minWidth: "72px" }}
-                  >
-                    {isAiSaving ? "保存中..." : "保存"}
-                  </Button>
-                )}
-
-                {/* 壁纸保存 (仅管理员) */}
-                {activeTab === "wallpaper" && isTiany && (
-                  <Button
-                    appearance="primary"
-                    icon={isWpSaving ? <Spinner size="tiny" /> : <Save20Regular />}
-                    disabled={isWpSaving}
-                    onClick={handleSaveWallpaper}
-                    style={{ backgroundColor: "#5B7B8D", fontWeight: 600, minWidth: "72px" }}
-                  >
-                    {isWpSaving ? "保存中..." : "保存"}
-                  </Button>
-                )}
-
-                {/* 个人资料保存昵称 */}
-                {activeTab === "profile" && (
-                  <Button
-                    appearance="primary"
-                    icon={isUpdatingNickname ? <Spinner size="tiny" /> : <Save20Regular />}
-                    disabled={isUpdatingNickname || !nicknameInput.trim() || nicknameInput.trim() === user?.nickname}
-                    onClick={handleSaveNickname}
-                    style={{ backgroundColor: "#5B7B8D", fontWeight: 600, minWidth: "72px" }}
-                  >
-                    {isUpdatingNickname ? "保存中..." : "保存"}
-                  </Button>
-                )}
+                <Button
+                  appearance="primary"
+                  icon={
+                    isAiSaving || isWpSaving || isUpdatingNickname ? (
+                      <Spinner size="tiny" />
+                    ) : (
+                      <Save20Regular />
+                    )
+                  }
+                  onClick={handleSaveAndClose}
+                  disabled={
+                    isAiTesting ||
+                    isAiSaving ||
+                    isAiLoading ||
+                    isWpSaving ||
+                    isUpdatingNickname
+                  }
+                  style={{
+                    backgroundColor: "#5B7B8D",
+                    fontWeight: 600,
+                    minWidth: "96px",
+                    borderRadius: "8px",
+                  }}
+                >
+                  {isAiSaving || isWpSaving || isUpdatingNickname
+                    ? "保存中..."
+                    : "保存并关闭"}
+                </Button>
               </div>
             </footer>
           </DialogBody>

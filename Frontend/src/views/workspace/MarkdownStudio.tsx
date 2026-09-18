@@ -245,27 +245,30 @@ export const MarkdownStudio: React.FC = () => {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty]);
 
-  // 保证在文档编辑器界面下锁定页面级多余滚动，确保顶部栏与排版功能区 100% 牢牢吸顶固定
-  // 同时必须在挂载瞬间立即重置视口与文档滚动条至 (0,0)，彻底解决移动端从列表页面进入编辑器时继承滚动偏移导致顶部栏移出视口的问题
+  // 浏览器后退历史拦截保护：未保存时弹窗确认，避免丢失修改
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    if (!isDirty) return;
 
+    const handlePopState = () => {
+      // 把当前 URL 重新塞回历史栈，阻止直接离开
+      window.history.pushState(null, "", window.location.href);
+      setPendingNavPath("/workspace");
+      setUnsavedModalError(null);
+      setShowUnsavedModal(true);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [isDirty]);
+
+  // 锁定编辑器下视口滚动，同时绝不强制全局 scrollTo(0,0)，彻底保护列表层原本的滚动条位置
+  useEffect(() => {
     const prevHtmlOverflow = document.documentElement.style.overflow;
     const prevBodyOverflow = document.body.style.overflow;
     document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
 
-    // 微任务确认归零，杜绝潜在的路由转场位移残留
-    const rafId = requestAnimationFrame(() => {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    });
-
     return () => {
-      cancelAnimationFrame(rafId);
       document.documentElement.style.overflow = prevHtmlOverflow === "hidden" ? "" : prevHtmlOverflow;
       document.body.style.overflow = prevBodyOverflow === "hidden" ? "" : prevBodyOverflow;
     };
@@ -1365,6 +1368,7 @@ export const MarkdownStudio: React.FC = () => {
           setSaveSuccessNotice(true);
           setTimeout(() => setSaveSuccessNotice(false), 3000);
           justSavedIdRef.current = newId;
+          window.dispatchEvent(new CustomEvent("notes:updated"));
           if (redirectUrl) {
             navigate(redirectUrl);
           } else {
@@ -1391,6 +1395,7 @@ export const MarkdownStudio: React.FC = () => {
           setIsDirty(false);
           setSaveSuccessNotice(true);
           setTimeout(() => setSaveSuccessNotice(false), 3000);
+          window.dispatchEvent(new CustomEvent("notes:updated"));
           if (redirectUrl) {
             navigate(redirectUrl);
           }
@@ -1488,7 +1493,11 @@ export const MarkdownStudio: React.FC = () => {
                   setShowUnsavedModal(true);
                   return;
                 }
-                navigate("/workspace");
+                if (window.history.state && window.history.state.idx > 0) {
+                  navigate(-1);
+                } else {
+                  navigate("/workspace");
+                }
               }}
               aria-label="返回笔记"
             />
