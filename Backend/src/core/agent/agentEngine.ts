@@ -210,7 +210,7 @@ export class AgentEngine {
                 streamParser.feedContentDelta(delta.content);
               }
 
-              // 工具调用片段累加
+              // 工具调用片段累加 (严格按索引初始化，避免首包 name 重复拼接)
               if (delta.tool_calls && Array.isArray(delta.tool_calls)) {
                 for (const tc of delta.tool_calls) {
                   const idx = tc.index ?? 0;
@@ -219,7 +219,7 @@ export class AgentEngine {
                       id: tc.id || `call_${Date.now()}_${idx}`,
                       type: "function",
                       function: {
-                        name: tc.function?.name || "",
+                        name: "",
                         arguments: "",
                       },
                     };
@@ -264,12 +264,15 @@ export class AgentEngine {
           "locate_diary_content",
           "read_diary_detail",
           "get_diary_timeline_stats",
+          "get_recent_diaries",
+          "get_diaries_by_date",
+          "analyze_mood_trends",
           "web_search",
         ]);
 
         const canExecuteParallel =
           accumulatedToolCalls.length > 1 &&
-          accumulatedToolCalls.every((tc) => READ_ONLY_TOOLS.has(tc.function.name));
+          accumulatedToolCalls.every((tc) => READ_ONLY_TOOLS.has(tc.function.name.trim()));
 
         if (canExecuteParallel) {
           // 并发调度所有只读工具

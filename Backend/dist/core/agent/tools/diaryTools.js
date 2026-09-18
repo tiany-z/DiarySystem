@@ -889,6 +889,233 @@ export const deleteDiaryExecutor = async (args, context) => {
     }
 };
 // =========================================================================
+// 8. get_recent_diaries (获取最近日记列表与摘要)
+// =========================================================================
+export const getRecentDiariesTool = {
+    type: "function",
+    function: {
+        name: "get_recent_diaries",
+        description: "获取用户最近创作的日记列表与内容摘要。当用户询问“我最近写了什么”、“看看我近期的日记”、“最近生活怎么样”或刚打招呼需要了解近况时，应优先调用此工具快速感知最新动态。",
+        parameters: {
+            type: "object",
+            properties: {
+                limit: {
+                    type: "integer",
+                    description: "获取的日记篇数，默认 5，范围 1~20",
+                },
+            },
+        },
+    },
+};
+export const getRecentDiariesExecutor = async (args, context) => {
+    try {
+        const limit = Math.min(Math.max(Number(args?.limit) || 5, 1), 20);
+        const sql = `
+      SELECT id, title, content, weather, mood, is_public, created_at, updated_at
+      FROM diaries
+      WHERE user_id = ? AND deleted_at IS NULL
+      ORDER BY created_at DESC
+      LIMIT ?;
+    `;
+        const res = await executeQuery(sql, [context.userId, limit]);
+        if (res.status === 0) {
+            return {
+                success: false,
+                error: `获取最近日记失败: ${res.content}`,
+                summary: "获取最近日记失败",
+            };
+        }
+        const rows = res.data || [];
+        const diaries = rows.map((row) => {
+            const fullText = row.content || "";
+            const snippet = fullText.replace(/[\r\n\t]+/g, " ").slice(0, 180) +
+                (fullText.length > 180 ? "..." : "");
+            return {
+                id: row.id,
+                title: row.title || "无标题手记",
+                createdAt: row.created_at,
+                weather: row.weather,
+                mood: row.mood,
+                charCount: fullText.length,
+                snippet,
+            };
+        });
+        return {
+            success: true,
+            data: {
+                total: diaries.length,
+                diaries,
+            },
+            summary: `已调取最近 ${diaries.length} 篇日记`,
+        };
+    }
+    catch (err) {
+        return {
+            success: false,
+            error: `get_recent_diaries 异常: ${tryCatchErrorToString(err)}`,
+            summary: "获取最近日记异常",
+        };
+    }
+};
+// =========================================================================
+// 9. get_diaries_by_date (按具体自然日提取日记全文)
+// =========================================================================
+export const getDiariesByDateTool = {
+    type: "function",
+    function: {
+        name: "get_diaries_by_date",
+        description: "精确提取指定自然日期（如 2026-09-17）内记录的所有日记全文与元数据。当用户询问“我昨天写了什么”、“X月X日那天发生了什么”时调用。",
+        parameters: {
+            type: "object",
+            properties: {
+                date: {
+                    type: "string",
+                    description: "目标日期，格式为 YYYY-MM-DD (例如 2026-09-18)",
+                },
+            },
+            required: ["date"],
+        },
+    },
+};
+export const getDiariesByDateExecutor = async (args, context) => {
+    try {
+        const rawDate = (args?.date || "").trim();
+        if (!rawDate) {
+            return {
+                success: false,
+                error: "缺少目标日期 (date)",
+                summary: "查询失败：未指定日期",
+            };
+        }
+        // 简单校验 YYYY-MM-DD 格式
+        const match = rawDate.match(/^\d{4}-\d{2}-\d{2}$/);
+        if (!match) {
+            return {
+                success: false,
+                error: `日期格式不规范: [${rawDate}]，请使用 YYYY-MM-DD 格式`,
+                summary: "日期格式错误",
+            };
+        }
+        const startOfDay = `${rawDate} 00:00:00`;
+        const endOfDay = `${rawDate} 23:59:59`;
+        const sql = `
+      SELECT id, title, content, weather, mood, is_public, created_at, updated_at
+      FROM diaries
+      WHERE user_id = ? AND deleted_at IS NULL AND created_at >= ? AND created_at <= ?
+      ORDER BY created_at ASC;
+    `;
+        const res = await executeQuery(sql, [context.userId, startOfDay, endOfDay]);
+        if (res.status === 0) {
+            return {
+                success: false,
+                error: `查询 ${rawDate} 日记失败: ${res.content}`,
+                summary: "提取日期手记失败",
+            };
+        }
+        const rows = res.data || [];
+        const diaries = rows.map((row) => ({
+            id: row.id,
+            title: row.title || "无标题手记",
+            content: row.content || "",
+            weather: row.weather,
+            mood: row.mood,
+            createdAt: row.created_at,
+        }));
+        return {
+            success: true,
+            data: {
+                date: rawDate,
+                count: diaries.length,
+                diaries,
+            },
+            summary: diaries.length > 0
+                ? `找到 ${rawDate} 当天记录的 ${diaries.length} 篇日记`
+                : `${rawDate} 当天未记录日记`,
+        };
+    }
+    catch (err) {
+        return {
+            success: false,
+            error: `get_diaries_by_date 异常: ${tryCatchErrorToString(err)}`,
+            summary: "查询日期日记异常",
+        };
+    }
+};
+// =========================================================================
+// 10. analyze_mood_trends (周期情绪晴雨表与心理轨迹分析)
+// =========================================================================
+export const analyzeMoodTrendsTool = {
+    type: "function",
+    function: {
+        name: "analyze_mood_trends",
+        description: "按时间轴深度分析用户的心情波动趋势、积极与消极情绪比例以及情绪转变节点。用于生成心理晴雨表周报或月报。",
+        parameters: {
+            type: "object",
+            properties: {
+                days: {
+                    type: "integer",
+                    description: "回溯的天数跨度，默认 30 天，范围 7~365 天",
+                },
+            },
+        },
+    },
+};
+export const analyzeMoodTrendsExecutor = async (args, context) => {
+    try {
+        const days = Math.min(Math.max(Number(args?.days) || 30, 7), 365);
+        const sql = `
+      SELECT id, title, mood, weather, created_at, CHAR_LENGTH(content) as charCount
+      FROM diaries
+      WHERE user_id = ? AND deleted_at IS NULL AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+      ORDER BY created_at ASC;
+    `;
+        const res = await executeQuery(sql, [context.userId, days]);
+        if (res.status === 0) {
+            return {
+                success: false,
+                error: `分析心情走势失败: ${res.content}`,
+                summary: "情绪分析失败",
+            };
+        }
+        const rows = res.data || [];
+        const moodCounts = {};
+        const timeline = [];
+        for (const row of rows) {
+            const mood = row.mood || "Calm";
+            moodCounts[mood] = (moodCounts[mood] || 0) + 1;
+            timeline.push({
+                date: String(row.created_at).slice(0, 10),
+                title: row.title || "无标题",
+                mood,
+                weather: row.weather || "未知",
+            });
+        }
+        const total = rows.length;
+        const sortedMoods = Object.entries(moodCounts).sort((a, b) => b[1] - a[1]);
+        const dominantMood = sortedMoods[0]?.[0] || "平静";
+        return {
+            success: true,
+            data: {
+                windowDays: days,
+                totalEntries: total,
+                dominantMood,
+                moodCounts,
+                timeline,
+            },
+            summary: total > 0
+                ? `已分析近 ${days} 天共 ${total} 篇手记的情绪轨迹，主导心情为「${dominantMood}」`
+                : `近 ${days} 天暂无手记记录`,
+        };
+    }
+    catch (err) {
+        return {
+            success: false,
+            error: `analyze_mood_trends 异常: ${tryCatchErrorToString(err)}`,
+            summary: "心情走势分析异常",
+        };
+    }
+};
+// =========================================================================
 // 统一聚合导出
 // =========================================================================
 export const diaryTools = [
@@ -896,6 +1123,9 @@ export const diaryTools = [
     locateDiaryContentTool,
     readDiaryDetailTool,
     getDiaryTimelineStatsTool,
+    getRecentDiariesTool,
+    getDiariesByDateTool,
+    analyzeMoodTrendsTool,
     createDiaryTool,
     updateDiaryTool,
     deleteDiaryTool,
@@ -905,6 +1135,9 @@ export const diaryExecutors = {
     locate_diary_content: locateDiaryContentExecutor,
     read_diary_detail: readDiaryDetailExecutor,
     get_diary_timeline_stats: getDiaryTimelineStatsExecutor,
+    get_recent_diaries: getRecentDiariesExecutor,
+    get_diaries_by_date: getDiariesByDateExecutor,
+    analyze_mood_trends: analyzeMoodTrendsExecutor,
     create_diary: createDiaryExecutor,
     update_diary: updateDiaryExecutor,
     delete_diary: deleteDiaryExecutor,

@@ -13,6 +13,12 @@ export declare const updateDiaryTool: AgentToolDefinition;
 export declare const updateDiaryExecutor: AgentToolExecutor;
 export declare const deleteDiaryTool: AgentToolDefinition;
 export declare const deleteDiaryExecutor: AgentToolExecutor;
+export declare const getRecentDiariesTool: AgentToolDefinition;
+export declare const getRecentDiariesExecutor: AgentToolExecutor;
+export declare const getDiariesByDateTool: AgentToolDefinition;
+export declare const getDiariesByDateExecutor: AgentToolExecutor;
+export declare const analyzeMoodTrendsTool: AgentToolDefinition;
+export declare const analyzeMoodTrendsExecutor: AgentToolExecutor;
 export declare const diaryTools: AgentToolDefinition[];
 export declare const diaryExecutors: Record<string, AgentToolExecutor>;
 //# sourceMappingURL=diaryTools.d.ts.map

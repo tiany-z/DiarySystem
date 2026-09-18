@@ -1,18 +1,26 @@
 import { describe, it, expect } from "vitest";
 import { ToolRegistry } from "../core/agent/tools/index.js";
 describe("Agent Tools & Registry Test Suite", () => {
-    it("should register all 7 default diary tools and web_search", () => {
+    it("should register all 10 default diary tools and web_search (total 11 tools)", () => {
         const tools = ToolRegistry.getOpenAiTools();
-        expect(tools.length).toBe(8);
+        expect(tools.length).toBe(11);
         const toolNames = tools.map((t) => t.function.name);
         expect(toolNames).toContain("search_diaries");
         expect(toolNames).toContain("locate_diary_content");
         expect(toolNames).toContain("read_diary_detail");
         expect(toolNames).toContain("get_diary_timeline_stats");
+        expect(toolNames).toContain("get_recent_diaries");
+        expect(toolNames).toContain("get_diaries_by_date");
+        expect(toolNames).toContain("analyze_mood_trends");
         expect(toolNames).toContain("create_diary");
         expect(toolNames).toContain("update_diary");
         expect(toolNames).toContain("delete_diary");
         expect(toolNames).toContain("web_search");
+    });
+    it("should normalize camelCase and spaced tool names gracefully", () => {
+        expect(ToolRegistry.normalizeToolName("searchDiaries")).toBe("search_diaries");
+        expect(ToolRegistry.normalizeToolName(" getRecentDiaries ")).toBe("get_recent_diaries");
+        expect(ToolRegistry.normalizeToolName("get_diary_timeline_stats")).toBe("get_diary_timeline_stats");
     });
     it("should have correct OpenAI-compatible tool schemas", () => {
         const tools = ToolRegistry.getOpenAiTools();

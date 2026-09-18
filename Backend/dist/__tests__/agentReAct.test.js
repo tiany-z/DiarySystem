@@ -90,9 +90,9 @@ describe("Module 3: PromptTemplates Tests", () => {
     });
 });
 describe("Module 3: WebSearchTool & Registry Tests", () => {
-    it("should have web_search registered in ToolRegistry (total 8 tools)", () => {
+    it("should have web_search registered in ToolRegistry (total 11 tools)", () => {
         const tools = ToolRegistry.getOpenAiTools();
-        expect(tools.length).toBe(8);
+        expect(tools.length).toBe(11);
         const webTool = tools.find((t) => t.function.name === "web_search");
         expect(webTool).toBeDefined();
         expect(webTool?.function.parameters.properties.query).toBeDefined();
@@ -104,10 +104,77 @@ describe("Module 3: WebSearchTool & Registry Tests", () => {
         expect(result.error).toContain("不能为空");
     });
     it("should gracefully handle external web search errors without throwing", async () => {
-        const result = await ToolRegistry.executeTool("web_search", { query: "Node.js release schedule 2026" }, { userId: "user-1", requestId: "req-1" });
-        // 即使外网受限也应该平滑降级，success 为 true 且包含 notice 或 results
-        expect(result.success).toBe(true);
-        expect(result.data).toBeDefined();
+        // 即使网络异常或被封锁，也应返回结构化降级信息而非抛出未捕获异常
+        const result = await ToolRegistry.executeTool("web_search", { query: "arbitrary search query test" }, { userId: "user-1", requestId: "req-1" });
+        expect(result.summary).toBeDefined();
+        expect(typeof result.success).toBe("boolean");
+    });
+    it("should correctly accumulate tool calls across chunks without duplicating function name", () => {
+        const chunks = [
+            {
+                delta: {
+                    tool_calls: [
+                        {
+                            index: 0,
+                            id: "call_test_123",
+                            type: "function",
+                            function: { name: "get_diary_timeline_stats", arguments: "" },
+                        },
+                    ],
+                },
+            },
+            {
+                delta: {
+                    tool_calls: [
+                        {
+                            index: 0,
+                            function: { arguments: '{"time' },
+                        },
+                    ],
+                },
+            },
+            {
+                delta: {
+                    tool_calls: [
+                        {
+                            index: 0,
+                            function: { arguments: 'Range":"all"}' },
+                        },
+                    ],
+                },
+            },
+        ];
+        const accumulatedToolCalls = [];
+        for (const chunk of chunks) {
+            if (chunk.delta.tool_calls) {
+                for (const tc of chunk.delta.tool_calls) {
+                    const idx = tc.index ?? 0;
+                    if (!accumulatedToolCalls[idx]) {
+                        accumulatedToolCalls[idx] = {
+                            id: tc.id || `call_${Date.now()}_${idx}`,
+                            type: "function",
+                            function: {
+                                name: "",
+                                arguments: "",
+                            },
+                        };
+                    }
+                    if (tc.id) {
+                        accumulatedToolCalls[idx].id = tc.id;
+                    }
+                    if (tc.function?.name) {
+                        accumulatedToolCalls[idx].function.name += tc.function.name;
+                    }
+                    if (tc.function?.arguments) {
+                        accumulatedToolCalls[idx].function.arguments += tc.function.arguments;
+                    }
+                }
+            }
+        }
+        expect(accumulatedToolCalls.length).toBe(1);
+        expect(accumulatedToolCalls[0].function.name).toBe("get_diary_timeline_stats");
+        expect(accumulatedToolCalls[0].function.arguments).toBe('{"timeRange":"all"}');
+        expect(ToolRegistry.hasTool(accumulatedToolCalls[0].function.name)).toBe(true);
     });
 });
 describe("Module 3: AgentEngine ReAct Loop Structure", () => {

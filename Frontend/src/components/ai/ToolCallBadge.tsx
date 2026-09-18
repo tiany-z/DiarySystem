@@ -11,6 +11,9 @@ import {
   DismissCircle20Regular,
   Document20Regular,
   Sparkle20Regular,
+  Clock20Regular,
+  CalendarLtr20Regular,
+  Emoji20Regular,
 } from "@fluentui/react-icons";
 import { useAppTheme } from "../../context/ThemeContext";
 
@@ -28,6 +31,21 @@ export const TOOL_META: Record<
   string,
   { label: string; icon: React.ReactNode; hint: string }
 > = {
+  get_recent_diaries: {
+    label: "最近手记",
+    icon: <Clock20Regular style={{ fontSize: "13px" }} />,
+    hint: "正在查阅您近期记录的心情与随笔...",
+  },
+  get_diaries_by_date: {
+    label: "日期手记",
+    icon: <CalendarLtr20Regular style={{ fontSize: "13px" }} />,
+    hint: "正在调取指定日期的专属手记...",
+  },
+  analyze_mood_trends: {
+    label: "情绪晴雨表",
+    icon: <Emoji20Regular style={{ fontSize: "13px" }} />,
+    hint: "正在分析近期的心理画像与心情走势...",
+  },
   search_diaries: {
     label: "检索日记",
     icon: <Search20Regular style={{ fontSize: "13px" }} />,

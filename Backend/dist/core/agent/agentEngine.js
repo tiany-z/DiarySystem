@@ -133,7 +133,7 @@ export class AgentEngine {
                             if (delta.content) {
                                 streamParser.feedContentDelta(delta.content);
                             }
-                            // 工具调用片段累加
+                            // 工具调用片段累加 (严格按索引初始化，避免首包 name 重复拼接)
                             if (delta.tool_calls && Array.isArray(delta.tool_calls)) {
                                 for (const tc of delta.tool_calls) {
                                     const idx = tc.index ?? 0;
@@ -142,7 +142,7 @@ export class AgentEngine {
                                             id: tc.id || `call_${Date.now()}_${idx}`,
                                             type: "function",
                                             function: {
-                                                name: tc.function?.name || "",
+                                                name: "",
                                                 arguments: "",
                                             },
                                         };
@@ -178,45 +178,116 @@ export class AgentEngine {
                     content: roundContent || "",
                     tool_calls: accumulatedToolCalls,
                 });
-                // 5. 依次并行或串行执行每个工具调用
-                for (const tc of accumulatedToolCalls) {
-                    if (signal?.aborted) {
-                        throw new Error("OPERATION_ABORTED");
+                // 5. 工具执行调度：若均为只读工具则并发执行以极速降低交互延迟，否则串行执行
+                const READ_ONLY_TOOLS = new Set([
+                    "search_diaries",
+                    "locate_diary_content",
+                    "read_diary_detail",
+                    "get_diary_timeline_stats",
+                    "get_recent_diaries",
+                    "get_diaries_by_date",
+                    "analyze_mood_trends",
+                    "web_search",
+                ]);
+                const canExecuteParallel = accumulatedToolCalls.length > 1 &&
+                    accumulatedToolCalls.every((tc) => READ_ONLY_TOOLS.has(tc.function.name.trim()));
+                if (canExecuteParallel) {
+                    // 并发调度所有只读工具
+                    const toolPromises = accumulatedToolCalls.map(async (tc) => {
+                        if (signal?.aborted) {
+                            throw new Error("OPERATION_ABORTED");
+                        }
+                        const toolName = tc.function.name;
+                        const argsStr = tc.function.arguments;
+                        let parsedArgs = {};
+                        try {
+                            parsedArgs = JSON.parse(argsStr || "{}");
+                        }
+                        catch {
+                            parsedArgs = { raw: argsStr };
+                        }
+                        callbacks.onToolCallStart?.({
+                            id: tc.id,
+                            name: toolName,
+                            args: parsedArgs,
+                        });
+                        const toolResult = await ToolRegistry.executeTool(toolName, parsedArgs, {
+                            userId: userContext.userId,
+                            requestId,
+                        });
+                        callbacks.onToolCallResult?.({
+                            id: tc.id,
+                            name: toolName,
+                            summary: toolResult.summary,
+                            success: toolResult.success,
+                            data: toolResult.data,
+                        });
+                        return { tc, toolResult };
+                    });
+                    const results = await Promise.all(toolPromises);
+                    for (const { tc, toolResult } of results) {
+                        let rawContent = JSON.stringify(toolResult.data !== undefined ? toolResult.data : toolResult);
+                        // 上下文安全截断保护，防止超长内容击穿模型 Context
+                        if (rawContent.length > 8000) {
+                            rawContent =
+                                rawContent.slice(0, 8000) +
+                                    "...【系统提示：该工具返回数据较长，已安全截取前 8000 字符】";
+                        }
+                        workingMessages.push({
+                            role: "tool",
+                            tool_call_id: tc.id,
+                            content: rawContent,
+                        });
                     }
-                    const toolName = tc.function.name;
-                    const argsStr = tc.function.arguments;
-                    let parsedArgs = {};
-                    try {
-                        parsedArgs = JSON.parse(argsStr || "{}");
+                }
+                else {
+                    // 串行执行各工具调用
+                    for (const tc of accumulatedToolCalls) {
+                        if (signal?.aborted) {
+                            throw new Error("OPERATION_ABORTED");
+                        }
+                        const toolName = tc.function.name;
+                        const argsStr = tc.function.arguments;
+                        let parsedArgs = {};
+                        try {
+                            parsedArgs = JSON.parse(argsStr || "{}");
+                        }
+                        catch {
+                            parsedArgs = { raw: argsStr };
+                        }
+                        // 通知上层工具调用开始
+                        callbacks.onToolCallStart?.({
+                            id: tc.id,
+                            name: toolName,
+                            args: parsedArgs,
+                        });
+                        // 执行工具
+                        const toolResult = await ToolRegistry.executeTool(toolName, parsedArgs, {
+                            userId: userContext.userId,
+                            requestId,
+                        });
+                        // 通知上层工具调用结果
+                        callbacks.onToolCallResult?.({
+                            id: tc.id,
+                            name: toolName,
+                            summary: toolResult.summary,
+                            success: toolResult.success,
+                            data: toolResult.data,
+                        });
+                        let rawContent = JSON.stringify(toolResult.data !== undefined ? toolResult.data : toolResult);
+                        // 上下文安全截断保护
+                        if (rawContent.length > 8000) {
+                            rawContent =
+                                rawContent.slice(0, 8000) +
+                                    "...【系统提示：该工具返回数据较长，已安全截取前 8000 字符】";
+                        }
+                        // 推入工作上下文
+                        workingMessages.push({
+                            role: "tool",
+                            tool_call_id: tc.id,
+                            content: rawContent,
+                        });
                     }
-                    catch {
-                        parsedArgs = { raw: argsStr };
-                    }
-                    // 通知上层工具调用开始
-                    callbacks.onToolCallStart?.({
-                        id: tc.id,
-                        name: toolName,
-                        args: parsedArgs,
-                    });
-                    // 执行工具
-                    const toolResult = await ToolRegistry.executeTool(toolName, parsedArgs, {
-                        userId: userContext.userId,
-                        requestId,
-                    });
-                    // 通知上层工具调用结果
-                    callbacks.onToolCallResult?.({
-                        id: tc.id,
-                        name: toolName,
-                        summary: toolResult.summary,
-                        success: toolResult.success,
-                        data: toolResult.data,
-                    });
-                    // 推入工作上下文
-                    workingMessages.push({
-                        role: "tool",
-                        tool_call_id: tc.id,
-                        content: JSON.stringify(toolResult.data !== undefined ? toolResult.data : toolResult),
-                    });
                 }
                 // 自动循环进入下一轮 iteration
             }

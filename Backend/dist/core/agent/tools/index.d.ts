@@ -16,6 +16,10 @@ export declare class AgentToolRegistry {
      */
     getOpenAiTools(): AgentToolDefinition[];
     /**
+     * 规范化工具名称 (去除前后空格、兼容 camelCase 与 snake_case)
+     */
+    normalizeToolName(name: string): string;
+    /**
      * 检查指定工具是否存在
      */
     hasTool(toolName: string): boolean;

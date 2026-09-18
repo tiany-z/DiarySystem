@@ -51,10 +51,29 @@ export class AgentToolRegistry {
   }
 
   /**
+   * 规范化工具名称 (去除前后空格、兼容 camelCase 与 snake_case)
+   */
+  public normalizeToolName(name: string): string {
+    const trimmed = (name || "").trim();
+    if (this.executors.has(trimmed)) {
+      return trimmed;
+    }
+    // 兼容 camelCase 转 snake_case (如 searchDiaries -> search_diaries)
+    const snakeCase = trimmed
+      .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+      .toLowerCase();
+    if (this.executors.has(snakeCase)) {
+      return snakeCase;
+    }
+    return trimmed;
+  }
+
+  /**
    * 检查指定工具是否存在
    */
   public hasTool(toolName: string): boolean {
-    return this.executors.has(toolName);
+    const normalized = this.normalizeToolName(toolName);
+    return this.executors.has(normalized);
   }
 
   /**
@@ -65,7 +84,8 @@ export class AgentToolRegistry {
     argsStringOrObj: string | any,
     context: AgentToolContext
   ): Promise<AgentToolResult> {
-    const executor = this.executors.get(toolName);
+    const normalized = this.normalizeToolName(toolName);
+    const executor = this.executors.get(normalized);
     if (!executor) {
       return {
         success: false,
