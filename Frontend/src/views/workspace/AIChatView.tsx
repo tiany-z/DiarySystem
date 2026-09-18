@@ -48,6 +48,49 @@ export const AIChatView: React.FC = () => {
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
+  // 桌面端左侧栏宽度调节 (180px ~ 500px, 默认 280px, 支持持久化)
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    const saved = localStorage.getItem("ai_chat_sidebar_width");
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= 180 && parsed <= 500) {
+        return parsed;
+      }
+    }
+    return 280;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const isResizingRef = useRef(false);
+
+  const handleStartResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isResizingRef.current = true;
+    setIsResizing(true);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isResizingRef.current) return;
+      const newWidth = Math.max(180, Math.min(500, moveEvent.clientX));
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = (upEvent: MouseEvent) => {
+      if (!isResizingRef.current) return;
+      isResizingRef.current = false;
+      setIsResizing(false);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      const finalWidth = Math.max(180, Math.min(500, upEvent.clientX));
+      localStorage.setItem("ai_chat_sidebar_width", String(finalWidth));
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  }, []);
+
   const abortControllerRef = useRef<AbortController | null>(null);
   const skipNextFetchRef = useRef<string | null>(null);
 
@@ -377,37 +420,55 @@ export const AIChatView: React.FC = () => {
         zIndex: 10,
       }}
     >
-      {/* 1. PC 端左侧亚克力侧边栏 (280px) 物理脱离文档流固定在左侧，底边绝对对齐网页底边 */}
+      {/* 1. PC 端左侧亚克力侧边栏 (动态宽度，支持拖拽调节) 物理脱离文档流固定在左侧，底边绝对对齐网页底边 */}
       {!isMobile && (
-        <aside
-          className="ai-chat-sidebar-fixed"
-          style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            left: 0,
-            width: "280px",
-            height: "100%",
-            zIndex: 40,
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            boxSizing: "border-box",
-            margin: 0,
-            padding: 0,
-            borderBottom: "none",
-          }}
-        >
-          <ConversationSidebar
-            conversations={conversations}
-            activeId={activeId}
-            onSelectConversation={handleSelectConversation}
-            onNewChat={handleNewChat}
-            onRenameConversation={handleRename}
-            onTogglePin={handleTogglePin}
-            onDeleteConversation={handleDelete}
+        <>
+          <aside
+            className="ai-chat-sidebar-fixed"
+            style={{
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              left: 0,
+              width: `${sidebarWidth}px`,
+              height: "100%",
+              zIndex: 40,
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              boxSizing: "border-box",
+              margin: 0,
+              padding: 0,
+              borderBottom: "none",
+            }}
+          >
+            <ConversationSidebar
+              conversations={conversations}
+              activeId={activeId}
+              onSelectConversation={handleSelectConversation}
+              onNewChat={handleNewChat}
+              onRenameConversation={handleRename}
+              onTogglePin={handleTogglePin}
+              onDeleteConversation={handleDelete}
+            />
+          </aside>
+
+          {/* 侧边栏拖拽把手 */}
+          <div
+            className={`ai-sidebar-resizer ${isResizing ? "is-dragging" : ""}`}
+            onMouseDown={handleStartResize}
+            title="按住拖拽调整侧边栏宽度"
+            style={{
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              left: `${sidebarWidth - 3}px`,
+              width: "6px",
+              cursor: "col-resize",
+              zIndex: 45,
+            }}
           />
-        </aside>
+        </>
       )}
 
       {/* 2. 移动端抽屉侧边栏 */}
@@ -471,7 +532,7 @@ export const AIChatView: React.FC = () => {
           position: "absolute",
           top: 0,
           bottom: 0,
-          left: isMobile ? 0 : "280px",
+          left: isMobile ? 0 : `${sidebarWidth}px`,
           right: 0,
           height: "100%",
           display: "flex",

@@ -51,6 +51,7 @@ import { useWallpaper } from "../context/WallpaperContext";
 import { useSettings, SettingsTabKey } from "../context/SettingsContext";
 import { useAppDialogMotion } from "../utils/dialogMotion";
 import { AvatarCropModal } from "./AvatarCropModal";
+import { ChangePasswordModal } from "./ChangePasswordModal";
 
 export interface AiProviderPreset {
   id: string;
@@ -149,12 +150,8 @@ export const UnifiedSettingsModal: React.FC = () => {
   const [isUpdatingNickname, setIsUpdatingNickname] = useState(false);
   const [nicknameMsg, setNicknameMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Password change states
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-  const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  // Change Password Modal state
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   // Avatar Crop Modal state
   const [isAvatarCropOpen, setIsAvatarCropOpen] = useState(false);
@@ -171,10 +168,6 @@ export const UnifiedSettingsModal: React.FC = () => {
       setAiSaveStatus("idle");
       setAiSaveMessage("");
       setNicknameMsg(null);
-      setPasswordMsg(null);
-      setOldPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
       setWpSaveMsg(null);
       return;
     }
@@ -353,43 +346,6 @@ export const UnifiedSettingsModal: React.FC = () => {
     }
   };
 
-  // Change Password
-  const handleChangePassword = async () => {
-    if (!oldPassword.trim()) {
-      setPasswordMsg({ type: "error", text: "请输入原密码" });
-      return;
-    }
-    if (newPassword.trim().length < 6) {
-      setPasswordMsg({ type: "error", text: "新密码不能少于 6 位" });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordMsg({ type: "error", text: "两次输入密码不一致" });
-      return;
-    }
-
-    setIsUpdatingPassword(true);
-    setPasswordMsg(null);
-    try {
-      const res = await userApi.updateProfile({
-        oldPassword: oldPassword.trim(),
-        newPassword: newPassword.trim(),
-      });
-      if (res.status === 1) {
-        setPasswordMsg({ type: "success", text: "密码已更新" });
-        setOldPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-        setTimeout(() => setPasswordMsg(null), 3000);
-      } else {
-        setPasswordMsg({ type: "error", text: res.content || "原密码错误" });
-      }
-    } catch (err: any) {
-      setPasswordMsg({ type: "error", text: err?.message || "网络异常" });
-    } finally {
-      setIsUpdatingPassword(false);
-    }
-  };
 
   // Reset Avatar
   const handleResetAvatar = async () => {
@@ -418,6 +374,7 @@ export const UnifiedSettingsModal: React.FC = () => {
         surfaceMotion={surfaceMotion}
       >
         <DialogSurface
+          className="unified-settings-surface"
           backdropMotion={backdropMotion}
           backdrop={{
             style: {
@@ -463,7 +420,7 @@ export const UnifiedSettingsModal: React.FC = () => {
             style={{
               display: "flex",
               flexDirection: "column",
-              flex: "1 1 auto",
+              flex: "1 1 0px",
               minHeight: 0,
               overflow: "hidden",
               width: "100%",
@@ -625,7 +582,9 @@ export const UnifiedSettingsModal: React.FC = () => {
                       <div
                         style={{
                           display: "grid",
-                          gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
+                          gridTemplateColumns: isMobile
+                            ? "repeat(auto-fill, minmax(95px, 1fr))"
+                            : "repeat(5, 1fr)",
                           gap: "8px",
                         }}
                       >
@@ -638,32 +597,63 @@ export const UnifiedSettingsModal: React.FC = () => {
                               onClick={() => handleSelectPreset(preset)}
                               style={{
                                 display: "flex",
+                                flexDirection: "column",
                                 alignItems: "center",
-                                gap: "6px",
-                                padding: "8px 10px",
+                                justifyContent: "center",
+                                gap: "4px",
+                                padding: "10px 6px",
                                 borderRadius: "8px",
                                 border: isSelected
                                   ? "1.5px solid #5B7B8D"
                                   : isDark
-                                  ? "1px solid rgba(255, 255, 255, 0.1)"
-                                  : "1px solid rgba(0, 0, 0, 0.1)",
+                                  ? "1px solid rgba(255, 255, 255, 0.08)"
+                                  : "1px solid rgba(0, 0, 0, 0.08)",
                                 backgroundColor: isSelected
                                   ? isDark
-                                    ? "rgba(91, 123, 141, 0.2)"
-                                    : "rgba(91, 123, 141, 0.1)"
+                                    ? "rgba(91, 123, 141, 0.22)"
+                                    : "rgba(91, 123, 141, 0.12)"
                                   : isDark
                                   ? "rgba(255, 255, 255, 0.03)"
                                   : "rgba(0, 0, 0, 0.02)",
-                                color: isDark ? "#f7fafc" : "#2d3748",
+                                color: isSelected
+                                  ? isDark
+                                    ? "#8EAEC0"
+                                    : "#5B7B8D"
+                                  : isDark
+                                  ? "#f7fafc"
+                                  : "#2d3748",
                                 cursor: "pointer",
-                                fontSize: "12.5px",
-                                fontWeight: isSelected ? 600 : 400,
-                                transition: "all 0.15s",
+                                textAlign: "center",
+                                transition: "all 0.15s ease",
+                                boxShadow: isSelected
+                                  ? "0 2px 8px rgba(91, 123, 141, 0.15)"
+                                  : "none",
                               }}
                             >
-                              <span>{preset.icon}</span>
-                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              <span style={{ fontSize: "20px", lineHeight: 1 }}>{preset.icon}</span>
+                              <span
+                                style={{
+                                  fontWeight: isSelected ? 600 : 500,
+                                  fontSize: "12px",
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "100%",
+                                }}
+                              >
                                 {preset.name}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: "10px",
+                                  opacity: 0.6,
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "100%",
+                                }}
+                              >
+                                {preset.defaultModel.split(":")[0]}
                               </span>
                             </button>
                           );
@@ -743,28 +733,6 @@ export const UnifiedSettingsModal: React.FC = () => {
                         <MessageBarBody>{aiSaveMessage}</MessageBarBody>
                       </MessageBar>
                     )}
-
-                    {/* 操作按钮区 */}
-                    <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
-                      <Button
-                        appearance="secondary"
-                        icon={isAiTesting ? <Spinner size="tiny" /> : <PlugConnected20Regular />}
-                        onClick={handleTestAi}
-                        disabled={isAiTesting || isAiSaving || isAiLoading}
-                      >
-                        {isAiTesting ? "测试中..." : "测试连接"}
-                      </Button>
-
-                      <Button
-                        appearance="primary"
-                        icon={isAiSaving ? <Spinner size="tiny" /> : <Save20Regular />}
-                        onClick={handleSaveAi}
-                        disabled={isAiTesting || isAiSaving || isAiLoading}
-                        style={{ backgroundColor: "#5B7B8D", fontWeight: 600 }}
-                      >
-                        {isAiSaving ? "保存中..." : "保存"}
-                      </Button>
-                    </div>
                   </div>
                 )}
 
@@ -929,21 +897,6 @@ export const UnifiedSettingsModal: React.FC = () => {
                         <MessageBarBody>{wpSaveMsg}</MessageBarBody>
                       </MessageBar>
                     )}
-
-                    {/* 管理员保存按钮 */}
-                    {isTiany && (
-                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
-                        <Button
-                          appearance="primary"
-                          icon={isWpSaving ? <Spinner size="tiny" /> : <Save20Regular />}
-                          disabled={isWpSaving}
-                          onClick={handleSaveWallpaper}
-                          style={{ backgroundColor: "#5B7B8D", fontWeight: 600 }}
-                        >
-                          {isWpSaving ? "保存中..." : "保存"}
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -1020,23 +973,13 @@ export const UnifiedSettingsModal: React.FC = () => {
                     {/* 昵称 */}
                     <div>
                       <Field label="昵称">
-                        <div style={{ display: "flex", gap: "8px" }}>
-                          <Input
-                            value={nicknameInput}
-                            onChange={(_, d) => setNicknameInput(d.value)}
-                            placeholder="输入昵称"
-                            style={{ flex: 1 }}
-                          />
-                          <Button
-                            appearance="primary"
-                            icon={isUpdatingNickname ? <Spinner size="tiny" /> : <Save20Regular />}
-                            disabled={isUpdatingNickname || !nicknameInput.trim() || nicknameInput.trim() === user?.nickname}
-                            onClick={handleSaveNickname}
-                            style={{ backgroundColor: "#5B7B8D", fontWeight: 600 }}
-                          >
-                            {isUpdatingNickname ? "保存中..." : "保存"}
-                          </Button>
-                        </div>
+                        <Input
+                          value={nicknameInput}
+                          onChange={(_, d) => setNicknameInput(d.value)}
+                          placeholder="输入昵称"
+                          contentBefore={<Person20Regular style={{ opacity: 0.5 }} />}
+                          style={{ width: "100%" }}
+                        />
                       </Field>
 
                       {nicknameMsg && (
@@ -1051,70 +994,32 @@ export const UnifiedSettingsModal: React.FC = () => {
                       )}
                     </div>
 
-                    {/* 密码修改分区 */}
+                    {/* 密码修改卡片 (独立弹窗触发) */}
                     <div
                       style={{
-                        padding: "16px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "14px 16px",
                         borderRadius: "10px",
                         border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
                         backgroundColor: isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.015)",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "12px",
                       }}
                     >
-                      <div style={{ fontWeight: 600, fontSize: "13.5px", display: "flex", alignItems: "center", gap: "6px" }}>
-                        <LockClosed20Regular style={{ color: "#5B7B8D" }} />
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <LockClosed20Regular style={{ color: "#5B7B8D", fontSize: "20px" }} />
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: "13.5px" }}>账号密码</div>
+                          <div style={{ fontSize: "12px", opacity: 0.6 }}>定期修改密码以保障账号安全</div>
+                        </div>
+                      </div>
+                      <Button
+                        appearance="secondary"
+                        icon={<Key20Regular />}
+                        onClick={() => setIsChangePasswordOpen(true)}
+                      >
                         修改密码
-                      </div>
-
-                      <Field label="原密码" required>
-                        <Input
-                          type="password"
-                          value={oldPassword}
-                          onChange={(_, d) => setOldPassword(d.value)}
-                          placeholder="当前密码"
-                        />
-                      </Field>
-
-                      <Field label="新密码" required>
-                        <Input
-                          type="password"
-                          value={newPassword}
-                          onChange={(_, d) => setNewPassword(d.value)}
-                          placeholder="至少 6 位"
-                        />
-                      </Field>
-
-                      <Field label="确认密码" required>
-                        <Input
-                          type="password"
-                          value={confirmPassword}
-                          onChange={(_, d) => setConfirmPassword(d.value)}
-                          placeholder="再次输入"
-                        />
-                      </Field>
-
-                      {passwordMsg && (
-                        <MessageBar
-                          intent={passwordMsg.type === "success" ? "success" : "error"}
-                          style={{ borderRadius: "8px", fontSize: "12px" }}
-                        >
-                          <MessageBarBody>{passwordMsg.text}</MessageBarBody>
-                        </MessageBar>
-                      )}
-
-                      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
-                        <Button
-                          appearance="primary"
-                          icon={isUpdatingPassword ? <Spinner size="tiny" /> : undefined}
-                          disabled={isUpdatingPassword || !oldPassword.trim() || !newPassword.trim()}
-                          onClick={handleChangePassword}
-                          style={{ backgroundColor: "#5B7B8D", fontWeight: 600 }}
-                        >
-                          {isUpdatingPassword ? "修改中..." : "修改密码"}
-                        </Button>
-                      </div>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -1212,11 +1117,12 @@ export const UnifiedSettingsModal: React.FC = () => {
               </div>
             </div>
 
-            {/* 底部固定区 */}
+            {/* 底部固定区：统一保存按钮于右下角 */}
             <footer
               style={{
                 display: "flex",
-                justifyContent: "flex-end",
+                alignItems: "center",
+                justifyContent: "space-between",
                 padding: isMobile
                   ? "12px 16px max(14px, env(safe-area-inset-bottom))"
                   : "12px 20px",
@@ -1227,13 +1133,69 @@ export const UnifiedSettingsModal: React.FC = () => {
                 flexShrink: 0,
               }}
             >
-              <Button
-                appearance="secondary"
-                onClick={closeSettings}
-                style={{ borderRadius: "8px", minWidth: "72px" }}
-              >
-                关闭
-              </Button>
+              {/* 左侧操作：AI 选项卡显示测试连接 */}
+              <div>
+                {activeTab === "ai" && (
+                  <Button
+                    appearance="secondary"
+                    icon={isAiTesting ? <Spinner size="tiny" /> : <PlugConnected20Regular />}
+                    onClick={handleTestAi}
+                    disabled={isAiTesting || isAiSaving || isAiLoading}
+                  >
+                    {isAiTesting ? "测试中..." : "测试连接"}
+                  </Button>
+                )}
+              </div>
+
+              {/* 右下角统一操作按钮 */}
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <Button
+                  appearance="secondary"
+                  onClick={closeSettings}
+                  style={{ borderRadius: "8px", minWidth: "72px" }}
+                >
+                  关闭
+                </Button>
+
+                {/* AI 保存 */}
+                {activeTab === "ai" && (
+                  <Button
+                    appearance="primary"
+                    icon={isAiSaving ? <Spinner size="tiny" /> : <Save20Regular />}
+                    onClick={handleSaveAi}
+                    disabled={isAiTesting || isAiSaving || isAiLoading}
+                    style={{ backgroundColor: "#5B7B8D", fontWeight: 600, minWidth: "72px" }}
+                  >
+                    {isAiSaving ? "保存中..." : "保存"}
+                  </Button>
+                )}
+
+                {/* 壁纸保存 (仅管理员) */}
+                {activeTab === "wallpaper" && isTiany && (
+                  <Button
+                    appearance="primary"
+                    icon={isWpSaving ? <Spinner size="tiny" /> : <Save20Regular />}
+                    disabled={isWpSaving}
+                    onClick={handleSaveWallpaper}
+                    style={{ backgroundColor: "#5B7B8D", fontWeight: 600, minWidth: "72px" }}
+                  >
+                    {isWpSaving ? "保存中..." : "保存"}
+                  </Button>
+                )}
+
+                {/* 个人资料保存昵称 */}
+                {activeTab === "profile" && (
+                  <Button
+                    appearance="primary"
+                    icon={isUpdatingNickname ? <Spinner size="tiny" /> : <Save20Regular />}
+                    disabled={isUpdatingNickname || !nicknameInput.trim() || nicknameInput.trim() === user?.nickname}
+                    onClick={handleSaveNickname}
+                    style={{ backgroundColor: "#5B7B8D", fontWeight: 600, minWidth: "72px" }}
+                  >
+                    {isUpdatingNickname ? "保存中..." : "保存"}
+                  </Button>
+                )}
+              </div>
             </footer>
           </DialogBody>
         </DialogSurface>
@@ -1243,6 +1205,12 @@ export const UnifiedSettingsModal: React.FC = () => {
       <AvatarCropModal
         isOpen={isAvatarCropOpen}
         onClose={() => setIsAvatarCropOpen(false)}
+      />
+
+      {/* 独立修改密码弹窗 */}
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
       />
     </>
   );

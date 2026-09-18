@@ -1773,6 +1773,36 @@ html.dark .fui-DialogSurface {
   -webkit-backdrop-filter: none !important;
 }
 
+/* 统一设置弹窗：桌面端任何页面高度固定 600px，长页面由内部独立滚动呈现 */
+.unified-settings-surface.fui-DialogSurface {
+  height: 600px !important;
+  min-height: 600px !important;
+  max-height: 600px !important;
+}
+
+@media (max-width: 768px) {
+  .unified-settings-surface.fui-DialogSurface {
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+  }
+}
+
+/* AI 对话左侧栏宽度拖拽手柄 */
+.ai-sidebar-resizer {
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+}
+.ai-sidebar-resizer:hover,
+.ai-sidebar-resizer.is-dragging {
+  background-color: rgba(91, 123, 141, 0.4) !important;
+}
+html.dark .ai-sidebar-resizer:hover,
+html.dark .ai-sidebar-resizer.is-dragging {
+  background-color: rgba(142, 174, 192, 0.35) !important;
+}
+
+
 @keyframes fuiDialogEnter {
   0% {
     opacity: 0;
