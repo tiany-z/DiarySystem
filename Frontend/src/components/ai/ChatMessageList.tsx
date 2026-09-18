@@ -49,7 +49,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
       style={{
         flex: 1,
         overflowY: "auto",
-        padding: isMobile ? "12px 10px 140px" : "20px 24px 150px",
+        padding: isMobile ? "12px 10px 90px" : "20px 24px 100px",
         display: "flex",
         flexDirection: "column",
         height: "100%",

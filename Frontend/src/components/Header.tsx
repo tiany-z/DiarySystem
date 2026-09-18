@@ -388,7 +388,7 @@ export const Header: React.FC = () => {
                     个人资料
                   </MenuItem>
                   <MenuItem
-                    icon={<Bot20Regular style={{ color: "#5B7B8D" }} />}
+                    icon={<Bot20Regular />}
                     onClick={() => openSettings("ai")}
                   >
                     AI 模型
@@ -400,7 +400,7 @@ export const Header: React.FC = () => {
                     背景壁纸
                   </MenuItem>
                   <MenuItem
-                    icon={<Sparkle20Regular style={{ color: "#5B7B8D" }} />}
+                    icon={<Sparkle20Regular />}
                     onClick={() => openSettings("theme")}
                   >
                     界面外观
@@ -557,7 +557,7 @@ export const Header: React.FC = () => {
                     个人资料
                   </MenuItem>
                   <MenuItem
-                    icon={<Bot20Regular style={{ color: "#5B7B8D" }} />}
+                    icon={<Bot20Regular />}
                     onClick={() => openSettings("ai")}
                   >
                     AI 模型
@@ -569,7 +569,7 @@ export const Header: React.FC = () => {
                     背景壁纸
                   </MenuItem>
                   <MenuItem
-                    icon={<Sparkle20Regular style={{ color: "#5B7B8D" }} />}
+                    icon={<Sparkle20Regular />}
                     onClick={() => openSettings("theme")}
                   >
                     界面外观
