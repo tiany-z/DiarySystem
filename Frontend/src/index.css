@@ -4400,46 +4400,48 @@ html.dark .win11-mica-dock:focus-within,
 
 /* =========================================================================
  * Windows 10 Fluent Design Reveal Highlight & Live Tile Ripple 系统
- * 1. 临近边缘感应光效 (Proximity Border Reveal)
- * 2. 悬停探照光斑 (Spotlight Hover Reveal)
- * 3. 磁贴按压光圈与松手波纹急速扩散 (Tile Press Ring & Release Diffusion)
- * 4. HDR / Display-P3 广色域高动态范围光效增强
+ * 1. 颜色规范：浅色模式纯白色，深色模式亮白色（半透明亮白），全流程支持 HDR (Display-P3)
+ * 2. 边框光效：光标 hover 进对象后，整个方块完整显示亮白边框光效
+ * 3. 探照光效：光标无需进入对象，只要靠近（<= 140px）即透出柔和纯白 / 半透亮白聚光
+ * 4. 磁贴按压光效：按下时为极其柔和、无生硬环线的漫反射散光；松手后如柔光巨浪迅速散开衰减
  * ========================================================================= */
 
 :root {
-  --win10-border-color: rgba(91, 123, 141, 0.85);
-  --win10-spotlight-color: rgba(91, 123, 141, 0.12);
-  --win10-press-ring-color: rgba(91, 123, 141, 0.95);
-  --win10-press-halo-color: rgba(91, 123, 141, 0.35);
-  --win10-press-glow-color: rgba(91, 123, 141, 0.45);
+  /* 浅色模式：纯白色系光效 */
+  --win10-border-color: rgba(255, 255, 255, 0.95);
+  --win10-border-glow: rgba(255, 255, 255, 0.85);
+  --win10-spotlight-color: rgba(255, 255, 255, 0.35);
+  --win10-press-glow-color: rgba(255, 255, 255, 0.9);
+  --win10-press-halo-color: rgba(255, 255, 255, 0.45);
 }
 
 html.dark,
 .dark {
-  --win10-border-color: rgba(220, 240, 255, 0.88);
-  --win10-spotlight-color: rgba(140, 190, 255, 0.18);
-  --win10-press-ring-color: rgba(255, 255, 255, 0.95);
-  --win10-press-halo-color: rgba(160, 215, 255, 0.45);
-  --win10-press-glow-color: rgba(100, 190, 255, 0.6);
+  /* 深色模式：亮白色（非纯白，半透明高亮白） */
+  --win10-border-color: rgba(255, 255, 255, 0.65);
+  --win10-border-glow: rgba(255, 255, 255, 0.35);
+  --win10-spotlight-color: rgba(255, 255, 255, 0.18);
+  --win10-press-glow-color: rgba(255, 255, 255, 0.65);
+  --win10-press-halo-color: rgba(255, 255, 255, 0.28);
 }
 
 /* HDR / Display-P3 广色域高动态范围光效增强 */
 @supports (color: color(display-p3 1 1 1)) {
   :root {
-    --win10-border-color: color(display-p3 0.35 0.52 0.65 / 0.92);
-    --win10-spotlight-color: color(display-p3 0.35 0.52 0.65 / 0.16);
-    --win10-press-ring-color: color(display-p3 0.3 0.48 0.62 / 0.98);
-    --win10-press-halo-color: color(display-p3 0.35 0.55 0.72 / 0.45);
-    --win10-press-glow-color: color(display-p3 0.3 0.52 0.75 / 0.6);
+    --win10-border-color: color(display-p3 1 1 1 / 0.98);
+    --win10-border-glow: color(display-p3 1 1 1 / 0.9);
+    --win10-spotlight-color: color(display-p3 1 1 1 / 0.4);
+    --win10-press-glow-color: color(display-p3 1 1 1 / 0.95);
+    --win10-press-halo-color: color(display-p3 1 1 1 / 0.5);
   }
 
   html.dark,
   .dark {
-    --win10-border-color: color(display-p3 0.92 0.97 1 / 0.95);
-    --win10-spotlight-color: color(display-p3 0.6 0.82 1 / 0.24);
-    --win10-press-ring-color: color(display-p3 1 1 1 / 1);
-    --win10-press-halo-color: color(display-p3 0.65 0.85 1 / 0.55);
-    --win10-press-glow-color: color(display-p3 0.45 0.8 1 / 0.75);
+    --win10-border-color: color(display-p3 1 1 1 / 0.68);
+    --win10-border-glow: color(display-p3 1 1 1 / 0.4);
+    --win10-spotlight-color: color(display-p3 1 1 1 / 0.22);
+    --win10-press-glow-color: color(display-p3 1 1 1 / 0.7);
+    --win10-press-halo-color: color(display-p3 1 1 1 / 0.32);
   }
 }
 
@@ -4452,13 +4454,13 @@ html.dark,
   overflow: hidden !important;
 }
 
-/* 保证按钮文字与图标在波纹之上清晰呈现 */
+/* 保证按钮文字与图标在光效之上清晰呈现 */
 .fui-Button > * {
   position: relative;
   z-index: 2;
 }
 
-/* 保持日记卡片 hover 时为纯粹的边缘与光斑发光，不被泛白遮罩破坏云母微透感 */
+/* 保持日记卡片 hover 时为纯净的云母底色，由边框光效与漫反射光斑自然点亮 */
 .note-card-surface.hover-lift:hover,
 .fui-Card.hover-lift:hover {
   background-color: rgba(255, 255, 255, 0.74) !important;
@@ -4471,7 +4473,7 @@ html.dark .fui-Card.hover-lift:hover,
   background-color: rgba(30, 31, 38, 0.72) !important;
 }
 
-/* 1. 边缘感应发光层 (Proximity Border Reveal Highlight) */
+/* 1. 完整方块边框光效 (光标进入对象后，整个方块完整显示发亮边框) */
 .note-card-surface::before,
 .fui-Card.hover-lift::before,
 .fui-Button::before,
@@ -4480,22 +4482,27 @@ html.dark .fui-Card.hover-lift:hover,
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  padding: 1.5px;
-  background: radial-gradient(
-    circle 150px at var(--win10-rx, -9999px) var(--win10-ry, -9999px),
-    var(--win10-border-color),
-    transparent 70%
-  );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
+  border: 1.5px solid transparent;
   pointer-events: none;
-  opacity: var(--win10-border-opacity, 0);
-  transition: opacity 0.08s ease-out;
+  opacity: 0;
+  transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 5;
 }
 
-/* 2. 内部光标探照光斑 (Spotlight Hover Reveal) */
+/* hover 进入对象后：整个方块完整呈现纯白/半透亮白边框光效与微光外发光 */
+.note-card-surface:hover::before,
+.fui-Card.hover-lift:hover::before,
+.fui-Button:hover::before,
+[data-win10-tile]:hover::before,
+[data-win10-hovered="true"]::before {
+  opacity: 1;
+  border-color: var(--win10-border-color);
+  box-shadow: 0 0 10px var(--win10-border-glow), inset 0 0 4px var(--win10-border-glow);
+}
+
+/* 2. 内部光标探照光斑 (无需光标进入，靠近材质 <= 140px 即自然透光) */
 .note-card-surface::after,
 .fui-Card.hover-lift::after,
 .fui-Button::after,
@@ -4506,7 +4513,7 @@ html.dark .fui-Card.hover-lift:hover,
   border-radius: inherit;
   pointer-events: none;
   background: radial-gradient(
-    circle 120px at var(--win10-rx, -9999px) var(--win10-ry, -9999px),
+    circle 140px at var(--win10-rx, -9999px) var(--win10-ry, -9999px),
     var(--win10-spotlight-color),
     transparent 70%
   );
@@ -4516,7 +4523,7 @@ html.dark .fui-Card.hover-lift:hover,
   mix-blend-mode: screen;
 }
 
-/* 浅色模式下探照光斑适配 */
+/* 浅色模式下探照光斑混合模式 */
 :root:not(.dark) .note-card-surface::after,
 :root:not(.dark) .fui-Card.hover-lift::after,
 :root:not(.dark) .fui-Button::after,
@@ -4524,63 +4531,82 @@ html.dark .fui-Card.hover-lift:hover,
   mix-blend-mode: normal;
 }
 
-/* 3. 磁贴按压光圈与松手波纹急速扩散 (Tile Press Ring & Release Diffusion) */
+/* 3. 磁贴按压光效与松手波纹急速扩散 (柔和漫反射散光，非生硬环形线) */
 .win10-tile-ripple {
   position: absolute;
   pointer-events: none;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   box-sizing: border-box;
+  border: none !important;
 }
 
-/* 按下时：在接触点凝聚高光能量光圈，保持紧绷蓄力状态，不提前扩散 */
+/* 按下但未松手时：接触点呈现柔和无边界的聚集散光，持续蓄力呼吸，无生硬外环线 */
 .win10-tile-ripple.is-holding {
-  width: 36px;
-  height: 36px;
-  border: 2px solid var(--win10-press-ring-color);
-  background: radial-gradient(circle, var(--win10-press-halo-color) 0%, transparent 80%);
-  box-shadow: 0 0 14px var(--win10-press-glow-color);
-  opacity: 0.95;
-  animation: win10HoldPulse 1.2s ease-in-out infinite alternate;
+  width: 72px;
+  height: 72px;
+  background: radial-gradient(
+    circle,
+    var(--win10-press-glow-color) 0%,
+    var(--win10-press-halo-color) 40%,
+    transparent 70%
+  );
+  filter: blur(8px);
+  opacity: 0.92;
+  animation: win10SoftHoldPulse 1.4s ease-in-out infinite alternate;
   z-index: 1;
+  mix-blend-mode: screen;
 }
 
-@keyframes win10HoldPulse {
+:root:not(.dark) .win10-tile-ripple.is-holding {
+  mix-blend-mode: normal;
+}
+
+@keyframes win10SoftHoldPulse {
   0% {
-    transform: translate(-50%, -50%) scale(0.92);
-    opacity: 0.85;
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0.8;
   }
   100% {
-    transform: translate(-50%, -50%) scale(1.08);
+    transform: translate(-50%, -50%) scale(1.1);
     opacity: 1;
   }
 }
 
-/* 松手瞬间：能量波纹急速向四方扩散横扫卡片并自然衰减消散 */
+/* 松手瞬间：非常柔和的散光像浪涌一样向四周无界扩散并迅速衰减，无生硬环线 */
 .win10-tile-ripple.is-diffusing {
-  width: 36px;
-  height: 36px;
-  border: 2px solid var(--win10-press-ring-color);
-  background: radial-gradient(circle, var(--win10-press-halo-color) 0%, transparent 75%);
-  box-shadow: 0 0 18px var(--win10-press-glow-color);
-  animation: win10TileWaveDiffuse 0.52s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+  width: 72px;
+  height: 72px;
+  background: radial-gradient(
+    circle,
+    var(--win10-press-glow-color) 0%,
+    var(--win10-press-halo-color) 45%,
+    transparent 75%
+  );
+  filter: blur(12px);
+  animation: win10SoftWaveDiffuse 0.52s cubic-bezier(0.12, 0.88, 0.28, 1) forwards;
   z-index: 1;
+  mix-blend-mode: screen;
 }
 
-@keyframes win10TileWaveDiffuse {
+:root:not(.dark) .win10-tile-ripple.is-diffusing {
+  mix-blend-mode: normal;
+}
+
+@keyframes win10SoftWaveDiffuse {
   0% {
     transform: translate(-50%, -50%) scale(1);
     opacity: 0.95;
-    border-width: 2.5px;
+    filter: blur(10px);
   }
   45% {
-    opacity: 0.65;
-    border-width: 1.5px;
+    opacity: 0.55;
+    filter: blur(18px);
   }
   100% {
-    transform: translate(-50%, -50%) scale(18);
+    transform: translate(-50%, -50%) scale(14);
     opacity: 0;
-    border-width: 0.5px;
+    filter: blur(28px);
   }
 }
 
@@ -4588,5 +4614,5 @@ html.dark .fui-Card.hover-lift:hover,
 .win10-tile-ripple.is-cancelled {
   transition: opacity 0.2s ease-out, transform 0.2s ease-out;
   opacity: 0 !important;
-  transform: translate(-50%, -50%) scale(0.5) !important;
+  transform: translate(-50%, -50%) scale(0.6) !important;
 }

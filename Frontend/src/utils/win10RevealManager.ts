@@ -84,9 +84,9 @@ class Win10RevealManager {
 
   private clearAllActiveElements = (): void => {
     this.activeElements.forEach((el) => {
-      el.style.setProperty("--win10-border-opacity", "0");
       el.style.setProperty("--win10-inner-opacity", "0");
       el.removeAttribute("data-win10-active");
+      el.removeAttribute("data-win10-hovered");
     });
     this.activeElements.clear();
   };
@@ -136,17 +136,20 @@ class Win10RevealManager {
         const rx = px - rect.left;
         const ry = py - rect.top;
 
-        // 边框光效强度：随距离平滑衰减
-        const borderOpacity = Math.max(0, 1 - dist / PROXIMITY_THRESHOLD);
-
-        // 内部探照光斑：光标完全在内部时为 1，外部快速衰减
+        // 内部探照光斑强度：靠近即开始透出柔光，完全在内部时为 1
         const isInside = px >= rect.left && px <= rect.right && py >= rect.top && py <= rect.bottom;
-        const innerOpacity = isInside ? 1 : Math.max(0, 1 - dist / (PROXIMITY_THRESHOLD * 0.45));
+        const innerOpacity = isInside ? 1 : Math.max(0, 1 - dist / PROXIMITY_THRESHOLD);
 
         el.style.setProperty("--win10-rx", `${rx}px`);
         el.style.setProperty("--win10-ry", `${ry}px`);
-        el.style.setProperty("--win10-border-opacity", borderOpacity.toFixed(3));
         el.style.setProperty("--win10-inner-opacity", innerOpacity.toFixed(3));
+
+        if (isInside) {
+          el.setAttribute("data-win10-hovered", "true");
+        } else {
+          el.removeAttribute("data-win10-hovered");
+        }
+
         if (!el.hasAttribute("data-win10-active")) {
           el.setAttribute("data-win10-active", "true");
         }
@@ -158,9 +161,9 @@ class Win10RevealManager {
     // 清除已远离光标的元素
     this.activeElements.forEach((el) => {
       if (!currentActive.has(el)) {
-        el.style.setProperty("--win10-border-opacity", "0");
         el.style.setProperty("--win10-inner-opacity", "0");
         el.removeAttribute("data-win10-active");
+        el.removeAttribute("data-win10-hovered");
       }
     });
 
