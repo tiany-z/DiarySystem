@@ -18,6 +18,7 @@ import { UserManager } from "./views/workspace/UserManager";
 import { AIChatView } from "./views/workspace/AIChatView";
 import { WorkspaceView } from "./views/workspace/WorkspaceView";
 import { CustomScrollbar } from "./components/CustomScrollbar";
+import { initWin10RevealManager } from "./utils/win10RevealManager";
 
 const getRouteTransitionKey = (pathname: string) => {
   if (pathname.startsWith("/workspace/ai")) return "/workspace/ai";
