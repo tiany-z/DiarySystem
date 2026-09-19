@@ -60,6 +60,11 @@ const AppContent: React.FC = () => {
 
   // 当处于非编辑器页面时，实时捕获并记录当前页面的视口滚动位置
   useEffect(() => {
+    const cleanup = initWin10RevealManager();
+    return cleanup;
+  }, []);
+
+  useEffect(() => {
     if (!isEditorPage) {
       const handleScroll = () => {
         const currentScroll =

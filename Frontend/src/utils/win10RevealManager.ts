@@ -9,7 +9,7 @@
  * 4. 松手波纹急速扩散 (Release Wave Diffusion)：松手（pointerup）瞬间波纹从接触点急速横扫并平滑淡出
  */
 
-const TARGET_SELECTOR = ".note-card-surface, .fui-Button, [data-win10-tile]";
+const TARGET_SELECTOR = ".note-card-surface, .fui-Card.hover-lift, .fui-Button, [data-win10-tile]";
 const PROXIMITY_THRESHOLD = 140; // 感应半径 140px
 
 class Win10RevealManager {

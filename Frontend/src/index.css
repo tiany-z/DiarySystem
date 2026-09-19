@@ -4445,6 +4445,7 @@ html.dark,
 
 /* 核心目标：日记卡片与 Fluent 按钮 */
 .note-card-surface,
+.fui-Card.hover-lift,
 .fui-Button,
 [data-win10-tile] {
   position: relative !important;
@@ -4458,17 +4459,21 @@ html.dark,
 }
 
 /* 保持日记卡片 hover 时为纯粹的边缘与光斑发光，不被泛白遮罩破坏云母微透感 */
-.note-card-surface.hover-lift:hover {
+.note-card-surface.hover-lift:hover,
+.fui-Card.hover-lift:hover {
   background-color: rgba(255, 255, 255, 0.74) !important;
 }
 
 html.dark .note-card-surface.hover-lift:hover,
-.dark .note-card-surface.hover-lift:hover {
+.dark .note-card-surface.hover-lift:hover,
+html.dark .fui-Card.hover-lift:hover,
+.dark .fui-Card.hover-lift:hover {
   background-color: rgba(30, 31, 38, 0.72) !important;
 }
 
 /* 1. 边缘感应发光层 (Proximity Border Reveal Highlight) */
 .note-card-surface::before,
+.fui-Card.hover-lift::before,
 .fui-Button::before,
 [data-win10-tile]::before {
   content: "";
@@ -4492,6 +4497,7 @@ html.dark .note-card-surface.hover-lift:hover,
 
 /* 2. 内部光标探照光斑 (Spotlight Hover Reveal) */
 .note-card-surface::after,
+.fui-Card.hover-lift::after,
 .fui-Button::after,
 [data-win10-tile]::after {
   content: "";
@@ -4512,6 +4518,7 @@ html.dark .note-card-surface.hover-lift:hover,
 
 /* 浅色模式下探照光斑适配 */
 :root:not(.dark) .note-card-surface::after,
+:root:not(.dark) .fui-Card.hover-lift::after,
 :root:not(.dark) .fui-Button::after,
 :root:not(.dark) [data-win10-tile]::after {
   mix-blend-mode: normal;
