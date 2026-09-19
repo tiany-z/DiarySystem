@@ -1,13 +1,11 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Badge,
   Button,
   Input,
-  Menu,
-  MenuItem,
-  MenuList,
-  MenuPopover,
-  MenuTrigger,
+  Popover,
+  PopoverTrigger,
+  PopoverSurface,
   Tooltip,
 } from "@fluentui/react-components";
 import {
@@ -53,9 +51,11 @@ const MOOD_ICON_MAP: Record<string, any> = {
 };
 
 const USER_MOODS_STORAGE_KEY = "diary_user_moods";
+const LEGACY_CUSTOM_MOODS_KEY = "diary_custom_moods";
 const DELETED_MOODS_STORAGE_KEY = "diary_deleted_mood_ids";
+const DISCOVERED_MOODS_KEY = "diary_discovered_note_moods";
 
-// 获取用户明确删除的心情 ID 黑名单
+// 获取用户明确删除的心情 ID / 名称黑名单
 export const getDeletedMoodIds = (): Set<string> => {
   if (typeof window === "undefined") return new Set();
   try {
@@ -63,45 +63,60 @@ export const getDeletedMoodIds = (): Set<string> => {
     if (!raw) return new Set();
     const list = JSON.parse(raw);
     if (!Array.isArray(list)) return new Set();
-    return new Set(list.map((id: string) => String(id).trim().toLowerCase()));
+    return new Set(
+      list
+        .map((id: any) => (id ? String(id).trim().toLowerCase() : ""))
+        .filter(Boolean)
+    );
   } catch {
     return new Set();
   }
 };
 
-// 获取用户当前所有可用心境类别（无固定类别，所有预设或自定义类别均平等支持增删）
+// 获取系统所有可用心境类别（包含默认与已有自定义分类，严格排除已删除类别）
 export const getUserMoods = (): MoodOption[] => {
   if (typeof window === "undefined") return DEFAULT_MOODS;
   const deletedSet = getDeletedMoodIds();
-  try {
-    const raw = localStorage.getItem(USER_MOODS_STORAGE_KEY);
-    let list: MoodOption[] = [];
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        list = parsed;
-      }
-    }
+  const map = new Map<string, MoodOption>();
 
-    // 若本地尚未有自定义列表，则以初始默认类别作为起点
-    if (list.length === 0 && !localStorage.getItem(USER_MOODS_STORAGE_KEY)) {
-      list = DEFAULT_MOODS.map((m) => ({ ...m, isCustom: true }));
+  // 1. 系统默认分类（未删除者）
+  for (const m of DEFAULT_MOODS) {
+    const lowerId = String(m.id || "").trim().toLowerCase();
+    const lowerLabel = String(m.label || "").trim().toLowerCase();
+    if (!deletedSet.has(lowerId) && !deletedSet.has(lowerLabel)) {
+      map.set(lowerId, { ...m, isCustom: false });
     }
-
-    return list
-      .filter(
-        (m) =>
-          !deletedSet.has(m.id.toLowerCase()) &&
-          !deletedSet.has(m.label.toLowerCase())
-      )
-      .map((item) => ({
-        ...item,
-        icon: item.icon || MOOD_ICON_MAP[item.id.toLowerCase()],
-        isCustom: true,
-      }));
-  } catch {
-    return DEFAULT_MOODS.filter((m) => !deletedSet.has(m.id.toLowerCase()));
   }
+
+  // 2. 本地保存的自定义与已有分类（兼容新旧两个 localStorage 键与缓存的日记已有分类）
+  for (const key of [USER_MOODS_STORAGE_KEY, LEGACY_CUSTOM_MOODS_KEY, DISCOVERED_MOODS_KEY]) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const list = JSON.parse(raw);
+      if (Array.isArray(list)) {
+        for (const item of list) {
+          if (!item) continue;
+          const id = String(item.id || item.label || "").trim();
+          if (!id) continue;
+          const lowerId = id.toLowerCase();
+          const lowerLabel = String(item.label || id).trim().toLowerCase();
+          if (deletedSet.has(lowerId) || deletedSet.has(lowerLabel)) continue;
+          map.set(lowerId, {
+            id,
+            label: String(item.label || id).trim(),
+            emoji: item.emoji || "✨",
+            color: item.color || "brand",
+            icon: item.icon || MOOD_ICON_MAP[lowerId],
+            hex: item.hex || "#a55eea",
+            isCustom: true,
+          });
+        }
+      }
+    } catch {}
+  }
+
+  return Array.from(map.values());
 };
 
 export const getCustomMoods = getUserMoods;
@@ -111,7 +126,7 @@ export const saveCustomMood = (newMood: {
   emoji?: string;
   hex?: string;
 }): MoodOption => {
-  const trimmed = newMood.label.trim();
+  const trimmed = String(newMood.label || "").trim();
   const id = trimmed;
   const emoji = newMood.emoji || "✨";
   const hex = newMood.hex || "#a55eea";
@@ -128,21 +143,32 @@ export const saveCustomMood = (newMood: {
 
   // 若该 ID 曾经在黑名单中，解除删除状态
   const deletedSet = getDeletedMoodIds();
-  if (deletedSet.has(id.toLowerCase())) {
-    deletedSet.delete(id.toLowerCase());
+  const lower = id.toLowerCase();
+  if (deletedSet.has(lower)) {
+    deletedSet.delete(lower);
     localStorage.setItem(
       DELETED_MOODS_STORAGE_KEY,
       JSON.stringify(Array.from(deletedSet))
     );
   }
 
-  const existing = getUserMoods().filter(
-    (m) =>
-      m.id.toLowerCase() !== id.toLowerCase() &&
-      m.label.toLowerCase() !== id.toLowerCase()
-  );
-  const updated = [...existing, customItem];
-  localStorage.setItem(USER_MOODS_STORAGE_KEY, JSON.stringify(updated));
+  // 保存到本地用户自定义列表
+  try {
+    const raw = localStorage.getItem(USER_MOODS_STORAGE_KEY);
+    let list: any[] = [];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) list = parsed;
+    }
+    const filtered = list.filter((m) => {
+      const mId = String(m?.id || "").trim().toLowerCase();
+      const mLabel = String(m?.label || "").trim().toLowerCase();
+      return mId !== lower && mLabel !== lower;
+    });
+    filtered.push(customItem);
+    localStorage.setItem(USER_MOODS_STORAGE_KEY, JSON.stringify(filtered));
+  } catch {}
+
   window.dispatchEvent(
     new CustomEvent("mood:custom_updated", { detail: customItem })
   );
@@ -150,7 +176,9 @@ export const saveCustomMood = (newMood: {
 };
 
 export const deleteMood = (id: string): void => {
-  const lower = id.trim().toLowerCase();
+  const lower = String(id || "").trim().toLowerCase();
+  if (!lower) return;
+
   const deletedSet = getDeletedMoodIds();
   deletedSet.add(lower);
   localStorage.setItem(
@@ -158,10 +186,23 @@ export const deleteMood = (id: string): void => {
     JSON.stringify(Array.from(deletedSet))
   );
 
-  const existing = getUserMoods().filter(
-    (m) => m.id.toLowerCase() !== lower && m.label.toLowerCase() !== lower
-  );
-  localStorage.setItem(USER_MOODS_STORAGE_KEY, JSON.stringify(existing));
+  // 清除本地存储记录
+  for (const key of [USER_MOODS_STORAGE_KEY, LEGACY_CUSTOM_MOODS_KEY, DISCOVERED_MOODS_KEY]) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const list = JSON.parse(raw);
+      if (Array.isArray(list)) {
+        const filtered = list.filter((m: any) => {
+          const mId = String(m?.id || "").trim().toLowerCase();
+          const mLabel = String(m?.label || "").trim().toLowerCase();
+          return mId !== lower && mLabel !== lower;
+        });
+        localStorage.setItem(key, JSON.stringify(filtered));
+      }
+    } catch {}
+  }
+
   window.dispatchEvent(
     new CustomEvent("mood:custom_updated", { detail: { id, deleted: true } })
   );
@@ -178,27 +219,42 @@ export const getAllMoods = (
 
   // 1. 用户当前所有有效类别
   for (const m of userList) {
-    map.set(m.id.toLowerCase(), m);
+    map.set(String(m.id || "").toLowerCase(), m);
   }
 
-  // 2. 动态从已有日记中补齐尚未删除的类别
+  // 2. 动态从已有日记中补齐尚未删除的类别，并缓存以便新建笔记等页面使用
   if (notes && Array.isArray(notes)) {
+    const discoveredList: any[] = [];
     for (const n of notes) {
-      const moodVal = n.mood?.trim();
+      const moodVal = String(n.mood || "").trim();
       if (!moodVal) continue;
       const lower = moodVal.toLowerCase();
       // 用户主动删除的分类坚决不重新展示
       if (deletedSet.has(lower)) continue;
       if (!map.has(lower)) {
-        map.set(lower, {
+        const discoveredItem: MoodOption = {
           id: moodVal,
           label: moodVal,
           emoji: "✨",
           hex: "#8854d0",
           color: "informative",
           isCustom: true,
-        });
+        };
+        map.set(lower, discoveredItem);
+        discoveredList.push(discoveredItem);
       }
+    }
+
+    if (discoveredList.length > 0) {
+      try {
+        const raw = localStorage.getItem(DISCOVERED_MOODS_KEY);
+        let existingDiscovered: any[] = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(existingDiscovered)) existingDiscovered = [];
+        const combined = [...existingDiscovered, ...discoveredList].filter((item, idx, self) =>
+          idx === self.findIndex((t) => String(t.id).toLowerCase() === String(item.id).toLowerCase())
+        );
+        localStorage.setItem(DISCOVERED_MOODS_KEY, JSON.stringify(combined));
+      } catch {}
     }
   }
 
@@ -207,35 +263,45 @@ export const getAllMoods = (
 
 export const getMoodOption = (mood?: string | null): MoodOption => {
   const currentList = getUserMoods();
-  if (!mood || !mood.trim()) {
-    return (
-      currentList[0] ||
-      DEFAULT_MOODS[0] || {
-        id: "Happy",
-        label: "记录",
-        emoji: "✨",
-        hex: "#ff9f43",
-        color: "brand",
-      }
+  const safe = String(mood || "").trim().toLowerCase();
+
+  if (safe) {
+    const found = currentList.find(
+      (m) =>
+        String(m.id || "").toLowerCase() === safe ||
+        String(m.label || "").toLowerCase() === safe
     );
+    if (found) return found;
+
+    // 检查是否在默认但未被删除的分类中
+    const deletedSet = getDeletedMoodIds();
+    if (!deletedSet.has(safe)) {
+      const preset = DEFAULT_MOODS.find((m) => m.id.toLowerCase() === safe);
+      if (preset) return preset;
+
+      return {
+        id: mood!.trim(),
+        label: mood!.trim(),
+        emoji: "✨",
+        hex: "#8854d0",
+        color: "informative",
+        isCustom: true,
+      };
+    }
   }
-  const safe = mood.trim().toLowerCase();
 
-  const found = currentList.find(
-    (m) => m.id.toLowerCase() === safe || m.label.toLowerCase() === safe
-  );
-  if (found) return found;
+  // 若无指定有效 mood 或已被删除，优先回退到当前可用分类的第一个
+  if (currentList.length > 0) {
+    return currentList[0];
+  }
 
-  const preset = DEFAULT_MOODS.find((m) => m.id.toLowerCase() === safe);
-  if (preset) return preset;
-
+  // 终极安全兜底
   return {
-    id: mood.trim(),
-    label: mood.trim(),
+    id: "default",
+    label: "随笔",
     emoji: "✨",
-    hex: "#8854d0",
-    color: "informative",
-    isCustom: true,
+    hex: "#5B7B8D",
+    color: "brand",
   };
 };
 
@@ -319,8 +385,8 @@ export const MoodPicker: React.FC<{
   size?: "small" | "medium";
   style?: React.CSSProperties;
 }> = ({ value, onChange, borderless = false, size = "medium", style }) => {
-  const [moodList, setMoodList] = useState<MoodOption[]>(getUserMoods());
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [moodList, setMoodList] = useState<MoodOption[]>(() => getUserMoods());
+  const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [selectedEmoji, setSelectedEmoji] = useState("🍵");
@@ -339,6 +405,7 @@ export const MoodPicker: React.FC<{
 
   const handleCreateConfirm = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     const trimmed = newLabel.trim();
     if (!trimmed) return;
 
@@ -351,32 +418,44 @@ export const MoodPicker: React.FC<{
     onChange(created.id);
     setNewLabel("");
     setIsCreating(false);
-    setIsMenuOpen(false);
+    setIsOpen(false);
   };
 
   const handleDeleteMood = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
+    e.preventDefault();
     deleteMood(id);
     const updated = getUserMoods();
     setMoodList(updated);
+
+    // 若当前选中的分类被删除，自动优雅回退至第一个可用分类
+    const currentId = String(current?.id || "").toLowerCase();
+    const currentLabel = String(current?.label || "").toLowerCase();
+    const targetId = String(id || "").toLowerCase();
     if (
-      value?.toLowerCase() === id.toLowerCase() ||
-      current.label.toLowerCase() === id.toLowerCase()
+      currentId === targetId ||
+      currentLabel === targetId ||
+      String(value || "").toLowerCase() === targetId
     ) {
       if (updated.length > 0) {
         onChange(updated[0].id);
       } else {
-        onChange("");
+        onChange("default");
       }
     }
   };
 
   return (
-    <Menu open={isMenuOpen} onOpenChange={(_, data) => {
-      setIsMenuOpen(data.open);
-      if (!data.open) setIsCreating(false);
-    }}>
-      <MenuTrigger disableButtonEnhancement>
+    <Popover
+      open={isOpen}
+      onOpenChange={(_, data) => {
+        setIsOpen(data.open);
+        if (!data.open) setIsCreating(false);
+      }}
+      positioning="below-start"
+      trapFocus={false}
+    >
+      <PopoverTrigger disableButtonEnhancement>
         <Button
           appearance="subtle"
           size={size}
@@ -408,21 +487,34 @@ export const MoodPicker: React.FC<{
         >
           {current.label}
         </Button>
-      </MenuTrigger>
-      <MenuPopover style={{ minWidth: "220px", maxWidth: "280px", padding: "6px" }}>
+      </PopoverTrigger>
+
+      <PopoverSurface
+        className="win11-mica-card"
+        style={{
+          minWidth: "240px",
+          maxWidth: "290px",
+          padding: "8px",
+          borderRadius: "12px",
+          maxHeight: "360px",
+          overflowY: "auto",
+        }}
+      >
         {!isCreating ? (
-          <MenuList>
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
             {/* 统一心境类别列表：支持对任何类别的删除与自定义新增 */}
             <div
               style={{
                 fontSize: "11px",
                 fontWeight: 600,
                 color: "rgba(128, 128, 128, 0.8)",
-                padding: "4px 8px 4px",
+                padding: "4px 8px 6px",
                 userSelect: "none",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
+                borderBottom: "1px solid rgba(128, 128, 128, 0.12)",
+                marginBottom: "4px",
               }}
             >
               <span>心境类别</span>
@@ -443,73 +535,102 @@ export const MoodPicker: React.FC<{
                 暂无分类，点击下方新建
               </div>
             ) : (
-              moodList.map((m) => {
-                const Icon = m.icon;
-                const isSelected =
-                  value?.toLowerCase() === m.id.toLowerCase() ||
-                  value?.toLowerCase() === m.label.toLowerCase();
-                return (
-                  <div
-                    key={m.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "2px 4px",
-                      borderRadius: "6px",
-                    }}
-                  >
-                    <MenuItem
-                      style={{ flex: 1 }}
-                      icon={
-                        Icon ? (
-                          <Icon style={{ color: m.hex }} />
-                        ) : (
-                          <span style={{ fontSize: "14px" }}>{m.emoji || "✨"}</span>
-                        )
-                      }
-                      onClick={() => {
-                        onChange(m.id);
-                        setIsMenuOpen(false);
-                      }}
-                    >
-                      <span style={{ color: m.hex, fontWeight: isSelected ? 600 : 500 }}>
-                        {m.label}
-                      </span>
-                    </MenuItem>
-
-                    <button
-                      type="button"
-                      onClick={(e) => handleDeleteMood(e, m.id)}
-                      title={`删除分类 “${m.label}”`}
-                      aria-label={`删除分类 ${m.label}`}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "2px",
+                  maxHeight: "220px",
+                  overflowY: "auto",
+                }}
+              >
+                {moodList.map((m) => {
+                  const Icon = m.icon;
+                  const isSelected =
+                    String(value || "").toLowerCase() === String(m.id || "").toLowerCase() ||
+                    String(value || "").toLowerCase() === String(m.label || "").toLowerCase();
+                  return (
+                    <div
+                      key={m.id}
                       style={{
-                        background: "transparent",
-                        border: "none",
-                        cursor: "pointer",
-                        opacity: 0.45,
-                        padding: "5px",
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
-                        borderRadius: "4px",
-                        color: "#e74c3c",
-                        transition: "all 0.15s ease",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.opacity = "1";
-                        e.currentTarget.style.backgroundColor = "rgba(231, 76, 60, 0.12)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.opacity = "0.45";
-                        e.currentTarget.style.backgroundColor = "transparent";
+                        justifyContent: "space-between",
+                        padding: "2px 4px",
+                        borderRadius: "6px",
+                        backgroundColor: isSelected ? "rgba(91, 123, 141, 0.1)" : "transparent",
+                        transition: "background-color 0.15s ease",
                       }}
                     >
-                      <Delete20Regular style={{ fontSize: "15px" }} />
-                    </button>
-                  </div>
-                );
-              })
+                      <div
+                        onClick={() => {
+                          onChange(m.id);
+                          setIsOpen(false);
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          flex: 1,
+                          cursor: "pointer",
+                          padding: "6px 8px",
+                          minWidth: 0,
+                          userSelect: "none",
+                        }}
+                      >
+                        {Icon ? (
+                          <Icon style={{ color: m.hex, fontSize: "16px", flexShrink: 0 }} />
+                        ) : (
+                          <span style={{ fontSize: "14px", flexShrink: 0 }}>{m.emoji || "✨"}</span>
+                        )}
+                        <span
+                          style={{
+                            color: m.hex,
+                            fontWeight: isSelected ? 600 : 500,
+                            fontSize: "13px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {m.label}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteMood(e, m.id)}
+                        title={`删除分类 “${m.label}”`}
+                        aria-label={`删除分类 ${m.label}`}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          opacity: 0.45,
+                          padding: "6px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          borderRadius: "4px",
+                          color: "#e74c3c",
+                          transition: "all 0.15s ease",
+                          flexShrink: 0,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.opacity = "1";
+                          e.currentTarget.style.backgroundColor = "rgba(231, 76, 60, 0.12)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.opacity = "0.45";
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }}
+                      >
+                        <Delete20Regular style={{ fontSize: "14px" }} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             )}
 
             {/* 底部新增分类入口 */}
@@ -517,13 +638,14 @@ export const MoodPicker: React.FC<{
               style={{
                 borderTop: "1px solid rgba(128, 128, 128, 0.15)",
                 marginTop: "6px",
-                paddingTop: "4px",
+                paddingTop: "6px",
               }}
             >
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
                   setIsCreating(true);
                 }}
                 style={{
@@ -547,12 +669,12 @@ export const MoodPicker: React.FC<{
                 新建心情分类
               </button>
             </div>
-          </MenuList>
+          </div>
         ) : (
           /* 内联创建面板 */
           <div
             style={{
-              padding: "8px 6px",
+              padding: "4px 2px",
               display: "flex",
               flexDirection: "column",
               gap: "8px",
@@ -697,8 +819,8 @@ export const MoodPicker: React.FC<{
             </div>
           </div>
         )}
-      </MenuPopover>
-    </Menu>
+      </PopoverSurface>
+    </Popover>
   );
 };
 

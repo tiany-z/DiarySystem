@@ -75,7 +75,7 @@ import {
 import { diaryApi } from "../../api/diary";
 import { uploadApi } from "../../api/upload";
 import { MarkdownViewer } from "../../components/MarkdownViewer";
-import { MoodPicker } from "../../components/MoodBadge";
+import { MoodPicker, getUserMoods } from "../../components/MoodBadge";
 import { WeatherPicker } from "../../components/WeatherBadge";
 import { useAppTheme } from "../../context/ThemeContext";
 import { htmlToMarkdown, markdownToHtml } from "../../utils/markdownUtils";
@@ -102,7 +102,10 @@ export const MarkdownStudio: React.FC = () => {
   const [title, setTitle] = useState<string>("");
   const [content, setContent] = useState<string>("");
   const [weather, setWeather] = useState<string>("Sunny");
-  const [mood, setMood] = useState<string>("Happy");
+  const [mood, setMood] = useState<string>(() => {
+    const available = getUserMoods();
+    return available[0]?.id || "Happy";
+  });
   const [isPublic, setIsPublic] = useState<boolean>(true);
   const [createdAt, setCreatedAt] = useState<string>("");
 
@@ -313,7 +316,9 @@ export const MarkdownStudio: React.FC = () => {
       const initialTitle = state?.templateTitle || "";
       const initialContent = state?.templateContent || "";
       const initialWeather = state?.weather || "Sunny";
-      const initialMood = state?.mood || "Happy";
+      const availableMoods = getUserMoods();
+      const defaultMoodId = availableMoods[0]?.id || "Happy";
+      const initialMood = state?.mood || defaultMoodId;
       const initialPublic = state?.is_public !== undefined ? (state.is_public !== 0 && state.is_public !== false) : true;
 
       setTitle(initialTitle);

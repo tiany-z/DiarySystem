@@ -206,6 +206,10 @@ const AppContent: React.FC = () => {
                 }
               />
 
+              {/* 编辑器浮层背景占位（绝不触发 404 兜底重定向到首页） */}
+              <Route path="/workspace/new" element={<div />} />
+              <Route path="/workspace/edit/:id" element={<div />} />
+
               {/* 兜底路由 */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

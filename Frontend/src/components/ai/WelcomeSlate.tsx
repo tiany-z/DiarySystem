@@ -23,22 +23,23 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = () => {
         margin: "0 auto",
       }}
     >
-      {/* Gemini 风格渐变 Sparkle 徽标 */}
+      {/* 项目主题色 Sparkle 图标徽标 (Fluent 2 极简云母微光风格) */}
       <div
-        className="win10-tile-rise win10-delay-1 gemini-sparkle-halo"
+        className="win10-tile-rise win10-delay-1"
         style={{
           width: "48px",
           height: "48px",
-          borderRadius: "50%",
-          background: "linear-gradient(135deg, #4285f4 0%, #9b72cf 50%, #d96570 100%)",
+          borderRadius: "14px",
+          backgroundColor: isDark ? "rgba(91, 123, 141, 0.2)" : "rgba(91, 123, 141, 0.12)",
+          border: isDark ? "1px solid rgba(142, 174, 192, 0.25)" : "1px solid rgba(91, 123, 141, 0.2)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "#ffffff",
+          color: isDark ? "#8EAEC0" : "#5B7B8D",
           boxShadow: isDark
-            ? "0 4px 20px rgba(66, 133, 244, 0.35)"
-            : "0 4px 18px rgba(66, 133, 244, 0.25)",
-          marginBottom: "18px",
+            ? "0 4px 16px rgba(0, 0, 0, 0.35)"
+            : "0 4px 16px rgba(91, 123, 141, 0.12)",
+          marginBottom: "16px",
         }}
       >
         <Sparkle20Regular style={{ fontSize: "24px" }} />
@@ -47,14 +48,10 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = () => {
       <h2
         className="win10-tile-rise win10-delay-1"
         style={{
-          margin: "0 0 10px 0",
-          fontSize: "26px",
+          margin: "0 0 8px 0",
+          fontSize: "24px",
           fontWeight: 600,
-          background: isDark
-            ? "linear-gradient(74deg, #4285f4 0%, #9b72cf 35%, #d96570 70%)"
-            : "linear-gradient(74deg, #1a73e8 0%, #8e24aa 40%, #d81b60 80%)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
+          color: isDark ? "#f4f4f5" : "#111827",
           letterSpacing: "-0.3px",
         }}
       >
@@ -71,7 +68,7 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = () => {
           lineHeight: "1.6",
         }}
       >
-        帮你检索笔记、分析情绪心境、撰写文字或获取灵感洞察。
+        检索笔记、分析心境、润色文字或获取灵感洞察。
       </p>
     </div>
   );
