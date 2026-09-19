@@ -4417,12 +4417,12 @@ html.dark .win11-mica-dock:focus-within,
 
 html.dark,
 .dark {
-  /* 深色模式：亮白色（非纯白，半透明高亮白） */
-  --win10-border-color: rgba(255, 255, 255, 0.65);
-  --win10-border-glow: rgba(255, 255, 255, 0.35);
-  --win10-spotlight-color: rgba(255, 255, 255, 0.18);
-  --win10-press-glow-color: rgba(255, 255, 255, 0.65);
-  --win10-press-halo-color: rgba(255, 255, 255, 0.28);
+  /* 深色模式：低透明度半透白（黑底微光微亮，非白非纯白） */
+  --win10-border-color: rgba(255, 255, 255, 0.28);
+  --win10-border-glow: rgba(255, 255, 255, 0.12);
+  --win10-spotlight-color: rgba(255, 255, 255, 0.08);
+  --win10-press-glow-color: rgba(255, 255, 255, 0.38);
+  --win10-press-halo-color: rgba(255, 255, 255, 0.15);
 }
 
 /* HDR / Display-P3 广色域高动态范围光效增强 */
@@ -4437,11 +4437,11 @@ html.dark,
 
   html.dark,
   .dark {
-    --win10-border-color: color(display-p3 1 1 1 / 0.68);
-    --win10-border-glow: color(display-p3 1 1 1 / 0.4);
-    --win10-spotlight-color: color(display-p3 1 1 1 / 0.22);
-    --win10-press-glow-color: color(display-p3 1 1 1 / 0.7);
-    --win10-press-halo-color: color(display-p3 1 1 1 / 0.32);
+    --win10-border-color: color(display-p3 1 1 1 / 0.32);
+    --win10-border-glow: color(display-p3 1 1 1 / 0.15);
+    --win10-spotlight-color: color(display-p3 1 1 1 / 0.09);
+    --win10-press-glow-color: color(display-p3 1 1 1 / 0.42);
+    --win10-press-halo-color: color(display-p3 1 1 1 / 0.18);
   }
 }
 
@@ -4573,7 +4573,7 @@ html.dark .fui-Card.hover-lift:hover,
   }
 }
 
-/* 松手瞬间：非常柔和的散光像浪涌一样向四周无界扩散并迅速衰减，无生硬环线 */
+/* 松手瞬间：波纹带有停留感与延展感，如柔光浪涌由近及远平滑扩散消散，肉眼清晰可见 */
 .win10-tile-ripple.is-diffusing {
   width: 72px;
   height: 72px;
@@ -4583,8 +4583,8 @@ html.dark .fui-Card.hover-lift:hover,
     var(--win10-press-halo-color) 45%,
     transparent 75%
   );
-  filter: blur(12px);
-  animation: win10SoftWaveDiffuse 0.52s cubic-bezier(0.12, 0.88, 0.28, 1) forwards;
+  filter: blur(10px);
+  animation: win10SoftWaveDiffuse 0.82s cubic-bezier(0.08, 0.82, 0.17, 1) forwards;
   z-index: 1;
   mix-blend-mode: screen;
 }
@@ -4597,16 +4597,22 @@ html.dark .fui-Card.hover-lift:hover,
   0% {
     transform: translate(-50%, -50%) scale(1);
     opacity: 0.95;
-    filter: blur(10px);
+    filter: blur(8px);
   }
-  45% {
-    opacity: 0.55;
-    filter: blur(18px);
+  25% {
+    transform: translate(-50%, -50%) scale(4.2);
+    opacity: 0.85;
+    filter: blur(14px);
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(9.5);
+    opacity: 0.42;
+    filter: blur(22px);
   }
   100% {
-    transform: translate(-50%, -50%) scale(14);
+    transform: translate(-50%, -50%) scale(16);
     opacity: 0;
-    filter: blur(28px);
+    filter: blur(32px);
   }
 }
 

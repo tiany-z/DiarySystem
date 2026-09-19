@@ -216,12 +216,12 @@ class Win10RevealManager {
 
       ripple.addEventListener("animationend", handleEnd);
 
-      // 安全冗余清理定时器
+      // 安全冗余清理定时器 (与 CSS 动画时长 0.8s 匹配)
       setTimeout(() => {
         if (ripple.parentElement) {
           ripple.remove();
         }
-      }, 650);
+      }, 950);
     });
 
     this.activeRipples.clear();
