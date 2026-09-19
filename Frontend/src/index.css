@@ -1060,6 +1060,43 @@ html.dark .meta-capsule-chip {
   }
 }
 
+/* 外部宿主窗口控制模式（.has-external-controls）：
+   右上角向左平移让位后，中间 4 个 Tab 导航按钮提前至 1280px 折叠为纯图标，杜绝与平移后的按钮重合挤压 */
+@media (max-width: 1280px) {
+  .has-external-controls .header-nav-btn-text {
+    display: none !important;
+  }
+
+  .has-external-controls .header-nav-btn {
+    min-width: 36px !important;
+    width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .has-external-controls .header-nav-btn .fui-Button__icon {
+    margin: 0 !important;
+    font-size: 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+/* 外部宿主窗口控制模式下，头像昵称提前至 1120px 隐藏 */
+@media (max-width: 1120px) {
+  .has-external-controls .header-avatar-name {
+    display: none !important;
+  }
+
+  .has-external-controls .header-avatar-btn {
+    padding: 3px 4px !important;
+  }
+}
+
 @media (max-width: 960px) {
   .desktop-save-btn-text {
     display: none !important;

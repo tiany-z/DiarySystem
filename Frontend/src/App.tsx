@@ -10,6 +10,7 @@ import { PageCacheProvider } from "./context/PageCacheContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import { useAppTheme } from "./context/ThemeContext";
 import { WallpaperProvider } from "./context/WallpaperContext";
+import { WindowControlsProvider } from "./context/WindowControlsContext";
 import { AuthPortal } from "./views/auth/AuthPortal";
 import { PublicShowcase } from "./views/public/PublicShowcase";
 import { MarkdownStudio } from "./views/workspace/MarkdownStudio";
@@ -273,11 +274,13 @@ export const App: React.FC = () => {
         <PageCacheProvider>
           <WallpaperProvider>
             <SettingsProvider>
-              <WallpaperLayer />
-              <BrowserRouter>
-                <UnifiedSettingsModal />
-                <AppContent />
-              </BrowserRouter>
+              <WindowControlsProvider>
+                <WallpaperLayer />
+                <BrowserRouter>
+                  <UnifiedSettingsModal />
+                  <AppContent />
+                </BrowserRouter>
+              </WindowControlsProvider>
             </SettingsProvider>
           </WallpaperProvider>
         </PageCacheProvider>
