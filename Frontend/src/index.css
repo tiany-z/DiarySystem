@@ -226,14 +226,21 @@ html.dark::-webkit-scrollbar-thumb:hover {
 }
 
 .hover-lift {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-.hover-lift:hover {
-  transform: translateY(-3px);
+.hover-lift:hover,
+.note-card-surface:hover,
+.fui-Card.hover-lift:hover,
+.fui-Card:hover,
+.win11-mica-card.hover-lift:hover,
+.win11-mica-card:hover,
+.user-row-card:hover,
+[data-win10-tile]:hover {
+  transform: none !important;
 }
 
-/* 移动端界面 (<= 788px) 与触控设备：卡片 hover 不执行向上平移动画 */
+/* 移动端与触控设备：保持 transform none */
 @media (max-width: 788px), (pointer: coarse), (hover: none) {
   .hover-lift:hover,
   .note-card-surface:hover,
@@ -1789,7 +1796,9 @@ html.dark .fui-DialogBackdrop {
   -webkit-backdrop-filter: none !important;
 }
 
-.fui-DialogSurface {
+.fui-DialogSurface,
+.fui-DialogSurface.win11-mica-card,
+.unified-settings-surface.fui-DialogSurface {
   position: fixed !important;
   inset: 0 !important;
   margin: auto !important;
@@ -1807,29 +1816,72 @@ html.dark .fui-DialogBackdrop {
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
   transform-origin: center center;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.24), 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+  opacity: 1 !important;
 }
 
-html.dark .fui-DialogSurface {
+html.dark .fui-DialogSurface,
+.dark .fui-DialogSurface,
+html.dark .fui-DialogSurface.win11-mica-card,
+.dark .fui-DialogSurface.win11-mica-card,
+html.dark .unified-settings-surface.fui-DialogSurface,
+.dark .unified-settings-surface.fui-DialogSurface {
   background-color: #202026 !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   box-shadow: 0 28px 72px rgba(0, 0, 0, 0.65), 0 6px 24px rgba(0, 0, 0, 0.4) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  opacity: 1 !important;
 }
 
-/* 统一设置弹窗：桌面端任何页面高度固定 600px，长页面由内部独立滚动呈现 */
+/* 统一设置弹窗：桌面端尺寸 */
 .unified-settings-surface.fui-DialogSurface {
-  height: 600px !important;
-  min-height: 600px !important;
-  max-height: 600px !important;
+  height: 540px !important;
+  min-height: 520px !important;
+  max-height: 580px !important;
+  width: 720px !important;
+  max-width: 720px !important;
 }
 
 @media (max-width: 768px) {
   .unified-settings-surface.fui-DialogSurface {
+    width: 100vw !important;
+    max-width: 100vw !important;
     height: 100dvh !important;
     min-height: 100dvh !important;
     max-height: 100dvh !important;
+    border-radius: 0 !important;
   }
+}
+
+/* 弹窗内部组件还原 Fluent Design 宽松、饱满、舒适的尺寸风格 */
+.fui-DialogSurface .fui-Field {
+  margin-bottom: 12px !important;
+}
+
+.fui-DialogSurface .fui-Field__label {
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  margin-bottom: 6px !important;
+}
+
+.fui-DialogSurface .fui-Input {
+  min-height: 38px !important;
+  height: 38px !important;
+  font-size: 14px !important;
+  border-radius: 8px !important;
+}
+
+.fui-DialogSurface .fui-Button:not(.dialog-close-btn):not(.fui-Button--subtle) {
+  min-height: 36px !important;
+  height: 36px !important;
+  padding: 6px 18px !important;
+  font-size: 14px !important;
+  border-radius: 8px !important;
+}
+
+.fui-DialogSurface .fui-DialogActions {
+  gap: 12px !important;
+  margin-top: 18px !important;
 }
 
 /* AI 对话左侧栏宽度拖拽手柄 */
@@ -4325,16 +4377,18 @@ html.dark .win11-mica-card,
 .win11-mica-card.hover-lift:hover {
   background-color: rgba(255, 255, 255, 0.86) !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
-  transform: translateY(-2px);
+  transform: none !important;
 }
 
 html.dark .win11-mica-card.hover-lift:hover,
 .dark .win11-mica-card.hover-lift:hover {
   background-color: rgba(38, 39, 48, 0.82) !important;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
-  transform: translateY(-2px);
+  transform: none !important;
 }
 
+.fui-Input,
+.fui-Textarea,
 .win11-mica-input {
   backdrop-filter: blur(20px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
@@ -4344,6 +4398,10 @@ html.dark .win11-mica-card.hover-lift:hover,
   transition: all 0.2s ease !important;
 }
 
+html.dark .fui-Input,
+.dark .fui-Input,
+html.dark .fui-Textarea,
+.dark .fui-Textarea,
 html.dark .win11-mica-input,
 .dark .win11-mica-input {
   background-color: rgba(30, 31, 38, 0.72) !important;
@@ -4351,12 +4409,18 @@ html.dark .win11-mica-input,
   box-shadow: 0 2px 14px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
+.fui-Input:focus-within,
+.fui-Textarea:focus-within,
 .win11-mica-input:focus-within {
   background-color: rgba(255, 255, 255, 0.88) !important;
   border-color: #5B7B8D !important;
   box-shadow: 0 4px 18px rgba(91, 123, 141, 0.18) !important;
 }
 
+html.dark .fui-Input:focus-within,
+.dark .fui-Input:focus-within,
+html.dark .fui-Textarea:focus-within,
+.dark .fui-Textarea:focus-within,
 html.dark .win11-mica-input:focus-within,
 .dark .win11-mica-input:focus-within {
   background-color: rgba(36, 37, 46, 0.88) !important;
@@ -4368,9 +4432,21 @@ html.dark .win11-mica-input:focus-within,
   display: none !important;
 }
 
+.fui-Input input,
+.fui-Input .fui-Input__input,
+.fui-Textarea textarea,
+.fui-Textarea .fui-Textarea__textarea,
 .win11-mica-input input,
 .win11-mica-input .fui-Input__input {
   background-color: transparent !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.fui-Input > *:not(.win10-tile-ripple),
+.fui-Textarea > *:not(.win10-tile-ripple) {
+  position: relative;
+  z-index: 2;
 }
 
 .win11-mica-dock {
@@ -4396,6 +4472,28 @@ html.dark .win11-mica-dock,
 html.dark .win11-mica-dock:focus-within,
 .dark .win11-mica-dock:focus-within {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+/* 用户卡片单行列表样式 */
+.user-row-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@media (max-width: 768px) {
+  .user-row-card {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 14px 16px !important;
+  }
+  .user-row-card .user-row-created {
+    display: none;
+  }
+  .user-row-card > div:last-child {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 
 /* =========================================================================
@@ -4445,10 +4543,15 @@ html.dark,
   }
 }
 
-/* 核心目标：日记卡片与 Fluent 按钮 */
+/* 核心目标：日记卡片、Fluent 按钮、输入框、Chat Dock、卡片等 */
 .note-card-surface,
 .fui-Card.hover-lift,
 .fui-Button,
+.fui-Input,
+.fui-Textarea,
+.win11-mica-input,
+.gemini-chat-dock,
+.win11-mica-dock,
 [data-win10-tile] {
   position: relative !important;
   overflow: hidden !important;
@@ -4477,6 +4580,11 @@ html.dark .fui-Card.hover-lift:hover,
 .note-card-surface::before,
 .fui-Card.hover-lift::before,
 .fui-Button::before,
+.fui-Input::before,
+.fui-Textarea::before,
+.win11-mica-input::before,
+.gemini-chat-dock::before,
+.win11-mica-dock::before,
 [data-win10-tile]::before {
   content: "";
   position: absolute;
@@ -4495,6 +4603,11 @@ html.dark .fui-Card.hover-lift:hover,
 .note-card-surface:hover::before,
 .fui-Card.hover-lift:hover::before,
 .fui-Button:hover::before,
+.fui-Input:hover::before,
+.fui-Textarea:hover::before,
+.win11-mica-input:hover::before,
+.gemini-chat-dock:hover::before,
+.win11-mica-dock:hover::before,
 [data-win10-tile]:hover::before,
 [data-win10-hovered="true"]::before {
   opacity: 1;
@@ -4506,6 +4619,11 @@ html.dark .fui-Card.hover-lift:hover,
 .note-card-surface::after,
 .fui-Card.hover-lift::after,
 .fui-Button::after,
+.fui-Input::after,
+.fui-Textarea::after,
+.win11-mica-input::after,
+.gemini-chat-dock::after,
+.win11-mica-dock::after,
 [data-win10-tile]::after {
   content: "";
   position: absolute;
@@ -4527,6 +4645,11 @@ html.dark .fui-Card.hover-lift:hover,
 :root:not(.dark) .note-card-surface::after,
 :root:not(.dark) .fui-Card.hover-lift::after,
 :root:not(.dark) .fui-Button::after,
+:root:not(.dark) .fui-Input::after,
+:root:not(.dark) .fui-Textarea::after,
+:root:not(.dark) .win11-mica-input::after,
+:root:not(.dark) .gemini-chat-dock::after,
+:root:not(.dark) .win11-mica-dock::after,
 :root:not(.dark) [data-win10-tile]::after {
   mix-blend-mode: normal;
 }

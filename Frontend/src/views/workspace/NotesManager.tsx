@@ -325,7 +325,8 @@ export const NotesManager: React.FC = () => {
         }}
       >
         <Card
-          className="win11-mica-card"
+          data-win10-tile
+          className="win11-mica-card hover-lift"
           style={{
             padding: "18px 20px",
             borderRadius: "14px",
@@ -354,7 +355,8 @@ export const NotesManager: React.FC = () => {
         </Card>
 
         <Card
-          className="win11-mica-card"
+          data-win10-tile
+          className="win11-mica-card hover-lift"
           style={{
             padding: "18px 20px",
             borderRadius: "14px",
@@ -383,7 +385,8 @@ export const NotesManager: React.FC = () => {
         </Card>
 
         <Card
-          className="win11-mica-card"
+          data-win10-tile
+          className="win11-mica-card hover-lift"
           style={{
             padding: "18px 20px",
             borderRadius: "14px",

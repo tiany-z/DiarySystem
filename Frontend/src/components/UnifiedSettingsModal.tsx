@@ -454,7 +454,7 @@ export const UnifiedSettingsModal: React.FC = () => {
         surfaceMotion={surfaceMotion}
       >
         <DialogSurface
-          className="unified-settings-surface win11-mica-card"
+          className="unified-settings-surface"
           backdropMotion={backdropMotion}
           backdrop={{
             style: {
@@ -472,17 +472,20 @@ export const UnifiedSettingsModal: React.FC = () => {
             bottom: isMobile ? 0 : undefined,
             margin: isMobile ? 0 : undefined,
             zIndex: isMobile ? 2000 : undefined,
-            maxWidth: isMobile ? "100vw" : "640px",
-            minWidth: isMobile ? "100vw" : "560px",
+            maxWidth: isMobile ? "100vw" : "720px",
+            minWidth: isMobile ? "100vw" : "620px",
             width: isMobile ? "100vw" : "85vw",
-            minHeight: isMobile ? "100dvh" : "460px",
-            maxHeight: isMobile ? "100dvh" : "500px",
-            height: isMobile ? "100dvh" : "480px",
+            minHeight: isMobile ? "100dvh" : "520px",
+            maxHeight: isMobile ? "100dvh" : "580px",
+            height: isMobile ? "100dvh" : "540px",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            borderRadius: isMobile ? 0 : "12px",
+            borderRadius: isMobile ? 0 : "14px",
             padding: 0,
+            backgroundColor: isDark ? "#202026" : "#ffffff",
+            backdropFilter: "none",
+            WebkitBackdropFilter: "none",
             border: isMobile
               ? "none"
               : isDark
@@ -491,8 +494,8 @@ export const UnifiedSettingsModal: React.FC = () => {
             boxShadow: isMobile
               ? "none"
               : isDark
-              ? "0 20px 50px rgba(0, 0, 0, 0.6)"
-              : "0 16px 40px rgba(0, 0, 0, 0.12)",
+              ? "0 24px 60px rgba(0, 0, 0, 0.65)"
+              : "0 20px 48px rgba(0, 0, 0, 0.14)",
           }}
         >
           <DialogBody
@@ -553,9 +556,9 @@ export const UnifiedSettingsModal: React.FC = () => {
                 style={{
                   display: "flex",
                   flexDirection: isMobile ? "row" : "column",
-                  gap: isMobile ? "6px" : "3px",
-                  padding: isMobile ? "8px 12px" : "10px 8px",
-                  width: isMobile ? "100%" : "130px",
+                  gap: isMobile ? "6px" : "4px",
+                  padding: isMobile ? "8px 12px" : "14px 10px",
+                  width: isMobile ? "100%" : "145px",
                   flexShrink: 0,
                   boxSizing: "border-box",
                   backgroundColor: isDark
@@ -588,9 +591,9 @@ export const UnifiedSettingsModal: React.FC = () => {
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "6px",
-                        padding: isMobile ? "5px 10px" : "6px 10px",
-                        borderRadius: "6px",
+                        gap: "8px",
+                        padding: isMobile ? "6px 12px" : "8px 14px",
+                        borderRadius: "8px",
                         border: "none",
                         cursor: "pointer",
                         background: isActive
@@ -606,7 +609,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                           ? "#a0aec0"
                           : "#4a5568",
                         fontWeight: isActive ? 600 : 500,
-                        fontSize: "12.5px",
+                        fontSize: "13.5px",
                         whiteSpace: "nowrap",
                         textAlign: "left",
                         width: isMobile ? "auto" : "100%",
@@ -616,7 +619,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                     >
                       <span
                         style={{
-                          fontSize: "16px",
+                          fontSize: "18px",
                           display: "flex",
                           alignItems: "center",
                           color: isActive
@@ -643,16 +646,16 @@ export const UnifiedSettingsModal: React.FC = () => {
                   minHeight: 0,
                   minWidth: 0,
                   overflowY: "auto",
-                  padding: isMobile ? "12px 14px 16px" : "12px 16px 14px",
+                  padding: isMobile ? "14px 16px 20px" : "18px 24px 20px",
                   boxSizing: "border-box",
                 }}
               >
                 {/* 1. AI 模型设置 TAB */}
                 {activeTab === "ai" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                    {/* 快捷预设 - 紧凑芯片胶囊样式 */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                      <span style={{ fontSize: "12px", color: isDark ? "#a0aec0" : "#64748b", marginRight: "2px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                    {/* 快捷预设 */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "4px" }}>
+                      <span style={{ fontSize: "13px", color: isDark ? "#a0aec0" : "#64748b", marginRight: "4px" }}>
                         预设:
                       </span>
                       {AI_PRESETS.map((preset) => {
@@ -665,8 +668,8 @@ export const UnifiedSettingsModal: React.FC = () => {
                             style={{
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: "4px",
-                              padding: "2px 8px",
+                              gap: "6px",
+                              padding: "4px 10px",
                               borderRadius: "6px",
                               border: isSelected
                                 ? "1px solid #5B7B8D"
@@ -675,7 +678,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                                 : "1px solid rgba(0, 0, 0, 0.1)",
                               backgroundColor: isSelected
                                 ? isDark
-                                  ? "rgba(91, 123, 141, 0.25)"
+                                   ? "rgba(91, 123, 141, 0.25)"
                                   : "rgba(91, 123, 141, 0.12)"
                                 : isDark
                                 ? "rgba(255, 255, 255, 0.04)"
@@ -688,12 +691,12 @@ export const UnifiedSettingsModal: React.FC = () => {
                                 ? "#e2e8f0"
                                 : "#334155",
                               cursor: "pointer",
-                              fontSize: "12px",
+                              fontSize: "12.5px",
                               fontWeight: isSelected ? 600 : 400,
                               transition: "all 0.15s ease",
                             }}
                           >
-                            <span style={{ fontSize: "13px" }}>{preset.icon}</span>
+                            <span style={{ fontSize: "14px" }}>{preset.icon}</span>
                             <span>{preset.name}</span>
                           </button>
                         );
@@ -701,32 +704,29 @@ export const UnifiedSettingsModal: React.FC = () => {
                     </div>
 
                     {/* API 服务地址 */}
-                    <Field label="服务地址" required size="small">
+                    <Field label="服务地址" required>
                       <Input
                         value={aiBaseUrl}
                         onChange={(_, d) => setAiBaseUrl(d.value)}
                         placeholder="例如: https://api.openai.com/v1"
                         contentBefore={<Globe20Regular style={{ opacity: 0.5 }} />}
                         disabled={isAiLoading}
-                        size="small"
                       />
                     </Field>
 
                     {/* 模型名称 */}
-                    <Field label="模型名称" required size="small">
+                    <Field label="模型名称" required>
                       <Input
                         value={aiModelName}
                         onChange={(_, d) => setAiModelName(d.value)}
                         placeholder="例如: gpt-4o, deepseek-chat"
                         contentBefore={<Bot20Regular style={{ opacity: 0.5 }} />}
                         disabled={isAiLoading}
-                        size="small"
                       />
                     </Field>
 
                     {/* API 密钥 */}
                     <Field
-                      size="small"
                       label={
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                           <span>API Key</span>
@@ -747,13 +747,11 @@ export const UnifiedSettingsModal: React.FC = () => {
                         contentAfter={
                           <Button
                             appearance="subtle"
-                            size="small"
                             icon={showAiKey ? <EyeOff20Regular /> : <Eye20Regular />}
                             onClick={() => setShowAiKey(!showAiKey)}
                           />
                         }
                         disabled={isAiLoading}
-                        size="small"
                       />
                     </Field>
 
@@ -983,22 +981,20 @@ export const UnifiedSettingsModal: React.FC = () => {
                     </div>
 
                     {/* 用户名与昵称 (并排显示) */}
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                      <Field label="用户名" size="small">
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                      <Field label="用户名">
                         <Input
                           value={user?.username || ""}
                           readOnly
-                          size="small"
                           contentBefore={<Person20Regular style={{ opacity: 0.5 }} />}
                         />
                       </Field>
 
-                      <Field label="昵称" size="small">
+                      <Field label="昵称">
                         <Input
                           value={nicknameInput}
                           onChange={(_, d) => setNicknameInput(d.value)}
                           placeholder="输入昵称"
-                          size="small"
                           contentBefore={<Person20Regular style={{ opacity: 0.5 }} />}
                           style={{ width: "100%" }}
                         />
@@ -1008,33 +1004,32 @@ export const UnifiedSettingsModal: React.FC = () => {
                     {nicknameMsg && (
                       <MessageBar
                         intent={nicknameMsg.type === "success" ? "success" : "error"}
-                        style={{ borderRadius: "6px", fontSize: "12px", padding: "4px 8px" }}
+                        style={{ borderRadius: "8px", fontSize: "13px", padding: "6px 12px" }}
                       >
                         <MessageBarBody>{nicknameMsg.text}</MessageBarBody>
                       </MessageBar>
                     )}
 
-                    {/* 操作行列表 - 紧凑 Fluent 风格，无冗余多余说明 */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "2px" }}>
+                    {/* 操作行列表 */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "6px" }}>
                       {/* 密码修改 */}
                       <div
                         style={{
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
-                          padding: "6px 12px",
-                          borderRadius: "8px",
+                          padding: "10px 14px",
+                          borderRadius: "10px",
                           border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
                           backgroundColor: isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.015)",
                         }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <LockClosed20Regular style={{ color: "#5B7B8D", fontSize: "16px" }} />
-                          <span style={{ fontWeight: 500, fontSize: "13px" }}>账号密码</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <LockClosed20Regular style={{ color: "#5B7B8D", fontSize: "18px" }} />
+                          <span style={{ fontWeight: 500, fontSize: "14px" }}>账号密码</span>
                         </div>
                         <Button
                           appearance="secondary"
-                          size="small"
                           icon={<Key20Regular />}
                           onClick={() => setIsChangePasswordOpen(true)}
                         >
@@ -1049,19 +1044,18 @@ export const UnifiedSettingsModal: React.FC = () => {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
-                            padding: "6px 12px",
-                            borderRadius: "8px",
+                            padding: "10px 14px",
+                            borderRadius: "10px",
                             border: isDark ? "1px solid rgba(91, 123, 141, 0.25)" : "1px solid rgba(91, 123, 141, 0.2)",
                             backgroundColor: isDark ? "rgba(91, 123, 141, 0.06)" : "rgba(91, 123, 141, 0.03)",
                           }}
                         >
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <PeopleCommunity20Regular style={{ color: "#5B7B8D", fontSize: "16px" }} />
-                            <span style={{ fontWeight: 500, fontSize: "13px" }}>用户管理控制台</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <PeopleCommunity20Regular style={{ color: "#5B7B8D", fontSize: "18px" }} />
+                            <span style={{ fontWeight: 500, fontSize: "14px" }}>用户管理控制台</span>
                           </div>
                           <Button
                             appearance="primary"
-                            size="small"
                             icon={<PeopleCommunity20Regular />}
                             onClick={() => {
                               closeSettings();
@@ -1079,19 +1073,18 @@ export const UnifiedSettingsModal: React.FC = () => {
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
-                          padding: "6px 12px",
-                          borderRadius: "8px",
+                          padding: "10px 14px",
+                          borderRadius: "10px",
                           border: isDark ? "1px solid rgba(209, 52, 56, 0.2)" : "1px solid rgba(209, 52, 56, 0.15)",
                           backgroundColor: isDark ? "rgba(209, 52, 56, 0.04)" : "rgba(209, 52, 56, 0.02)",
                         }}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <SignOut20Regular style={{ color: "#d13438", fontSize: "16px" }} />
-                          <span style={{ fontWeight: 500, fontSize: "13px", color: "#d13438" }}>退出登录</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <SignOut20Regular style={{ color: "#d13438", fontSize: "18px" }} />
+                          <span style={{ fontWeight: 500, fontSize: "14px", color: "#d13438" }}>退出登录</span>
                         </div>
                         <Button
                           appearance="subtle"
-                          size="small"
                           className="btn-danger"
                           style={{ color: "#d13438" }}
                           onClick={() => setIsLogoutConfirmOpen(true)}
@@ -1217,6 +1210,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                     icon={isAiTesting ? <Spinner size="tiny" /> : <PlugConnected20Regular />}
                     onClick={handleTestAi}
                     disabled={isAiTesting || isAiSaving || isAiLoading}
+                    style={{ minHeight: "36px" }}
                   >
                     {isAiTesting ? "测试中..." : "测试连接"}
                   </Button>
@@ -1224,19 +1218,17 @@ export const UnifiedSettingsModal: React.FC = () => {
               </div>
 
               {/* 右下角统一操作按钮：取消 + 保存并关闭 */}
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <Button
                   appearance="secondary"
-                  size="small"
                   onClick={closeSettings}
-                  style={{ borderRadius: "6px", minWidth: "64px" }}
+                  style={{ borderRadius: "8px", minWidth: "76px", minHeight: "36px" }}
                 >
                   取消
                 </Button>
 
                 <Button
                   appearance="primary"
-                  size="small"
                   icon={
                     isAiSaving || isWpSaving || isUpdatingNickname ? (
                       <Spinner size="tiny" />
@@ -1255,7 +1247,8 @@ export const UnifiedSettingsModal: React.FC = () => {
                   style={{
                     backgroundColor: "#5B7B8D",
                     fontWeight: 600,
-                    minWidth: "96px",
+                    minWidth: "110px",
+                    minHeight: "36px",
                     borderRadius: "8px",
                   }}
                 >

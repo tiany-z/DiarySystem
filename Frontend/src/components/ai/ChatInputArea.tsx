@@ -126,6 +126,7 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
 
       {/* 核心悬浮输入 Dock：Gemini 网页版大圆角胶囊 + Win11 云母透感 */}
       <div
+        data-win10-tile
         className="gemini-chat-dock win11-mica-dock"
         style={{
           width: "100%",
@@ -151,6 +152,8 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           rows={1}
           style={{
             flex: 1,
+            position: "relative",
+            zIndex: 2,
             border: "none",
             outline: "none",
             backgroundColor: "transparent",

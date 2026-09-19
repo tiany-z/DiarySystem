@@ -9,7 +9,7 @@
  * 4. 松手波纹急速扩散 (Release Wave Diffusion)：松手（pointerup）瞬间波纹从接触点急速横扫并平滑淡出
  */
 
-const TARGET_SELECTOR = ".note-card-surface, .fui-Card.hover-lift, .fui-Button, [data-win10-tile]";
+const TARGET_SELECTOR = ".note-card-surface, .fui-Card.hover-lift, .fui-Button, .win11-mica-card, .gemini-chat-dock, .win11-mica-input, .fui-Input, .fui-Textarea, [data-win10-tile]";
 const PROXIMITY_THRESHOLD = 140; // 感应半径 140px
 
 class Win10RevealManager {
@@ -17,6 +17,7 @@ class Win10RevealManager {
   private isInitialized = false;
   private activeElements = new Set<HTMLElement>();
   private activeRipples = new Map<HTMLElement, HTMLElement>();
+  private recentlyDiffused = new Map<HTMLElement, number>();
   private rafId: number | null = null;
   private lastPointerX = -9999;
   private lastPointerY = -9999;
@@ -37,6 +38,7 @@ class Win10RevealManager {
     window.addEventListener("pointerdown", this.handlePointerDown, { passive: true });
     window.addEventListener("pointerup", this.handlePointerUp, { passive: true });
     window.addEventListener("pointercancel", this.handlePointerCancel, { passive: true });
+    window.addEventListener("click", this.handleClick, { capture: true });
     document.addEventListener("mouseleave", this.handleMouseLeave, { passive: true });
     window.addEventListener("scroll", this.handleScroll, { passive: true });
   }
@@ -54,6 +56,7 @@ class Win10RevealManager {
     window.removeEventListener("pointerdown", this.handlePointerDown);
     window.removeEventListener("pointerup", this.handlePointerUp);
     window.removeEventListener("pointercancel", this.handlePointerCancel);
+    window.removeEventListener("click", this.handleClick, { capture: true });
     document.removeEventListener("mouseleave", this.handleMouseLeave);
     window.removeEventListener("scroll", this.handleScroll);
 
@@ -96,6 +99,7 @@ class Win10RevealManager {
       ripple.remove();
     });
     this.activeRipples.clear();
+    this.recentlyDiffused.clear();
   };
 
   private updateProximity = (): void => {
@@ -202,10 +206,11 @@ class Win10RevealManager {
   private handlePointerUp = (): void => {
     if (this.activeRipples.size === 0) return;
 
-    // 松手瞬间：将处于蓄力状态的光圈切换为波纹扩散动画
+    // 松手瞬间：将处于蓄力状态的光圈切换为波纹扩散动画，并记录扩散时间戳供点击延时平滑过渡
     this.activeRipples.forEach((ripple, target) => {
       ripple.classList.remove("is-holding");
       ripple.classList.add("is-diffusing");
+      this.recentlyDiffused.set(target, Date.now());
 
       const handleEnd = () => {
         ripple.removeEventListener("animationend", handleEnd);
@@ -241,6 +246,73 @@ class Win10RevealManager {
     });
 
     this.activeRipples.clear();
+  };
+
+  private handleClick = (e: MouseEvent): void => {
+    // 已经过波纹延时调度重新派发的点击，直接放行
+    if ((e as any).__win10Delayed) return;
+
+    // 键盘辅助触发的 click (e.detail === 0) 直接放行
+    if (e.detail === 0) return;
+
+    const eventTarget = e.target as HTMLElement | null;
+    if (!eventTarget) return;
+
+    // 严禁对表单原生文本输入框、多行文本域、开关、滑动条、单复选框进行延时，避免干扰打字光标和连续操作
+    const tagName = eventTarget.tagName;
+    if (tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT") return;
+    if (eventTarget.isContentEditable) return;
+    if (eventTarget.closest(".fui-Slider, .fui-Switch, .fui-Radio, .fui-Checkbox")) return;
+
+    // 获取对应的磁贴目标（卡片、按钮等）
+    const target = eventTarget.closest(TARGET_SELECTOR) as HTMLElement | null;
+    if (!target) return;
+    if (target.hasAttribute("disabled") || target.getAttribute("aria-disabled") === "true") return;
+
+    // 检查此目标是否刚刚由指针按下松开触发了波纹扩散 (350ms 窗口期内有效)
+    const diffuseTime = this.recentlyDiffused.get(target);
+    if (!diffuseTime || Date.now() - diffuseTime > 350) {
+      return;
+    }
+    // 消耗标记，防止重复拦截
+    this.recentlyDiffused.delete(target);
+
+    // 拦截当前原生即时点击，等待波纹扩散展开
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+
+    // 短暂停留 220ms：让水波纹在卡片/按钮表面充分展开漫延，营造极致丝滑连贯的视觉过渡
+    const delayMs = 220;
+    setTimeout(() => {
+      const clickEvt = new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        detail: e.detail,
+        screenX: e.screenX,
+        screenY: e.screenY,
+        clientX: e.clientX,
+        clientY: e.clientY,
+        ctrlKey: e.ctrlKey,
+        altKey: e.altKey,
+        shiftKey: e.shiftKey,
+        metaKey: e.metaKey,
+        button: e.button,
+        buttons: e.buttons,
+        relatedTarget: e.relatedTarget,
+      });
+      (clickEvt as any).__win10Delayed = true;
+
+      const targetToDispatch = eventTarget.isConnected
+        ? eventTarget
+        : target.isConnected
+        ? target
+        : null;
+      if (targetToDispatch) {
+        targetToDispatch.dispatchEvent(clickEvt);
+      }
+    }, delayMs);
   };
 }
 

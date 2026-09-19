@@ -20,12 +20,6 @@ import {
   MessageBar,
   MessageBarBody,
   Spinner,
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableHeaderCell,
-  TableRow,
   Title2,
   Title3,
   Tooltip,
@@ -377,7 +371,8 @@ export const UserManager: React.FC = () => {
         }}
       >
         <Card
-          className="win11-mica-card"
+          data-win10-tile
+          className="win11-mica-card hover-lift"
           style={{
             padding: "20px 24px",
             borderRadius: "14px",
@@ -395,7 +390,8 @@ export const UserManager: React.FC = () => {
         </Card>
 
         <Card
-          className="win11-mica-card"
+          data-win10-tile
+          className="win11-mica-card hover-lift"
           style={{
             padding: "20px 24px",
             borderRadius: "14px",
@@ -413,202 +409,203 @@ export const UserManager: React.FC = () => {
         </Card>
       </div>
 
-      {/* Filter and Table Container */}
-      <Card
-        className="win10-tile-rise win10-delay-4 user-manager-table-card win11-mica-card"
+      {/* Filter and Search Bar */}
+      <div
+        className="win10-tile-rise win10-delay-3"
         style={{
-          padding: "24px",
-          borderRadius: "16px",
-          minWidth: 0,
+          marginBottom: "16px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "12px",
+        }}
+      >
+        <div style={{ maxWidth: "360px", width: "100%", flex: 1, minWidth: "200px" }}>
+          <Input
+            className="win11-mica-input"
+            contentBefore={<Search20Regular />}
+            placeholder="搜索用户姓名或账号..."
+            value={searchQuery}
+            onChange={(_, data) => setSearchQuery(data.value)}
+            style={{ width: "100%", borderRadius: "10px" }}
+          />
+        </div>
+        <Caption1 style={{ opacity: 0.65 }}>
+          共 {filteredUsers.length} 位用户
+        </Caption1>
+      </div>
+
+      {/* User Cards List: 一行用户为一个卡片 */}
+      <div
+        className="win10-tile-rise win10-delay-4"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
           width: "100%",
-          maxWidth: "100%",
           boxSizing: "border-box",
         }}
       >
-        {/* Search Bar & Mobile Hint */}
-        <div
-          style={{
-            marginBottom: "20px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "10px",
-          }}
-        >
-          <div style={{ maxWidth: "360px", width: "100%", flex: 1, minWidth: "200px" }}>
-            <Input
-              className="win11-mica-input"
-              contentBefore={<Search20Regular />}
-              placeholder="搜索用户..."
-              value={searchQuery}
-              onChange={(_, data) => setSearchQuery(data.value)}
-              style={{ width: "100%", borderRadius: "10px" }}
-            />
-          </div>
-          <Caption1
-            className="mobile-only"
+        {filteredUsers.length === 0 ? (
+          <Card
+            className="win11-mica-card"
             style={{
-              opacity: 0.65,
-              fontSize: "12px",
+              textAlign: "center",
+              padding: "60px 20px",
+              borderRadius: "14px",
+              opacity: 0.7,
               display: "flex",
+              flexDirection: "column",
               alignItems: "center",
-              gap: "4px",
-              userSelect: "none",
+              justifyContent: "center",
             }}
           >
-            ↔ 列表可左右滑动
-          </Caption1>
-        </div>
-
-        {/* User Table */}
-        {filteredUsers.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0", opacity: 0.6 }}>
             <Person20Regular style={{ fontSize: "36px", marginBottom: "8px" }} />
             <div>未找到匹配用户</div>
-          </div>
+          </Card>
         ) : (
-          <div
-            className="user-table-scroll-wrapper"
-            style={{
-              width: "100%",
-              maxWidth: "100%",
-              minWidth: 0,
-              overflowX: "auto",
-              WebkitOverflowScrolling: "touch",
-              paddingBottom: "4px",
-            }}
-          >
-            <Table
-              className="user-management-table"
-              style={{
-                minWidth: "680px",
-                width: "100%",
-                borderCollapse: "separate",
-                borderSpacing: "0 4px",
-              }}
-            >
-              <TableHeader>
-                <TableRow>
-                  <TableHeaderCell style={{ fontWeight: 600, minWidth: "160px", whiteSpace: "nowrap" }}>用户信息</TableHeaderCell>
-                  <TableHeaderCell style={{ fontWeight: 600, minWidth: "100px", whiteSpace: "nowrap" }}>系统角色</TableHeaderCell>
-                  <TableHeaderCell style={{ fontWeight: 600, minWidth: "120px", whiteSpace: "nowrap" }}>关联随笔数</TableHeaderCell>
-                  <TableHeaderCell style={{ fontWeight: 600, minWidth: "160px", whiteSpace: "nowrap" }}>注册创建时间</TableHeaderCell>
-                  <TableHeaderCell style={{ fontWeight: 600, minWidth: "140px", whiteSpace: "nowrap", textAlign: "right" }}>操作</TableHeaderCell>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.map((item) => {
-                  const isSuperAdmin = item.username === "tiany";
-                  return (
-                    <TableRow
-                      key={item.id}
-                      style={{
-                        backgroundColor: isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.01)",
-                        borderRadius: "8px",
+          filteredUsers.map((item) => {
+            const isSuperAdmin = item.username === "tiany";
+            return (
+              <Card
+                key={item.id}
+                data-win10-tile
+                className="user-row-card win11-mica-card hover-lift"
+                style={{
+                  padding: "14px 20px",
+                  borderRadius: "14px",
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "16px",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+              >
+                {/* User Info (Avatar + Nickname + @username) */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "14px",
+                    minWidth: "200px",
+                    flex: "1 1 220px",
+                  }}
+                >
+                  <Avatar
+                    image={
+                      (item.avatar || (user?.username === item.username ? user?.avatar : null))
+                        ? { src: (item.avatar || (user?.username === item.username ? user?.avatar : null))! }
+                        : undefined
+                    }
+                    aria-label={item.nickname || item.username}
+                    color={isSuperAdmin ? "brand" : "colorful"}
+                    size={40}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <Body1Strong style={{ fontSize: "15px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {item.nickname || item.username}
+                      </Body1Strong>
+                      {isSuperAdmin ? (
+                        <Badge appearance="filled" color="brand" size="small">
+                          管理员
+                        </Badge>
+                      ) : (
+                        <Badge appearance="tint" color="informative" size="small">
+                          普通用户
+                        </Badge>
+                      )}
+                    </div>
+                    <Caption1 style={{ opacity: 0.6, display: "block", marginTop: "2px" }}>
+                      @{item.username}
+                    </Caption1>
+                  </div>
+                </div>
+
+                {/* Notes count */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    minWidth: "100px",
+                    flex: "0 0 auto",
+                  }}
+                >
+                  <Document20Regular style={{ opacity: 0.6 }} />
+                  <Body1>{item.note_count || 0} 篇随笔</Body1>
+                </div>
+
+                {/* Created At */}
+                <div
+                  className="user-row-created"
+                  style={{
+                    minWidth: "160px",
+                    flex: "0 0 auto",
+                  }}
+                >
+                  <Caption1 style={{ opacity: 0.55, display: "block", fontSize: "11px" }}>
+                    注册创建时间
+                  </Caption1>
+                  <Caption1 style={{ opacity: 0.85, fontSize: "13px" }}>
+                    {item.created_at ? new Date(item.created_at).toLocaleString("zh-CN") : "-"}
+                  </Caption1>
+                </div>
+
+                {/* Actions */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Tooltip content="修改密码" relationship="label">
+                    <Button
+                      appearance="subtle"
+                      size="medium"
+                      icon={<Key20Regular />}
+                      onClick={() => {
+                        setSelectedUserForPass(item);
+                        setUpdatedPassword("");
+                        setUpdatedConfirmPassword("");
+                        setPassModalError(null);
+                        setIsUpdatePassOpen(true);
                       }}
                     >
-                      {/* User Info */}
-                      <TableCell style={{ whiteSpace: "nowrap" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 0" }}>
-                          <Avatar
-                            image={
-                              (item.avatar || (user?.username === item.username ? user?.avatar : null))
-                                ? { src: (item.avatar || (user?.username === item.username ? user?.avatar : null))! }
-                                : undefined
-                            }
-                            aria-label={item.nickname || item.username}
-                            color={isSuperAdmin ? "brand" : "colorful"}
-                            size={36}
-                          />
-                          <div>
-                            <Body1Strong style={{ display: "block" }}>
-                              {item.nickname || item.username}
-                            </Body1Strong>
-                            <Caption1 style={{ opacity: 0.6 }}>
-                              @{item.username}
-                            </Caption1>
-                          </div>
-                        </div>
-                      </TableCell>
+                      修改密码
+                    </Button>
+                  </Tooltip>
 
-                      {/* Role */}
-                      <TableCell style={{ whiteSpace: "nowrap" }}>
-                        {isSuperAdmin ? (
-                          <Badge appearance="filled" color="brand">
-                            管理员
-                          </Badge>
-                        ) : (
-                          <Badge appearance="tint" color="informative">
-                            普通用户
-                          </Badge>
-                        )}
-                      </TableCell>
-
-                      {/* Notes count */}
-                      <TableCell style={{ whiteSpace: "nowrap" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <Document20Regular style={{ opacity: 0.6 }} />
-                          <Body1>{item.note_count || 0} 篇</Body1>
-                        </div>
-                      </TableCell>
-
-                      {/* Created At */}
-                      <TableCell style={{ whiteSpace: "nowrap" }}>
-                        <Caption1 style={{ opacity: 0.75 }}>
-                          {item.created_at ? new Date(item.created_at).toLocaleString("zh-CN") : "-"}
-                        </Caption1>
-                      </TableCell>
-
-                      {/* Actions */}
-                      <TableCell style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                        <div style={{ display: "inline-flex", gap: "6px", flexShrink: 0 }}>
-                          <Tooltip content="修改密码" relationship="label">
-                            <Button
-                              appearance="subtle"
-                              size="small"
-                              icon={<Key20Regular />}
-                              onClick={() => {
-                                setSelectedUserForPass(item);
-                                setUpdatedPassword("");
-                                setUpdatedConfirmPassword("");
-                                setPassModalError(null);
-                                setIsUpdatePassOpen(true);
-                              }}
-                            >
-                              修改密码
-                            </Button>
-                          </Tooltip>
-
-                          <Tooltip
-                            content={isSuperAdmin ? "不可删除管理员" : "删除用户"}
-                            relationship="label"
-                          >
-                            <Button
-                              appearance="subtle"
-                              size="small"
-                              icon={<Delete20Regular />}
-                              disabled={isSuperAdmin}
-                              onClick={() => {
-                                setSelectedUserForDelete(item);
-                                setDeleteModalError(null);
-                                setIsDeleteOpen(true);
-                              }}
-                              style={{ color: isSuperAdmin ? undefined : "#d13438" }}
-                            >
-                              删除
-                            </Button>
-                          </Tooltip>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+                  <Tooltip
+                    content={isSuperAdmin ? "不可删除管理员" : "删除用户"}
+                    relationship="label"
+                  >
+                    <Button
+                      appearance="subtle"
+                      size="medium"
+                      icon={<Delete20Regular />}
+                      disabled={isSuperAdmin}
+                      onClick={() => {
+                        setSelectedUserForDelete(item);
+                        setDeleteModalError(null);
+                        setIsDeleteOpen(true);
+                      }}
+                      style={{ color: isSuperAdmin ? undefined : "#d13438" }}
+                    >
+                      删除
+                    </Button>
+                  </Tooltip>
+                </div>
+              </Card>
+            );
+          })
         )}
-      </Card>
+      </div>
 
       {/* 模态框 1：添加新用户 */}
       <Dialog
