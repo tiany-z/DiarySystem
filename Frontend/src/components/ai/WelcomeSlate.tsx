@@ -11,7 +11,7 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = () => {
 
   return (
     <div
-      className="win10-tile-rise win10-delay-1"
+      className="win10-tile-rise win10-delay-1 gemini-welcome-slate"
       style={{
         display: "flex",
         flexDirection: "column",
@@ -23,37 +23,42 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = () => {
         margin: "0 auto",
       }}
     >
-      {/* 机器人头像徽标 */}
+      {/* Gemini 风格渐变 Sparkle 徽标 */}
       <div
-        className="win10-tile-rise win10-delay-1"
+        className="win10-tile-rise win10-delay-1 gemini-sparkle-halo"
         style={{
-          width: "54px",
-          height: "54px",
-          borderRadius: "16px",
-          background: "linear-gradient(135deg, #5B7B8D 0%, #3e5866 100%)",
+          width: "48px",
+          height: "48px",
+          borderRadius: "50%",
+          background: "linear-gradient(135deg, #4285f4 0%, #9b72cf 50%, #d96570 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           color: "#ffffff",
           boxShadow: isDark
-            ? "0 8px 24px rgba(0, 0, 0, 0.45)"
-            : "0 8px 24px rgba(91, 123, 141, 0.28)",
-          marginBottom: "16px",
+            ? "0 4px 20px rgba(66, 133, 244, 0.35)"
+            : "0 4px 18px rgba(66, 133, 244, 0.25)",
+          marginBottom: "18px",
         }}
       >
-        <Sparkle20Regular style={{ fontSize: "28px" }} />
+        <Sparkle20Regular style={{ fontSize: "24px" }} />
       </div>
 
       <h2
         className="win10-tile-rise win10-delay-1"
         style={{
-          margin: "0 0 8px 0",
-          fontSize: "22px",
+          margin: "0 0 10px 0",
+          fontSize: "26px",
           fontWeight: 600,
-          color: isDark ? "#f7fafc" : "#2d3748",
+          background: isDark
+            ? "linear-gradient(74deg, #4285f4 0%, #9b72cf 35%, #d96570 70%)"
+            : "linear-gradient(74deg, #1a73e8 0%, #8e24aa 40%, #d81b60 80%)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          letterSpacing: "-0.3px",
         }}
       >
-        AI 助手
+        今天有什么我可以帮你的？
       </h2>
 
       <p
@@ -61,15 +66,16 @@ export const WelcomeSlate: React.FC<WelcomeSlateProps> = () => {
         style={{
           margin: "0 0 16px 0",
           fontSize: "14px",
-          color: isDark ? "#a0aec0" : "#718096",
+          color: isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.55)",
           maxWidth: "460px",
           lineHeight: "1.6",
         }}
       >
-        可以帮你检索日记、分析情绪走势、起草内容或查找网络信息。
+        帮你检索笔记、分析情绪心境、撰写文字或获取灵感洞察。
       </p>
     </div>
   );
 };
+
 
 export default WelcomeSlate;

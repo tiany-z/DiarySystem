@@ -183,8 +183,22 @@ export const PublicShowcase: React.FC = () => {
   const [notes, setNotes] = useState<DiaryItem[]>(cachedNotes || []);
   const [isInitialLoading, setIsInitialLoading] = useState<boolean>(!alreadyLoaded || cachedNotes === null);
   const [shouldAnimate, setShouldAnimate] = useState<boolean>(!alreadyLoaded);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedMood, setSelectedMood] = useState<string>("all");
+  
+  const cachedSearch = getCachedData<string>("public_search_query") || "";
+  const cachedMood = getCachedData<string>("public_selected_mood") || "all";
+  const [searchQuery, setSearchQuery] = useState<string>(cachedSearch);
+  const [selectedMood, setSelectedMood] = useState<string>(cachedMood);
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    setCachedData("public_search_query", val);
+  };
+
+  const handleMoodSelect = (val: string) => {
+    setSelectedMood(val);
+    setCachedData("public_selected_mood", val);
+  };
+
   const [isReaderOpen, setIsReaderOpen] = useState(false);
   const [readerDiary, setReaderDiary] = useState<DiaryItem | null>(null);
   const [customMoodVersion, setCustomMoodVersion] = useState(0);
@@ -194,6 +208,15 @@ export const PublicShowcase: React.FC = () => {
     const handleUpdate = () => setCustomMoodVersion((v) => v + 1);
     window.addEventListener("mood:custom_updated", handleUpdate);
     return () => window.removeEventListener("mood:custom_updated", handleUpdate);
+  }, []);
+
+  // 监听笔记更新或创建事件，静默重新同步公开列表，绝不重置用户的滚动位置与搜索输入
+  useEffect(() => {
+    const handleNotesUpdated = () => {
+      fetchPublicNotes(true);
+    };
+    window.addEventListener("notes:updated", handleNotesUpdated);
+    return () => window.removeEventListener("notes:updated", handleNotesUpdated);
   }, []);
 
   // 动态融合系统预设、用户本地自定义以及所有公开笔记中实际出现的分类
@@ -390,6 +413,7 @@ export const PublicShowcase: React.FC = () => {
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Button
+            className="page-header-action-btn"
             appearance="secondary"
             icon={<ArrowSync20Regular />}
             onClick={() => fetchPublicNotes(false)}
@@ -398,11 +422,13 @@ export const PublicShowcase: React.FC = () => {
               borderRadius: "8px",
               fontWeight: 600,
             }}
+            aria-label="刷新"
           >
-            刷新
+            <span className="header-action-btn-text">刷新</span>
           </Button>
 
           <Button
+            className="page-header-action-btn"
             appearance="primary"
             icon={<Add20Filled />}
             onClick={() => {
@@ -417,8 +443,9 @@ export const PublicShowcase: React.FC = () => {
               borderRadius: "8px",
               fontWeight: 600,
             }}
+            aria-label="写笔记"
           >
-            写笔记
+            <span className="header-action-btn-text">写笔记</span>
           </Button>
         </div>
       </div>
@@ -446,10 +473,11 @@ export const PublicShowcase: React.FC = () => {
           }}
         >
           <Input
+            className="win11-mica-input"
             contentBefore={<Search20Regular />}
             placeholder="搜索公开日记标题或正文内容..."
             value={searchQuery}
-            onChange={(_, data) => setSearchQuery(data.value)}
+            onChange={(_, data) => handleSearchChange(data.value)}
             style={{
               width: "100%",
               borderRadius: "10px",
@@ -473,7 +501,7 @@ export const PublicShowcase: React.FC = () => {
           <TabList
             size="large"
             selectedValue={selectedMood}
-            onTabSelect={(_, data) => setSelectedMood(String(data.value))}
+            onTabSelect={(_, data) => handleMoodSelect(String(data.value))}
           >
             <Tab value="all">全部</Tab>
             {moodTabs.map((m) => (

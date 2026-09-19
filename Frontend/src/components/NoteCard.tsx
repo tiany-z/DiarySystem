@@ -183,7 +183,7 @@ export const NoteCard: React.FC<NoteCardProps> = ({
 
   return (
     <Card
-      className="hover-lift note-card-surface"
+      className="hover-lift note-card-surface win11-mica-card"
       onClick={onClick}
       style={{
         cursor: onClick ? "pointer" : "default",
@@ -198,15 +198,9 @@ export const NoteCard: React.FC<NoteCardProps> = ({
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        backgroundColor: isDark ? "#202026" : "#ffffff",
-        border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
-        boxShadow: isDark
-          ? "0 4px 16px rgba(0, 0, 0, 0.3)"
-          : "0 4px 20px rgba(91, 123, 141, 0.08)",
         padding: "16px 20px 14px 20px",
         position: "relative",
         overflow: "hidden",
-        transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
       }}
     >
       <div style={{ flex: "1 1 auto", minHeight: 0, minWidth: 0, width: "100%", maxWidth: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column", overflow: "hidden" }}>

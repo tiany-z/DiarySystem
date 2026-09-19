@@ -321,6 +321,7 @@ export const UserManager: React.FC = () => {
 
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <Button
+            className="page-header-action-btn"
             appearance="secondary"
             icon={<ArrowSync20Regular />}
             onClick={() => fetchUsers(false)}
@@ -329,10 +330,12 @@ export const UserManager: React.FC = () => {
               borderRadius: "8px",
               fontWeight: 600,
             }}
+            aria-label="刷新"
           >
-            刷新
+            <span className="header-action-btn-text">刷新</span>
           </Button>
           <Button
+            className="page-header-action-btn"
             appearance="primary"
             icon={<PersonAdd20Regular />}
             onClick={() => {
@@ -344,8 +347,9 @@ export const UserManager: React.FC = () => {
               borderRadius: "8px",
               fontWeight: 600,
             }}
+            aria-label="添加用户"
           >
-            添加用户
+            <span className="header-action-btn-text">添加用户</span>
           </Button>
         </div>
       </div>
@@ -373,11 +377,10 @@ export const UserManager: React.FC = () => {
         }}
       >
         <Card
+          className="win11-mica-card"
           style={{
             padding: "20px 24px",
             borderRadius: "14px",
-            backgroundColor: isDark ? "#202026" : "#ffffff",
-            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
           }}
         >
           <Caption1 style={{ opacity: 0.65, textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -392,11 +395,10 @@ export const UserManager: React.FC = () => {
         </Card>
 
         <Card
+          className="win11-mica-card"
           style={{
             padding: "20px 24px",
             borderRadius: "14px",
-            backgroundColor: isDark ? "#202026" : "#ffffff",
-            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
           }}
         >
           <Caption1 style={{ opacity: 0.65, textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -413,15 +415,10 @@ export const UserManager: React.FC = () => {
 
       {/* Filter and Table Container */}
       <Card
-        className="win10-tile-rise win10-delay-4 user-manager-table-card"
+        className="win10-tile-rise win10-delay-4 user-manager-table-card win11-mica-card"
         style={{
           padding: "24px",
           borderRadius: "16px",
-          backgroundColor: isDark ? "#202026" : "#ffffff",
-          border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
-          boxShadow: isDark
-            ? "0 8px 32px rgba(0, 0, 0, 0.4)"
-            : "0 8px 32px rgba(0, 0, 0, 0.06)",
           minWidth: 0,
           width: "100%",
           maxWidth: "100%",
@@ -441,11 +438,12 @@ export const UserManager: React.FC = () => {
         >
           <div style={{ maxWidth: "360px", width: "100%", flex: 1, minWidth: "200px" }}>
             <Input
+              className="win11-mica-input"
               contentBefore={<Search20Regular />}
               placeholder="搜索用户..."
               value={searchQuery}
               onChange={(_, data) => setSearchQuery(data.value)}
-              style={{ width: "100%" }}
+              style={{ width: "100%", borderRadius: "10px" }}
             />
           </div>
           <Caption1

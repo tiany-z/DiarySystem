@@ -32,7 +32,7 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
         style={{
           display: "flex",
           justifyContent: "flex-end",
-          marginBottom: "18px",
+          marginBottom: "20px",
           padding: "0 2px",
           width: "100%",
           boxSizing: "border-box",
@@ -40,16 +40,19 @@ export const ChatMessageItem: React.FC<ChatMessageItemProps> = ({
       >
         <div
           style={{
-            maxWidth: "85%",
-            padding: "10px 16px",
-            borderRadius: "18px 18px 4px 18px",
-            background: "linear-gradient(135deg, #5B7B8D 0%, #4a6676 100%)",
-            color: "#ffffff",
-            fontSize: "14px",
+            maxWidth: "82%",
+            padding: "12px 18px",
+            borderRadius: "20px",
+            backgroundColor: isDark ? "#282a2c" : "#f0f4f9",
+            color: isDark ? "#e3e3e3" : "#1f1f1f",
+            fontSize: "14.5px",
             lineHeight: "1.6",
+            border: isDark
+              ? "1px solid rgba(255, 255, 255, 0.06)"
+              : "1px solid rgba(0, 0, 0, 0.04)",
             boxShadow: isDark
-              ? "0 4px 16px rgba(0, 0, 0, 0.3)"
-              : "0 4px 14px rgba(91, 123, 141, 0.22)",
+              ? "0 2px 8px rgba(0, 0, 0, 0.2)"
+              : "0 1px 3px rgba(0, 0, 0, 0.04)",
             wordBreak: "break-word",
             whiteSpace: "pre-wrap",
             userSelect: "text",

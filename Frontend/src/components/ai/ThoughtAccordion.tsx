@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import {
-  BrainCircuit20Regular,
-  ChevronDown20Regular,
-  ChevronRight20Regular,
+  Sparkle20Regular,
+  ChevronDown16Regular,
+  ChevronRight16Regular,
 } from "@fluentui/react-icons";
 import { useAppTheme } from "../../context/ThemeContext";
 
@@ -16,144 +16,109 @@ export const ThoughtAccordion: React.FC<ThoughtAccordionProps> = ({
   isGenerating = false,
 }) => {
   const { isDark } = useAppTheme();
-  // 思考过程默认隐藏，绝不自动展开，仅在用户手动点击后展开查看
+  // 思考过程默认收起，点击后展开查看
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
-  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
-  const startTimeRef = useRef<number>(Date.now());
-  const hasEverGeneratedRef = useRef<boolean>(isGenerating);
-
-  useEffect(() => {
-    let timer: any = null;
-    if (isGenerating) {
-      hasEverGeneratedRef.current = true;
-      startTimeRef.current = Date.now();
-      timer = setInterval(() => {
-        setElapsedSeconds((Date.now() - startTimeRef.current) / 1000);
-      }, 100);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [isGenerating]);
 
   if (!thought && !isGenerating) {
     return null;
   }
 
-  const showTime = isGenerating || hasEverGeneratedRef.current;
-  const formattedTime = showTime
-    ? elapsedSeconds >= 1
-      ? `${elapsedSeconds.toFixed(1)} 秒`
-      : `${(elapsedSeconds * 1000).toFixed(0)} 毫秒`
-    : "";
+  const labelText = isGenerating ? "思考中..." : "思考过程";
 
   return (
     <div
+      className="gemini-thought-accordion"
       style={{
         marginBottom: "12px",
         borderRadius: "8px",
-        border: isDark
-          ? "1px solid rgba(91, 123, 141, 0.35)"
-          : "1px solid rgba(91, 123, 141, 0.2)",
-        backgroundColor: isDark
-          ? "rgba(91, 123, 141, 0.12)"
-          : "rgba(91, 123, 141, 0.05)",
         overflow: "hidden",
-        transition: "all 0.2s ease-in-out",
+        transition: "background-color 0.2s ease",
       }}
     >
-      {/* 顶部标题栏 */}
+      {/* 顶部标题栏：Gemini 网页版极简折叠标签 */}
       <div
         onClick={() => setIsExpanded(!isExpanded)}
         style={{
-          display: "flex",
+          display: "inline-flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          padding: "8px 12px",
+          gap: "6px",
+          padding: "5px 8px 5px 4px",
+          borderRadius: "6px",
           cursor: "pointer",
           userSelect: "none",
-          backgroundColor: isExpanded
-            ? isDark
-              ? "rgba(91, 123, 141, 0.2)"
-              : "rgba(91, 123, 141, 0.08)"
-            : "transparent",
+          color: isDark ? "rgba(255, 255, 255, 0.65)" : "rgba(0, 0, 0, 0.6)",
+          fontSize: "12.5px",
+          fontWeight: 500,
+          transition: "all 0.18s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = isDark
+            ? "rgba(255, 255, 255, 0.06)"
+            : "rgba(0, 0, 0, 0.04)";
+          e.currentTarget.style.color = isDark ? "#ffffff" : "#1f1f1f";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = "transparent";
+          e.currentTarget.style.color = isDark
+            ? "rgba(255, 255, 255, 0.65)"
+            : "rgba(0, 0, 0, 0.6)";
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div
-            className={isGenerating ? "ai-thought-pulse" : ""}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "24px",
-              height: "24px",
-              borderRadius: "50%",
-              backgroundColor: isGenerating
-                ? "rgba(91, 123, 141, 0.25)"
-                : isDark
-                ? "rgba(91, 123, 141, 0.18)"
-                : "rgba(91, 123, 141, 0.1)",
-              color: isDark ? "#8EAEC0" : "#5B7B8D",
-            }}
-          >
-            <BrainCircuit20Regular style={{ fontSize: "15px" }} />
-          </div>
-
-          <span
-            style={{
-              fontSize: "13px",
-              fontWeight: 600,
-              color: isDark ? "#8EAEC0" : "#5B7B8D",
-            }}
-          >
-            {isGenerating
-              ? `思考中${formattedTime ? ` · ${formattedTime}` : ""}`
-              : formattedTime
-              ? `深度思考 · ${formattedTime}`
-              : "深度思考"}
-          </span>
-        </div>
-
-        <div
-          title={isExpanded ? "收起" : "展开"}
+        <span
           style={{
-            display: "flex",
+            display: "inline-flex",
             alignItems: "center",
-            color: isDark ? "#718096" : "#8a9ba8",
+            justifyContent: "center",
+            opacity: 0.8,
+            color: isGenerating ? (isDark ? "#8ab4f8" : "#1a73e8") : "inherit",
+          }}
+          className={isGenerating ? "gemini-sparkle-spin" : ""}
+        >
+          <Sparkle20Regular style={{ fontSize: "14px" }} />
+        </span>
+
+        <span>{labelText}</span>
+
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            opacity: 0.7,
+            marginLeft: "2px",
           }}
         >
           {isExpanded ? (
-            <ChevronDown20Regular style={{ fontSize: "16px" }} />
+            <ChevronDown16Regular style={{ fontSize: "13px" }} />
           ) : (
-            <ChevronRight20Regular style={{ fontSize: "16px" }} />
+            <ChevronRight16Regular style={{ fontSize: "13px" }} />
           )}
-        </div>
+        </span>
       </div>
 
-      {/* 展开的思考过程 */}
+      {/* 展开的思考过程：Gemini 风格的左侧极细灰线与柔和文字排版 */}
       {isExpanded && (
         <div
           style={{
-            padding: "10px 14px",
-            fontSize: "12px",
-            lineHeight: "1.6",
-            fontFamily:
-              'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-            color: isDark ? "#cbd5e0" : "#607274",
+            marginTop: "6px",
+            marginLeft: "6px",
+            paddingLeft: "12px",
+            borderLeft: isDark
+              ? "2px solid rgba(255, 255, 255, 0.12)"
+              : "2px solid rgba(0, 0, 0, 0.1)",
+            fontSize: "12.5px",
+            lineHeight: "1.65",
+            color: isDark ? "rgba(255, 255, 255, 0.62)" : "rgba(0, 0, 0, 0.62)",
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
-            maxHeight: "360px",
+            maxHeight: "380px",
             overflowY: "auto",
-            borderTop: isDark
-              ? "1px solid rgba(91, 123, 141, 0.2)"
-              : "1px solid rgba(91, 123, 141, 0.1)",
           }}
         >
-          {thought || "正在思考..."}
-          {isGenerating && <span className="ai-typing-cursor" />}
+          {thought || "正在组织思路..."}
+          {isGenerating && <span className="gemini-typing-pulse" />}
         </div>
       )}
     </div>
   );
 };
+
