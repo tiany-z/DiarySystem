@@ -81,7 +81,14 @@ export const WeatherPicker: React.FC<{
   const CurrentIcon = current.icon;
 
   return (
-    <Menu>
+    <Menu
+      positioning={{
+        position: borderless ? "above" : "below",
+        align: "start",
+        pinned: true,
+      }}
+      surfaceMotion={null}
+    >
       <MenuTrigger disableButtonEnhancement>
         <Button
           appearance="subtle"

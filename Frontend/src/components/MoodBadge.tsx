@@ -20,7 +20,9 @@ import {
   Add20Regular,
   Delete20Regular,
   Dismiss20Regular,
+  Checkmark20Regular,
 } from "@fluentui/react-icons";
+import { usePageCache } from "../context/PageCacheContext";
 
 export interface MoodOption {
   id: string; // 标识符 / 数据库存储值
@@ -235,16 +237,18 @@ const SUGGESTED_COLORS = [
 export const MoodPicker: React.FC<{
   value?: string | null;
   onChange: (val: string) => void;
+  notes?: { mood?: string | null }[];
   borderless?: boolean;
   size?: "small" | "medium";
   style?: React.CSSProperties;
-}> = ({ value, onChange, borderless = false, size = "medium", style }) => {
+}> = ({ value, onChange, notes, borderless = false, size = "medium", style }) => {
   const [customMoods, setCustomMoods] = useState<MoodOption[]>(getCustomMoods());
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [selectedEmoji, setSelectedEmoji] = useState("🍵");
   const [selectedColor, setSelectedColor] = useState("#a55eea");
+  const { getCachedData } = usePageCache();
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -256,6 +260,48 @@ export const MoodPicker: React.FC<{
 
   const current = getMoodOption(value);
   const CurrentIcon = current.icon;
+
+  const cachedNotes = getCachedData<{ mood?: string | null }[]>("workspace_notes");
+  const publicNotes = getCachedData<{ mood?: string | null }[]>("public_showcase");
+
+  // 聚合当前系统中的全部心境（预设 + 自定义 + 笔记中已存在的心境 + 当前选中的心境）
+  const allMoodsList = useMemo(() => {
+    const combinedNotes = notes || [
+      ...(cachedNotes || []),
+      ...(publicNotes || []),
+    ];
+    const all = getAllMoods(combinedNotes);
+
+    // 确保当前选中的 value（若来自外部导入或特殊标识）也完整包含在展示列表中
+    if (value && value.trim()) {
+      const safe = value.trim().toLowerCase();
+      if (!all.some((m) => m.id.toLowerCase() === safe)) {
+        all.push({
+          id: value.trim(),
+          label: value.trim(),
+          emoji: "✨",
+          hex: "#8854d0",
+          color: "informative",
+          isCustom: true,
+        });
+      }
+    }
+    return all;
+  }, [notes, cachedNotes, publicNotes, customMoods, value]);
+
+  // 预设心境
+  const presetMoods = useMemo(() => DEFAULT_MOODS, []);
+
+  // 自定义与已有心境列表（排除默认预设项）
+  const customAndOtherMoods = useMemo(() => {
+    const presetIds = new Set(DEFAULT_MOODS.map((m) => m.id.toLowerCase()));
+    return allMoodsList.filter((m) => !presetIds.has(m.id.toLowerCase()));
+  }, [allMoodsList]);
+
+  // 可删除的自定义心境集合
+  const customMoodIds = useMemo(() => {
+    return new Set(customMoods.map((c) => c.id.toLowerCase()));
+  }, [customMoods]);
 
   const handleCreateConfirm = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -282,10 +328,19 @@ export const MoodPicker: React.FC<{
   };
 
   return (
-    <Menu open={isMenuOpen} onOpenChange={(_, data) => {
-      setIsMenuOpen(data.open);
-      if (!data.open) setIsCreating(false);
-    }}>
+    <Menu
+      open={isMenuOpen}
+      onOpenChange={(_, data) => {
+        setIsMenuOpen(data.open);
+        if (!data.open) setIsCreating(false);
+      }}
+      positioning={{
+        position: borderless ? "above" : "below",
+        align: "start",
+        pinned: true,
+      }}
+      surfaceMotion={null}
+    >
       <MenuTrigger disableButtonEnhancement>
         <Button
           appearance="subtle"
@@ -319,7 +374,18 @@ export const MoodPicker: React.FC<{
           {current.label}
         </Button>
       </MenuTrigger>
-      <MenuPopover style={{ minWidth: "220px", maxWidth: "280px", padding: "6px" }}>
+      <MenuPopover
+        className="mood-picker-popover"
+        style={{
+          minWidth: "230px",
+          maxWidth: "280px",
+          maxHeight: "min(390px, 60vh)",
+          overflowY: "auto",
+          overflowX: "hidden",
+          padding: "6px",
+          overscrollBehavior: "contain",
+        }}
+      >
         {!isCreating ? (
           <MenuList>
             {/* 系统预设心情 */}
@@ -328,101 +394,144 @@ export const MoodPicker: React.FC<{
                 fontSize: "11px",
                 fontWeight: 600,
                 color: "rgba(128, 128, 128, 0.8)",
-                padding: "4px 8px 2px",
+                padding: "4px 8px 3px",
                 userSelect: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
               }}
             >
-              预设心境
+              <span>预设心境</span>
+              <span style={{ fontSize: "10px", opacity: 0.6 }}>{DEFAULT_MOODS.length} 种</span>
             </div>
-            {DEFAULT_MOODS.map((m) => {
+            {presetMoods.map((m) => {
               const Icon = m.icon;
+              const isSelected = value?.toLowerCase() === m.id.toLowerCase();
               return (
                 <MenuItem
                   key={m.id}
                   icon={
                     Icon ? (
-                      <Icon style={{ color: m.hex }} />
+                      <Icon style={{ color: m.hex, fontSize: "16px" }} />
                     ) : (
-                      <span>{m.emoji}</span>
+                      <span style={{ fontSize: "15px", lineHeight: 1 }}>{m.emoji}</span>
                     )
+                  }
+                  secondaryContent={
+                    isSelected ? (
+                      <Checkmark20Regular style={{ color: m.hex, fontSize: "16px" }} />
+                    ) : undefined
                   }
                   onClick={() => {
                     onChange(m.id);
                     setIsMenuOpen(false);
                   }}
+                  style={{
+                    borderRadius: "8px",
+                    margin: "1px 0",
+                    backgroundColor: isSelected ? "rgba(91, 123, 141, 0.1)" : undefined,
+                  }}
                 >
-                  {m.label} {m.emoji}
+                  <span style={{ fontWeight: isSelected ? 600 : 400 }}>{m.label}</span>
                 </MenuItem>
               );
             })}
 
-            {/* 用户自定义心情 */}
-            {customMoods.length > 0 && (
+            {/* 用户自定义及已有心境（完整展示全部已知心境） */}
+            {customAndOtherMoods.length > 0 && (
               <>
                 <div
                   style={{
                     fontSize: "11px",
                     fontWeight: 600,
                     color: "rgba(128, 128, 128, 0.8)",
-                    padding: "8px 8px 2px",
+                    padding: "8px 8px 3px",
                     borderTop: "1px solid rgba(128, 128, 128, 0.15)",
                     marginTop: "4px",
                     userSelect: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                   }}
                 >
-                  自定义分类
+                  <span>自定义与已有心境</span>
+                  <span style={{ fontSize: "10px", opacity: 0.6 }}>
+                    {customAndOtherMoods.length} 种
+                  </span>
                 </div>
-                {customMoods.map((m) => (
-                  <div
-                    key={m.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "2px 4px",
-                    }}
-                  >
+                {customAndOtherMoods.map((m) => {
+                  const isSelected = value?.toLowerCase() === m.id.toLowerCase();
+                  const isCustom = customMoodIds.has(m.id.toLowerCase());
+                  return (
                     <MenuItem
-                      style={{ flex: 1 }}
-                      icon={<span style={{ fontSize: "14px" }}>{m.emoji || "✨"}</span>}
+                      key={m.id}
+                      icon={<span style={{ fontSize: "15px", lineHeight: 1 }}>{m.emoji || "✨"}</span>}
+                      secondaryContent={
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                          {isSelected && (
+                            <Checkmark20Regular style={{ color: m.hex || "#5B7B8D", fontSize: "16px" }} />
+                          )}
+                          {isCustom && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteCustom(e, m.id)}
+                              title={`删除心境「${m.label}」`}
+                              aria-label={`删除 ${m.label}`}
+                              style={{
+                                background: "transparent",
+                                border: "none",
+                                cursor: "pointer",
+                                opacity: 0.5,
+                                padding: "3px 4px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                borderRadius: "4px",
+                                color: "#e74c3c",
+                                transition: "all 0.15s ease",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.opacity = "1";
+                                e.currentTarget.style.backgroundColor = "rgba(231, 76, 60, 0.12)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.opacity = "0.5";
+                                e.currentTarget.style.backgroundColor = "transparent";
+                              }}
+                            >
+                              <Delete20Regular style={{ fontSize: "15px" }} />
+                            </button>
+                          )}
+                        </div>
+                      }
                       onClick={() => {
                         onChange(m.id);
                         setIsMenuOpen(false);
                       }}
-                    >
-                      <span style={{ color: m.hex, fontWeight: 500 }}>{m.label}</span>
-                    </MenuItem>
-                    <button
-                      type="button"
-                      onClick={(e) => handleDeleteCustom(e, m.id)}
-                      title="删除该分类"
                       style={{
-                        background: "transparent",
-                        border: "none",
-                        cursor: "pointer",
-                        opacity: 0.5,
-                        padding: "4px",
-                        display: "flex",
-                        alignItems: "center",
-                        borderRadius: "4px",
-                        color: "#e74c3c",
+                        borderRadius: "8px",
+                        margin: "1px 0",
+                        backgroundColor: isSelected ? "rgba(91, 123, 141, 0.1)" : undefined,
                       }}
-                      onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                      onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.5")}
                     >
-                      <Delete20Regular style={{ fontSize: "16px" }} />
-                    </button>
-                  </div>
-                ))}
+                      <span style={{ color: m.hex, fontWeight: isSelected ? 600 : 500 }}>
+                        {m.label}
+                      </span>
+                    </MenuItem>
+                  );
+                })}
               </>
             )}
 
-            {/* 底部新增分类入口 */}
+            {/* 底部新增分类入口 (粘性吸底) */}
             <div
               style={{
                 borderTop: "1px solid rgba(128, 128, 128, 0.15)",
                 marginTop: "6px",
-                paddingTop: "4px",
+                paddingTop: "6px",
+                position: "sticky",
+                bottom: "-2px",
+                backgroundColor: "inherit",
+                zIndex: 2,
               }}
             >
               <button
@@ -437,15 +546,23 @@ export const MoodPicker: React.FC<{
                   alignItems: "center",
                   justifyContent: "center",
                   gap: "6px",
-                  padding: "6px 10px",
-                  borderRadius: "6px",
-                  border: "1px dashed rgba(91, 123, 141, 0.4)",
+                  padding: "7px 10px",
+                  borderRadius: "8px",
+                  border: "1px dashed rgba(91, 123, 141, 0.45)",
                   backgroundColor: "rgba(91, 123, 141, 0.08)",
                   color: "#5B7B8D",
                   fontSize: "12px",
                   fontWeight: 600,
                   cursor: "pointer",
                   transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "rgba(91, 123, 141, 0.16)";
+                  e.currentTarget.style.borderColor = "rgba(91, 123, 141, 0.7)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "rgba(91, 123, 141, 0.08)";
+                  e.currentTarget.style.borderColor = "rgba(91, 123, 141, 0.45)";
                 }}
               >
                 <Add20Regular style={{ fontSize: "15px" }} />
