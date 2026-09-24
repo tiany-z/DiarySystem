@@ -473,17 +473,19 @@ export const UnifiedSettingsModal: React.FC = () => {
             margin: isMobile ? 0 : undefined,
             zIndex: isMobile ? 2000 : undefined,
             maxWidth: isMobile ? "100vw" : "720px",
-            minWidth: isMobile ? "100vw" : "640px",
-            width: isMobile ? "100vw" : "90vw",
-            minHeight: isMobile ? "100dvh" : "600px",
-            maxHeight: isMobile ? "100dvh" : "600px",
-            height: isMobile ? "100dvh" : "600px",
+            minWidth: isMobile ? "100vw" : "620px",
+            width: isMobile ? "100vw" : "85vw",
+            minHeight: isMobile ? "100dvh" : "520px",
+            maxHeight: isMobile ? "100dvh" : "580px",
+            height: isMobile ? "100dvh" : "540px",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
-            borderRadius: isMobile ? 0 : "16px",
+            borderRadius: isMobile ? 0 : "14px",
             padding: 0,
-            backgroundColor: isDark ? "#1a1a22" : "#ffffff",
+            backgroundColor: isDark ? "#202026" : "#ffffff",
+            backdropFilter: "none",
+            WebkitBackdropFilter: "none",
             border: isMobile
               ? "none"
               : isDark
@@ -492,8 +494,8 @@ export const UnifiedSettingsModal: React.FC = () => {
             boxShadow: isMobile
               ? "none"
               : isDark
-              ? "0 28px 72px rgba(0, 0, 0, 0.65), 0 6px 24px rgba(0, 0, 0, 0.4)"
-              : "0 24px 64px rgba(0, 0, 0, 0.18), 0 4px 18px rgba(0, 0, 0, 0.06)",
+              ? "0 24px 60px rgba(0, 0, 0, 0.65)"
+              : "0 20px 48px rgba(0, 0, 0, 0.14)",
           }}
         >
           <DialogBody
@@ -515,25 +517,26 @@ export const UnifiedSettingsModal: React.FC = () => {
                 alignItems: "center",
                 justifyContent: "space-between",
                 padding: isMobile
-                  ? "max(14px, env(safe-area-inset-top)) 16px 12px"
-                  : "16px 20px 14px",
+                  ? "max(12px, env(safe-area-inset-top)) 14px 10px"
+                  : "10px 16px",
                 borderBottom: isDark
                   ? "1px solid rgba(255, 255, 255, 0.08)"
                   : "1px solid rgba(0, 0, 0, 0.06)",
                 flexShrink: 0,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <Title3 style={{ fontWeight: 600, fontSize: "17px" }}>设置</Title3>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Title3 style={{ fontWeight: 600, fontSize: "15px", letterSpacing: "-0.01em" }}>设置</Title3>
               </div>
 
               <Tooltip content="关闭" relationship="label">
                 <Button
                   appearance="subtle"
+                  size="small"
                   icon={<Dismiss20Regular />}
                   onClick={closeSettings}
                   aria-label="关闭设置"
-                  style={{ borderRadius: "8px" }}
+                  style={{ borderRadius: "6px" }}
                 />
               </Tooltip>
             </header>
@@ -554,8 +557,8 @@ export const UnifiedSettingsModal: React.FC = () => {
                   display: "flex",
                   flexDirection: isMobile ? "row" : "column",
                   gap: isMobile ? "6px" : "4px",
-                  padding: isMobile ? "10px 14px" : "16px 12px",
-                  width: isMobile ? "100%" : "160px",
+                  padding: isMobile ? "8px 12px" : "14px 10px",
+                  width: isMobile ? "100%" : "145px",
                   flexShrink: 0,
                   boxSizing: "border-box",
                   backgroundColor: isDark
@@ -589,7 +592,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                         display: "flex",
                         alignItems: "center",
                         gap: "8px",
-                        padding: isMobile ? "6px 12px" : "8px 12px",
+                        padding: isMobile ? "6px 12px" : "8px 14px",
                         borderRadius: "8px",
                         border: "none",
                         cursor: "pointer",
@@ -643,102 +646,61 @@ export const UnifiedSettingsModal: React.FC = () => {
                   minHeight: 0,
                   minWidth: 0,
                   overflowY: "auto",
-                  padding: isMobile ? "16px 14px 24px" : "20px 24px 28px",
+                  padding: isMobile ? "14px 16px 20px" : "18px 24px 20px",
                   boxSizing: "border-box",
                 }}
               >
                 {/* 1. AI 模型设置 TAB */}
                 {activeTab === "ai" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>
-                      AI 模型
-                    </h4>
-
+                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                     {/* 快捷预设 */}
-                    <div>
-                      <Caption1 style={{ fontWeight: 600, display: "block", marginBottom: "8px" }}>
-                        快捷预设
-                      </Caption1>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: isMobile
-                            ? "repeat(auto-fill, minmax(95px, 1fr))"
-                            : "repeat(5, 1fr)",
-                          gap: "8px",
-                        }}
-                      >
-                        {AI_PRESETS.map((preset) => {
-                          const isSelected = activePreset === preset.id;
-                          return (
-                            <button
-                              key={preset.id}
-                              type="button"
-                              onClick={() => handleSelectPreset(preset)}
-                              style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: "4px",
-                                padding: "10px 6px",
-                                borderRadius: "8px",
-                                border: isSelected
-                                  ? "1.5px solid #5B7B8D"
-                                  : isDark
-                                  ? "1px solid rgba(255, 255, 255, 0.08)"
-                                  : "1px solid rgba(0, 0, 0, 0.08)",
-                                backgroundColor: isSelected
-                                  ? isDark
-                                    ? "rgba(91, 123, 141, 0.22)"
-                                    : "rgba(91, 123, 141, 0.12)"
-                                  : isDark
-                                  ? "rgba(255, 255, 255, 0.03)"
-                                  : "rgba(0, 0, 0, 0.02)",
-                                color: isSelected
-                                  ? isDark
-                                    ? "#8EAEC0"
-                                    : "#5B7B8D"
-                                  : isDark
-                                  ? "#f7fafc"
-                                  : "#2d3748",
-                                cursor: "pointer",
-                                textAlign: "center",
-                                transition: "all 0.15s ease",
-                                boxShadow: isSelected
-                                  ? "0 2px 8px rgba(91, 123, 141, 0.15)"
-                                  : "none",
-                              }}
-                            >
-                              <span style={{ fontSize: "20px", lineHeight: 1 }}>{preset.icon}</span>
-                              <span
-                                style={{
-                                  fontWeight: isSelected ? 600 : 500,
-                                  fontSize: "12px",
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  maxWidth: "100%",
-                                }}
-                              >
-                                {preset.name}
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: "10px",
-                                  opacity: 0.6,
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  maxWidth: "100%",
-                                }}
-                              >
-                                {preset.defaultModel.split(":")[0]}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "4px" }}>
+                      <span style={{ fontSize: "13px", color: isDark ? "#a0aec0" : "#64748b", marginRight: "4px" }}>
+                        预设:
+                      </span>
+                      {AI_PRESETS.map((preset) => {
+                        const isSelected = activePreset === preset.id;
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => handleSelectPreset(preset)}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              padding: "4px 10px",
+                              borderRadius: "6px",
+                              border: isSelected
+                                ? "1px solid #5B7B8D"
+                                : isDark
+                                ? "1px solid rgba(255, 255, 255, 0.1)"
+                                : "1px solid rgba(0, 0, 0, 0.1)",
+                              backgroundColor: isSelected
+                                ? isDark
+                                   ? "rgba(91, 123, 141, 0.25)"
+                                  : "rgba(91, 123, 141, 0.12)"
+                                : isDark
+                                ? "rgba(255, 255, 255, 0.04)"
+                                : "rgba(0, 0, 0, 0.03)",
+                              color: isSelected
+                                ? isDark
+                                  ? "#8EAEC0"
+                                  : "#5B7B8D"
+                                : isDark
+                                ? "#e2e8f0"
+                                : "#334155",
+                              cursor: "pointer",
+                              fontSize: "12.5px",
+                              fontWeight: isSelected ? 600 : 400,
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            <span style={{ fontSize: "14px" }}>{preset.icon}</span>
+                            <span>{preset.name}</span>
+                          </button>
+                        );
+                      })}
                     </div>
 
                     {/* API 服务地址 */}
@@ -746,7 +708,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                       <Input
                         value={aiBaseUrl}
                         onChange={(_, d) => setAiBaseUrl(d.value)}
-                        placeholder="https://api.deepseek.com"
+                        placeholder="例如: https://api.openai.com/v1"
                         contentBefore={<Globe20Regular style={{ opacity: 0.5 }} />}
                         disabled={isAiLoading}
                       />
@@ -757,7 +719,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                       <Input
                         value={aiModelName}
                         onChange={(_, d) => setAiModelName(d.value)}
-                        placeholder="deepseek-reasoner"
+                        placeholder="例如: gpt-4o, deepseek-chat"
                         contentBefore={<Bot20Regular style={{ opacity: 0.5 }} />}
                         disabled={isAiLoading}
                       />
@@ -785,7 +747,6 @@ export const UnifiedSettingsModal: React.FC = () => {
                         contentAfter={
                           <Button
                             appearance="subtle"
-                            size="small"
                             icon={showAiKey ? <EyeOff20Regular /> : <Eye20Regular />}
                             onClick={() => setShowAiKey(!showAiKey)}
                           />
@@ -798,7 +759,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                     {aiTestMessage && (
                       <MessageBar
                         intent={aiTestStatus === "success" ? "success" : "error"}
-                        style={{ borderRadius: "8px", fontSize: "12.5px" }}
+                        style={{ borderRadius: "6px", fontSize: "12px", padding: "4px 8px" }}
                       >
                         <MessageBarBody>{aiTestMessage}</MessageBarBody>
                       </MessageBar>
@@ -808,7 +769,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                     {aiSaveMessage && (
                       <MessageBar
                         intent={aiSaveStatus === "success" ? "success" : "error"}
-                        style={{ borderRadius: "8px", fontSize: "12.5px" }}
+                        style={{ borderRadius: "6px", fontSize: "12px", padding: "4px 8px" }}
                       >
                         <MessageBarBody>{aiSaveMessage}</MessageBarBody>
                       </MessageBar>
@@ -818,32 +779,24 @@ export const UnifiedSettingsModal: React.FC = () => {
 
                 {/* 2. 背景壁纸设置 TAB */}
                 {activeTab === "wallpaper" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>
-                        背景壁纸
-                      </h4>
-                      {!isTiany && (
-                        <Badge appearance="tint" color="warning" size="small">
-                          只读
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* 动态壁纸总开关 */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                     <div
                       style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        padding: "12px 14px",
+                        padding: "8px 12px",
                         borderRadius: "8px",
                         backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.03)",
-                        opacity: isTiany ? 1 : 0.75,
                       }}
                     >
-                      <div style={{ fontWeight: 600, fontSize: "13.5px" }}>
-                        启用壁纸
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "13px", fontWeight: 500 }}>启用背景壁纸</span>
+                        {!isTiany && (
+                          <Badge appearance="tint" color="warning" size="small">
+                            只读
+                          </Badge>
+                        )}
                       </div>
                       <Switch
                         checked={wpEnabled}
@@ -852,19 +805,18 @@ export const UnifiedSettingsModal: React.FC = () => {
                       />
                     </div>
 
-                    {/* 壁纸缩略预览与轮播切换 */}
+                    {/* 壁纸缩略预览与切换 */}
                     {wpEnabled && currentWallpaper && (
                       <div
                         style={{
-                          borderRadius: "10px",
+                          borderRadius: "8px",
                           overflow: "hidden",
                           border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
-                          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
                         }}
                       >
                         <div
                           style={{
-                            height: "140px",
+                            height: "90px",
                             position: "relative",
                             backgroundImage: `url("${currentWallpaper.base64 || currentWallpaper.url}")`,
                             backgroundSize: "cover",
@@ -877,16 +829,13 @@ export const UnifiedSettingsModal: React.FC = () => {
                               bottom: 0,
                               left: 0,
                               right: 0,
-                              padding: "8px 12px",
-                              background: "linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%)",
+                              padding: "4px 8px",
+                              background: "linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, transparent 100%)",
                               color: "#ffffff",
                             }}
                           >
-                            <div style={{ fontSize: "13px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <div style={{ fontSize: "12px", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                               {currentWallpaper.title}
-                            </div>
-                            <div style={{ fontSize: "11px", opacity: 0.8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                              {currentWallpaper.copyright}
                             </div>
                           </div>
                         </div>
@@ -897,7 +846,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "space-between",
-                            padding: "8px 12px",
+                            padding: "4px 8px",
                             backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.02)",
                           }}
                         >
@@ -935,9 +884,9 @@ export const UnifiedSettingsModal: React.FC = () => {
                     {/* 模糊度调节 */}
                     {wpEnabled && (
                       <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                          <span style={{ fontSize: "13px", fontWeight: 600 }}>模糊度</span>
-                          <span style={{ fontSize: "12px", opacity: 0.7 }}>{wpBlur}px</span>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
+                          <span style={{ fontSize: "12px", fontWeight: 500 }}>模糊度</span>
+                          <span style={{ fontSize: "11.5px", opacity: 0.7 }}>{wpBlur}px</span>
                         </div>
                         <Slider
                           min={0}
@@ -953,9 +902,9 @@ export const UnifiedSettingsModal: React.FC = () => {
                     {/* 不透明度调节 */}
                     {wpEnabled && (
                       <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                          <span style={{ fontSize: "13px", fontWeight: 600 }}>不透明度</span>
-                          <span style={{ fontSize: "12px", opacity: 0.7 }}>{Math.round(wpOpacity * 100)}%</span>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
+                          <span style={{ fontSize: "12px", fontWeight: 500 }}>不透明度</span>
+                          <span style={{ fontSize: "11.5px", opacity: 0.7 }}>{Math.round(wpOpacity * 100)}%</span>
                         </div>
                         <Slider
                           min={10}
@@ -972,7 +921,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                     {wpSaveMsg && (
                       <MessageBar
                         intent={wpSaveStatus === "success" ? "success" : "error"}
-                        style={{ borderRadius: "8px", fontSize: "12.5px" }}
+                        style={{ borderRadius: "6px", fontSize: "12px", padding: "4px 8px" }}
                       >
                         <MessageBarBody>{wpSaveMsg}</MessageBarBody>
                       </MessageBar>
@@ -982,19 +931,15 @@ export const UnifiedSettingsModal: React.FC = () => {
 
                 {/* 3. 个人资料 TAB */}
                 {activeTab === "profile" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-                    <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>
-                      个人资料
-                    </h4>
-
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                     {/* 头像展示与操作 */}
                     <div
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "16px",
-                        padding: "14px",
-                        borderRadius: "10px",
+                        gap: "12px",
+                        padding: "8px 12px",
+                        borderRadius: "8px",
                         backgroundColor: isDark ? "rgba(255, 255, 255, 0.03)" : "rgba(0, 0, 0, 0.02)",
                         border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.06)",
                       }}
@@ -1003,55 +948,48 @@ export const UnifiedSettingsModal: React.FC = () => {
                         name={user?.nickname || user?.username || "用户"}
                         image={user?.avatar ? { src: user.avatar } : undefined}
                         color="brand"
-                        size={56}
-                        style={{ boxShadow: "0 4px 14px rgba(0, 0, 0, 0.15)" }}
+                        size={40}
                       />
 
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {user?.nickname || user?.username}
                         </div>
-                        <div style={{ fontSize: "12px", opacity: 0.6 }}>@{user?.username}</div>
+                        <div style={{ fontSize: "11px", opacity: 0.6 }}>@{user?.username}</div>
+                      </div>
 
-                        <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <Button
+                          appearance="secondary"
+                          size="small"
+                          icon={<Camera20Regular />}
+                          onClick={() => setIsAvatarCropOpen(true)}
+                        >
+                          更换头像
+                        </Button>
+                        {user?.avatar && (
                           <Button
-                            appearance="secondary"
+                            appearance="subtle"
                             size="small"
-                            icon={<Camera20Regular />}
-                            onClick={() => setIsAvatarCropOpen(true)}
+                            icon={<Delete20Regular />}
+                            onClick={handleResetAvatar}
                           >
-                            更换头像
+                            重置
                           </Button>
-                          {user?.avatar && (
-                            <Button
-                              appearance="subtle"
-                              size="small"
-                              icon={<Delete20Regular />}
-                              onClick={handleResetAvatar}
-                            >
-                              恢复默认
-                            </Button>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* 用户名 */}
-                    <Field label="用户名">
-                      <Input
-                        value={user?.username || ""}
-                        readOnly
-                        contentBefore={<Person20Regular style={{ opacity: 0.5 }} />}
-                        contentAfter={
-                          <Badge appearance="tint" color="informative" size="small">
-                            只读
-                          </Badge>
-                        }
-                      />
-                    </Field>
+                    {/* 用户名与昵称 (并排显示) */}
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                      <Field label="用户名">
+                        <Input
+                          value={user?.username || ""}
+                          readOnly
+                          contentBefore={<Person20Regular style={{ opacity: 0.5 }} />}
+                        />
+                      </Field>
 
-                    {/* 昵称 */}
-                    <div>
                       <Field label="昵称">
                         <Input
                           value={nicknameInput}
@@ -1061,140 +999,123 @@ export const UnifiedSettingsModal: React.FC = () => {
                           style={{ width: "100%" }}
                         />
                       </Field>
-
-                      {nicknameMsg && (
-                        <div style={{ marginTop: "6px" }}>
-                          <MessageBar
-                            intent={nicknameMsg.type === "success" ? "success" : "error"}
-                            style={{ borderRadius: "8px", fontSize: "12px" }}
-                          >
-                            <MessageBarBody>{nicknameMsg.text}</MessageBarBody>
-                          </MessageBar>
-                        </div>
-                      )}
                     </div>
 
-                    {/* 密码修改卡片 (独立弹窗触发) */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "14px 16px",
-                        borderRadius: "10px",
-                        border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
-                        backgroundColor: isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.015)",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <LockClosed20Regular style={{ color: "#5B7B8D", fontSize: "20px" }} />
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: "13.5px" }}>账号密码</div>
-                          <div style={{ fontSize: "12px", opacity: 0.6 }}>定期修改密码以保障账号安全</div>
-                        </div>
-                      </div>
-                      <Button
-                        appearance="secondary"
-                        icon={<Key20Regular />}
-                        onClick={() => setIsChangePasswordOpen(true)}
+                    {nicknameMsg && (
+                      <MessageBar
+                        intent={nicknameMsg.type === "success" ? "success" : "error"}
+                        style={{ borderRadius: "8px", fontSize: "13px", padding: "6px 12px" }}
                       >
-                        修改密码
-                      </Button>
-                    </div>
+                        <MessageBarBody>{nicknameMsg.text}</MessageBarBody>
+                      </MessageBar>
+                    )}
 
-                    {/* 用户管理控制台入口 (仅超级管理员 tiany 可见) */}
-                    {isTiany && (
+                    {/* 操作行列表 */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "6px" }}>
+                      {/* 密码修改 */}
                       <div
                         style={{
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "space-between",
-                          padding: "14px 16px",
+                          padding: "10px 14px",
                           borderRadius: "10px",
-                          border: isDark ? "1px solid rgba(91, 123, 141, 0.25)" : "1px solid rgba(91, 123, 141, 0.2)",
-                          backgroundColor: isDark ? "rgba(91, 123, 141, 0.06)" : "rgba(91, 123, 141, 0.03)",
+                          border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
+                          backgroundColor: isDark ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.015)",
                         }}
                       >
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                          <PeopleCommunity20Regular style={{ color: "#5B7B8D", fontSize: "20px" }} />
-                          <div>
-                            <div style={{ fontWeight: 600, fontSize: "13.5px" }}>用户管理控制台</div>
-                            <div style={{ fontSize: "12px", opacity: 0.6 }}>管理系统所有用户账号、重置密码及权限</div>
-                          </div>
+                          <LockClosed20Regular style={{ color: "#5B7B8D", fontSize: "18px" }} />
+                          <span style={{ fontWeight: 500, fontSize: "14px" }}>账号密码</span>
                         </div>
                         <Button
-                          appearance="primary"
-                          icon={<PeopleCommunity20Regular />}
-                          onClick={() => {
-                            closeSettings();
-                            navigate("/workspace/users");
-                          }}
+                          appearance="secondary"
+                          icon={<Key20Regular />}
+                          onClick={() => setIsChangePasswordOpen(true)}
                         >
-                          进入管理
+                          修改密码
                         </Button>
                       </div>
-                    )}
 
-                    {/* 退出登录卡片 */}
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "14px 16px",
-                        borderRadius: "10px",
-                        border: isDark ? "1px solid rgba(209, 52, 56, 0.2)" : "1px solid rgba(209, 52, 56, 0.15)",
-                        backgroundColor: isDark ? "rgba(209, 52, 56, 0.04)" : "rgba(209, 52, 56, 0.02)",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <SignOut20Regular style={{ color: "#d13438", fontSize: "20px" }} />
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: "13.5px", color: "#d13438" }}>退出账号</div>
-                          <div style={{ fontSize: "12px", opacity: 0.6 }}>退出当前登录账号并返回登录页</div>
+                      {/* 用户管理控制台入口 */}
+                      {isTiany && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            border: isDark ? "1px solid rgba(91, 123, 141, 0.25)" : "1px solid rgba(91, 123, 141, 0.2)",
+                            backgroundColor: isDark ? "rgba(91, 123, 141, 0.06)" : "rgba(91, 123, 141, 0.03)",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                            <PeopleCommunity20Regular style={{ color: "#5B7B8D", fontSize: "18px" }} />
+                            <span style={{ fontWeight: 500, fontSize: "14px" }}>用户管理控制台</span>
+                          </div>
+                          <Button
+                            appearance="primary"
+                            icon={<PeopleCommunity20Regular />}
+                            onClick={() => {
+                              closeSettings();
+                              navigate("/workspace/users");
+                            }}
+                          >
+                            进入管理
+                          </Button>
                         </div>
-                      </div>
-                      <Button
-                        appearance="primary"
-                        className="btn-danger"
+                      )}
+
+                      {/* 退出登录 */}
+                      <div
                         style={{
-                          backgroundColor: "#d13438",
-                          borderColor: "#d13438",
-                          color: "#ffffff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "10px 14px",
+                          borderRadius: "10px",
+                          border: isDark ? "1px solid rgba(209, 52, 56, 0.2)" : "1px solid rgba(209, 52, 56, 0.15)",
+                          backgroundColor: isDark ? "rgba(209, 52, 56, 0.04)" : "rgba(209, 52, 56, 0.02)",
                         }}
-                        icon={<SignOut20Regular style={{ color: "#ffffff" }} />}
-                        onClick={() => setIsLogoutConfirmOpen(true)}
                       >
-                        退出登录
-                      </Button>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                          <SignOut20Regular style={{ color: "#d13438", fontSize: "18px" }} />
+                          <span style={{ fontWeight: 500, fontSize: "14px", color: "#d13438" }}>退出登录</span>
+                        </div>
+                        <Button
+                          appearance="subtle"
+                          className="btn-danger"
+                          style={{ color: "#d13438" }}
+                          onClick={() => setIsLogoutConfirmOpen(true)}
+                        >
+                          退出账号
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {/* 4. 界面外观 TAB */}
                 {activeTab === "theme" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 600 }}>
-                      界面外观
-                    </h4>
-
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                     {/* 主题选择卡片 */}
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
                       {[
                         {
                           mode: "auto" as ThemeMode,
                           title: "跟随系统",
-                          icon: <Desktop20Regular style={{ fontSize: "22px" }} />,
+                          icon: <Desktop20Regular style={{ fontSize: "18px" }} />,
                         },
                         {
                           mode: "dark" as ThemeMode,
                           title: "深色",
-                          icon: <WeatherMoon20Regular style={{ fontSize: "22px" }} />,
+                          icon: <WeatherMoon20Regular style={{ fontSize: "18px" }} />,
                         },
                         {
                           mode: "light" as ThemeMode,
                           title: "浅色",
-                          icon: <WeatherSunny20Regular style={{ fontSize: "22px" }} />,
+                          icon: <WeatherSunny20Regular style={{ fontSize: "18px" }} />,
                         },
                       ].map((item) => {
                         const isSelected = themeMode === item.mode;
@@ -1203,10 +1124,10 @@ export const UnifiedSettingsModal: React.FC = () => {
                             key={item.mode}
                             onClick={() => setThemeMode(item.mode)}
                             style={{
-                              padding: "16px 10px",
-                              borderRadius: "10px",
+                              padding: "10px 8px",
+                              borderRadius: "8px",
                               border: isSelected
-                                ? "2px solid #5B7B8D"
+                                ? "1.5px solid #5B7B8D"
                                 : isDark
                                 ? "1px solid rgba(255, 255, 255, 0.1)"
                                 : "1px solid rgba(0, 0, 0, 0.1)",
@@ -1221,7 +1142,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                               display: "flex",
                               flexDirection: "column",
                               alignItems: "center",
-                              gap: "8px",
+                              gap: "6px",
                               textAlign: "center",
                               transition: "all 0.15s ease",
                             }}
@@ -1229,7 +1150,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                             <span style={{ color: isSelected ? "#5B7B8D" : isDark ? "#cbd5e0" : "#4a5568" }}>
                               {item.icon}
                             </span>
-                            <span style={{ fontWeight: 600, fontSize: "13px" }}>{item.title}</span>
+                            <span style={{ fontWeight: 500, fontSize: "12.5px" }}>{item.title}</span>
                           </div>
                         );
                       })}
@@ -1241,18 +1162,18 @@ export const UnifiedSettingsModal: React.FC = () => {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        padding: "12px 14px",
+                        padding: "8px 12px",
                         borderRadius: "8px",
                         backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.03)",
                       }}
                     >
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: "13.5px" }}>
+                        <div style={{ fontWeight: 500, fontSize: "13px" }}>
                           代码块始终深色
                         </div>
-                        <Caption1 style={{ opacity: 0.6, fontSize: "12px" }}>
+                        <div style={{ opacity: 0.6, fontSize: "11.5px" }}>
                           浅色模式下保持代码深色高亮
-                        </Caption1>
+                        </div>
                       </div>
                       <Switch
                         checked={forceCodeDark}
@@ -1271,8 +1192,8 @@ export const UnifiedSettingsModal: React.FC = () => {
                 alignItems: "center",
                 justifyContent: "space-between",
                 padding: isMobile
-                  ? "12px 16px max(14px, env(safe-area-inset-bottom))"
-                  : "12px 20px",
+                  ? "8px 12px max(10px, env(safe-area-inset-bottom))"
+                  : "8px 16px",
                 borderTop: isDark
                   ? "1px solid rgba(255, 255, 255, 0.08)"
                   : "1px solid rgba(0, 0, 0, 0.06)",
@@ -1285,9 +1206,11 @@ export const UnifiedSettingsModal: React.FC = () => {
                 {activeTab === "ai" && (
                   <Button
                     appearance="secondary"
+                    size="small"
                     icon={isAiTesting ? <Spinner size="tiny" /> : <PlugConnected20Regular />}
                     onClick={handleTestAi}
                     disabled={isAiTesting || isAiSaving || isAiLoading}
+                    style={{ minHeight: "36px" }}
                   >
                     {isAiTesting ? "测试中..." : "测试连接"}
                   </Button>
@@ -1299,7 +1222,7 @@ export const UnifiedSettingsModal: React.FC = () => {
                 <Button
                   appearance="secondary"
                   onClick={closeSettings}
-                  style={{ borderRadius: "8px", minWidth: "72px" }}
+                  style={{ borderRadius: "8px", minWidth: "76px", minHeight: "36px" }}
                 >
                   取消
                 </Button>
@@ -1324,7 +1247,8 @@ export const UnifiedSettingsModal: React.FC = () => {
                   style={{
                     backgroundColor: "#5B7B8D",
                     fontWeight: 600,
-                    minWidth: "96px",
+                    minWidth: "110px",
+                    minHeight: "36px",
                     borderRadius: "8px",
                   }}
                 >

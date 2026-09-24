@@ -11,9 +11,28 @@ export const TypewriterMarkdown: React.FC<TypewriterMarkdownProps> = ({
   isStreaming = false,
 }) => {
   return (
-    <div style={{ position: "relative", minHeight: "24px" }}>
-      <MarkdownViewer content={content || (isStreaming ? "思考中..." : "")} />
-      {isStreaming && <span className="ai-typing-cursor" title="生成中" />}
+    <div
+      className={`gemini-streaming-text-wrap ${isStreaming ? "is-streaming" : ""}`}
+      style={{
+        position: "relative",
+        minHeight: "24px",
+        lineHeight: "1.75",
+        fontSize: "14.5px",
+        letterSpacing: "0.01em",
+      }}
+    >
+      <MarkdownViewer
+        content={content || (isStreaming ? "" : "")}
+        className={isStreaming ? "gemini-streaming-body" : ""}
+      />
+      {isStreaming && (
+        <span
+          className="gemini-typing-pulse"
+          title="生成中..."
+          aria-label="生成中"
+        />
+      )}
     </div>
   );
 };
+

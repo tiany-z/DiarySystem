@@ -75,7 +75,7 @@ import {
 import { diaryApi } from "../../api/diary";
 import { uploadApi } from "../../api/upload";
 import { MarkdownViewer } from "../../components/MarkdownViewer";
-import { MoodPicker } from "../../components/MoodBadge";
+import { MoodPicker, getUserMoods } from "../../components/MoodBadge";
 import { WeatherPicker } from "../../components/WeatherBadge";
 import { useAppTheme } from "../../context/ThemeContext";
 import { htmlToMarkdown, markdownToHtml } from "../../utils/markdownUtils";
@@ -102,7 +102,10 @@ export const MarkdownStudio: React.FC = () => {
   const [title, setTitle] = useState<string>("");
   const [content, setContent] = useState<string>("");
   const [weather, setWeather] = useState<string>("Sunny");
-  const [mood, setMood] = useState<string>("Happy");
+  const [mood, setMood] = useState<string>(() => {
+    const available = getUserMoods();
+    return available[0]?.id || "Happy";
+  });
   const [isPublic, setIsPublic] = useState<boolean>(true);
   const [createdAt, setCreatedAt] = useState<string>("");
 
@@ -142,7 +145,7 @@ export const MarkdownStudio: React.FC = () => {
 
   // 未保存提示弹窗 (居中 Fluent 2 模态对话框，替代顶部浏览器原生弹窗)
   const [showUnsavedModal, setShowUnsavedModal] = useState<boolean>(false);
-  const [pendingNavPath, setPendingNavPath] = useState<string>("/workspace");
+  const [pendingNavPath, setPendingNavPath] = useState<string | number>("/workspace");
   const [unsavedModalError, setUnsavedModalError] = useState<string | null>(null);
 
   // 注册全局未保存拦截器，无缝拦截顶栏导航与退出行为
@@ -313,7 +316,9 @@ export const MarkdownStudio: React.FC = () => {
       const initialTitle = state?.templateTitle || "";
       const initialContent = state?.templateContent || "";
       const initialWeather = state?.weather || "Sunny";
-      const initialMood = state?.mood || "Happy";
+      const availableMoods = getUserMoods();
+      const defaultMoodId = availableMoods[0]?.id || "Happy";
+      const initialMood = state?.mood || defaultMoodId;
       const initialPublic = state?.is_public !== undefined ? (state.is_public !== 0 && state.is_public !== false) : true;
 
       setTitle(initialTitle);
@@ -1323,7 +1328,10 @@ export const MarkdownStudio: React.FC = () => {
 
   // 保存日记
   const handleSave = async (customRedirect?: string | unknown): Promise<boolean> => {
-    const redirectUrl = typeof customRedirect === "string" ? customRedirect : undefined;
+    const redirectUrl =
+      typeof customRedirect === "string" || typeof customRedirect === "number"
+        ? customRedirect
+        : undefined;
     if (!title.trim()) {
       const msg = "日记标题不能为空，请在文档顶部输入标题";
       setErrorMsg(msg);
@@ -1369,8 +1377,8 @@ export const MarkdownStudio: React.FC = () => {
           setTimeout(() => setSaveSuccessNotice(false), 3000);
           justSavedIdRef.current = newId;
           window.dispatchEvent(new CustomEvent("notes:updated"));
-          if (redirectUrl) {
-            navigate(redirectUrl);
+          if (redirectUrl !== undefined) {
+            navigate(redirectUrl as any);
           } else {
             // 使用 replaceState 更新浏览器地址栏，不触发 React Router 路由重载和页面进入动画，保持滚动位置
             window.history.replaceState(null, "", `/workspace/edit/${newId}`);
@@ -1396,8 +1404,8 @@ export const MarkdownStudio: React.FC = () => {
           setSaveSuccessNotice(true);
           setTimeout(() => setSaveSuccessNotice(false), 3000);
           window.dispatchEvent(new CustomEvent("notes:updated"));
-          if (redirectUrl) {
-            navigate(redirectUrl);
+          if (redirectUrl !== undefined) {
+            navigate(redirectUrl as any);
           }
           return true;
         } else {
@@ -1487,16 +1495,18 @@ export const MarkdownStudio: React.FC = () => {
               appearance="subtle"
               icon={<ArrowLeft20Regular />}
               onClick={() => {
+                const backTarget =
+                  window.history.state && window.history.state.idx > 0 ? -1 : "/workspace";
                 if (isDirty) {
-                  setPendingNavPath("/workspace");
+                  setPendingNavPath(backTarget);
                   setUnsavedModalError(null);
                   setShowUnsavedModal(true);
                   return;
                 }
-                if (window.history.state && window.history.state.idx > 0) {
-                  navigate(-1);
+                if (typeof backTarget === "number") {
+                  navigate(backTarget);
                 } else {
-                  navigate("/workspace");
+                  navigate(backTarget);
                 }
               }}
               aria-label="返回笔记"
@@ -2815,7 +2825,7 @@ export const MarkdownStudio: React.FC = () => {
                   onClick={() => {
                     setIsDirty(false);
                     setShowUnsavedModal(false);
-                    navigate(pendingNavPath || "/workspace");
+                    navigate((pendingNavPath as any) || "/workspace");
                   }}
                 >
                   放弃修改并退出
@@ -2829,7 +2839,7 @@ export const MarkdownStudio: React.FC = () => {
                       setUnsavedModalError("日记标题不能为空，请先在正文上方输入日记标题");
                       return;
                     }
-                    const success = await handleSave(pendingNavPath || "/workspace");
+                    const success = await handleSave(pendingNavPath ?? "/workspace");
                     if (success) {
                       setShowUnsavedModal(false);
                     }

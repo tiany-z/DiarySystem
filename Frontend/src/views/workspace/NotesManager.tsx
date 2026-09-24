@@ -281,6 +281,7 @@ export const NotesManager: React.FC = () => {
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Button
+            className="page-header-action-btn"
             appearance="secondary"
             icon={<ArrowUpload20Regular />}
             onClick={() => {
@@ -291,11 +292,13 @@ export const NotesManager: React.FC = () => {
               borderRadius: "8px",
               fontWeight: 600,
             }}
+            aria-label="导入"
           >
-            导入
+            <span className="header-action-btn-text">导入</span>
           </Button>
 
           <Button
+            className="page-header-action-btn"
             appearance="primary"
             icon={<Add20Filled />}
             onClick={() => navigate("/workspace/new")}
@@ -304,8 +307,9 @@ export const NotesManager: React.FC = () => {
               borderRadius: "8px",
               fontWeight: 600,
             }}
+            aria-label="新建"
           >
-            新建
+            <span className="header-action-btn-text">新建</span>
           </Button>
         </div>
       </div>
@@ -321,12 +325,11 @@ export const NotesManager: React.FC = () => {
         }}
       >
         <Card
+          data-win10-tile
+          className="win11-mica-card hover-lift"
           style={{
             padding: "18px 20px",
             borderRadius: "14px",
-            backgroundColor: isDark ? "#202026" : "#ffffff",
-            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
-            boxShadow: isDark ? "0 4px 14px rgba(0, 0, 0, 0.2)" : "0 2px 12px rgba(91, 123, 141, 0.06)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -352,12 +355,11 @@ export const NotesManager: React.FC = () => {
         </Card>
 
         <Card
+          data-win10-tile
+          className="win11-mica-card hover-lift"
           style={{
             padding: "18px 20px",
             borderRadius: "14px",
-            backgroundColor: isDark ? "#202026" : "#ffffff",
-            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
-            boxShadow: isDark ? "0 4px 14px rgba(0, 0, 0, 0.2)" : "0 2px 12px rgba(91, 123, 141, 0.06)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -383,12 +385,11 @@ export const NotesManager: React.FC = () => {
         </Card>
 
         <Card
+          data-win10-tile
+          className="win11-mica-card hover-lift"
           style={{
             padding: "18px 20px",
             borderRadius: "14px",
-            backgroundColor: isDark ? "#202026" : "#ffffff",
-            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(0, 0, 0, 0.08)",
-            boxShadow: isDark ? "0 4px 14px rgba(0, 0, 0, 0.2)" : "0 2px 12px rgba(91, 123, 141, 0.06)",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -445,11 +446,12 @@ export const NotesManager: React.FC = () => {
         {/* Search & View Mode */}
         <div className="responsive-search-box" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <Input
+            className="win11-mica-input"
             contentBefore={<Search20Regular />}
             placeholder="搜索..."
             value={searchQuery}
             onChange={(_, data) => setSearchQuery(data.value)}
-            style={{ flex: 1 }}
+            style={{ flex: 1, borderRadius: "10px" }}
           />
 
           <div style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>

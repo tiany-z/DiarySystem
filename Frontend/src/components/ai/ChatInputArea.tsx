@@ -124,19 +124,16 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
         </div>
       )}
 
-      {/* 核心悬浮输入 Dock */}
+      {/* 核心悬浮输入 Dock：Gemini 网页版大圆角胶囊 + Win11 云母透感 */}
       <div
-        className="ai-bubble-acrylic"
+        data-win10-tile
+        className="gemini-chat-dock win11-mica-dock"
         style={{
           width: "100%",
-          borderRadius: "14px",
-          backgroundColor: isDark ? "rgba(30, 32, 38, 0.95)" : "#ffffff",
-          backdropFilter: "blur(24px)",
-          border: isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid rgba(0, 0, 0, 0.08)",
-          boxShadow: isDark ? "0 4px 20px rgba(0, 0, 0, 0.35)" : "0 4px 16px rgba(0, 0, 0, 0.05)",
+          borderRadius: "26px",
           display: "flex",
           alignItems: isMultiLine ? "flex-end" : "center",
-          padding: isMobile ? "4px 8px 4px 12px" : "6px 12px 6px 16px",
+          padding: isMobile ? "4px 8px 4px 16px" : "6px 12px 6px 20px",
           gap: "8px",
           minHeight: "52px",
           boxSizing: "border-box",
@@ -149,18 +146,20 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           onKeyDown={handleKeyDown}
           placeholder={
             hasConfig
-              ? "输入消息，Enter 发送，Shift+Enter 换行"
+              ? "问问 AI 助手..."
               : "请先配置模型参数"
           }
           rows={1}
           style={{
             flex: 1,
+            position: "relative",
+            zIndex: 2,
             border: "none",
             outline: "none",
             backgroundColor: "transparent",
-            fontSize: "14px",
+            fontSize: "14.5px",
             lineHeight: "22px",
-            color: isDark ? "#f7fafc" : "#2d3748",
+            color: isDark ? "#f7fafc" : "#1f1f1f",
             resize: "none",
             padding: "8px 0",
             maxHeight: "160px",
@@ -171,34 +170,38 @@ export const ChatInputArea: React.FC<ChatInputAreaProps> = ({
           }}
         />
 
-        {/* 发送 / 终止生成 按钮 */}
+        {/* 发送 / 终止生成 圆形按钮 */}
         <button
           onClick={isStreaming ? onStopGeneration : handleSend}
           title={isStreaming ? "停止" : "发送"}
           style={{
-            width: "36px",
-            height: "36px",
-            borderRadius: "10px",
+            width: "34px",
+            height: "34px",
+            borderRadius: "50%",
             backgroundColor: isStreaming
-              ? "#e53e3e"
+              ? "#ea4335"
               : text.trim()
-              ? "#5B7B8D"
+              ? (isDark ? "#ffffff" : "#1f1f1f")
+              : "transparent",
+            color: isStreaming
+              ? "#ffffff"
+              : text.trim()
+              ? (isDark ? "#1f1f1f" : "#ffffff")
               : isDark
-              ? "rgba(91, 123, 141, 0.25)"
-              : "rgba(91, 123, 141, 0.3)",
-            color: isStreaming || text.trim() ? "#ffffff" : isDark ? "#718096" : "#ffffff",
+              ? "rgba(255, 255, 255, 0.3)"
+              : "rgba(0, 0, 0, 0.3)",
             border: "none",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: text.trim() || isStreaming ? "pointer" : "default",
-            transition: "all 0.2s ease",
-            marginBottom: isMultiLine ? "3px" : "0",
+            transition: "all 0.18s ease",
+            marginBottom: isMultiLine ? "4px" : "0",
             flexShrink: 0,
           }}
         >
           {isStreaming ? (
-            <Stop20Filled style={{ fontSize: "16px" }} />
+            <Stop20Filled style={{ fontSize: "15px" }} />
           ) : (
             <Send20Filled style={{ fontSize: "16px" }} />
           )}

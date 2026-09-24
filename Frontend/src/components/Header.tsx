@@ -37,12 +37,14 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useAppTheme } from "../context/ThemeContext";
 import { useSettings } from "../context/SettingsContext";
+import { useWindowControls } from "../context/WindowControlsContext";
 import { BrandLogo } from "./BrandLogo";
 
 export const Header: React.FC = () => {
   const { isDark, themeMode, setThemeMode, forceCodeDark, toggleForceCodeDark } = useAppTheme();
   const { user, isAuthenticated, logout } = useAuth();
   const { openSettings } = useSettings();
+  const { hasExternalControls, controlsWidth } = useWindowControls();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -58,18 +60,22 @@ export const Header: React.FC = () => {
     navigate("/");
   };
 
-  // 监听网页宽度：仅在宽度 <= 1080px (导航文字折叠为纯图标) 时显示 hover Tooltip；网页足够宽显示了文字时不展示 Tooltip
+  // 响应式折叠断点：普通模式下 1080px 折叠；若收到外部窗口控制按钮信号（向左平移 138px），则提前至 1280px 折叠为纯图标，避免与中间导航按钮碰撞
+  const collapseBreakpoint = hasExternalControls ? 1280 : 1080;
+
+  // 监听网页宽度：仅在宽度 <= collapseBreakpoint (导航文字折叠为纯图标) 时显示 hover Tooltip；网页足够宽显示了文字时不展示 Tooltip
   const [isNarrowNav, setIsNarrowNav] = React.useState<boolean>(
-    typeof window !== "undefined" ? window.innerWidth <= 1080 : false
+    typeof window !== "undefined" ? window.innerWidth <= collapseBreakpoint : false
   );
 
   React.useEffect(() => {
     const handleResize = () => {
-      setIsNarrowNav(window.innerWidth <= 1080);
+      setIsNarrowNav(window.innerWidth <= collapseBreakpoint);
     };
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [collapseBreakpoint]);
 
   const wrapNavTooltip = (label: string, element: React.ReactElement) => {
     if (isNarrowNav) {
@@ -382,8 +388,16 @@ export const Header: React.FC = () => {
         </nav>
       )}
 
-      {/* Right Actions (Desktop) - 极简图标与用户态操作区 */}
-      <div className="desktop-only" style={{ alignItems: "center", gap: "8px" }}>
+      {/* Right Actions (Desktop) - 极简图标与用户态操作区（支持接收外部宿主信号平滑向左平移让位） */}
+      <div
+        className="desktop-only header-actions-desktop"
+        style={{
+          alignItems: "center",
+          gap: "8px",
+          marginRight: hasExternalControls ? `${controlsWidth}px` : 0,
+          transition: "margin-right 0.3s cubic-bezier(0.1, 0.9, 0.2, 1)",
+        }}
+      >
         {isAuthenticated && user ? (
           <>
             {/* 1. 新建日记图标按钮 */}
@@ -488,7 +502,15 @@ export const Header: React.FC = () => {
       </div>
 
       {/* Mobile Actions (<= 768px) - 移动端保持与桌面端相同的逻辑顺序 */}
-      <div className="mobile-only" style={{ alignItems: "center", gap: "4px" }}>
+      <div
+        className="mobile-only header-actions-mobile"
+        style={{
+          alignItems: "center",
+          gap: "4px",
+          marginRight: hasExternalControls ? `${controlsWidth}px` : 0,
+          transition: "margin-right 0.3s cubic-bezier(0.1, 0.9, 0.2, 1)",
+        }}
+      >
         {isAuthenticated && user ? (
           <>
             {/* 1. 新建日记图标按钮 */}
