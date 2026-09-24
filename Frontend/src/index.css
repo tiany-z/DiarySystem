@@ -4842,3 +4842,27 @@ html.dark .fui-Card.hover-lift:hover,
   opacity: 0 !important;
   transform: translate(-50%, -50%) scale(0.6) !important;
 }
+
+/* 心情选择器浮层定制滚动条与尺寸稳定控制，彻底避免 hover 抖动或溢出截断 */
+.mood-picker-popover {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(128, 128, 128, 0.3) transparent !important;
+  overscroll-behavior: contain !important;
+}
+
+.mood-picker-popover::-webkit-scrollbar {
+  width: 5px !important;
+}
+
+.mood-picker-popover::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.mood-picker-popover::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.25) !important;
+  border-radius: 999px !important;
+}
+
+.mood-picker-popover::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.45) !important;
+}

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import {
   Sparkle20Regular,
-  ChevronDown16Regular,
-  ChevronRight16Regular,
+  ChevronDown20Regular,
+  ChevronRight20Regular,
 } from "@fluentui/react-icons";
 import { useAppTheme } from "../../context/ThemeContext";
 
@@ -88,9 +88,9 @@ export const ThoughtAccordion: React.FC<ThoughtAccordionProps> = ({
           }}
         >
           {isExpanded ? (
-            <ChevronDown16Regular style={{ fontSize: "13px" }} />
+            <ChevronDown20Regular style={{ fontSize: "13px" }} />
           ) : (
-            <ChevronRight16Regular style={{ fontSize: "13px" }} />
+            <ChevronRight20Regular style={{ fontSize: "13px" }} />
           )}
         </span>
       </div>

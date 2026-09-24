@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Badge,
   Button,
@@ -387,18 +387,18 @@ export const MoodPicker: React.FC<{
   borderless?: boolean;
   size?: "small" | "medium";
   style?: React.CSSProperties;
-}> = ({ value, onChange, borderless = false, size = "medium", style }) => {
-  const [moodList, setMoodList] = useState<MoodOption[]>(() => getUserMoods());
+}> = ({ value, onChange, notes, borderless = false, size = "medium", style }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [selectedEmoji, setSelectedEmoji] = useState("🍵");
   const [selectedColor, setSelectedColor] = useState("#a55eea");
+  const [updateTick, setUpdateTick] = useState(0);
   const { getCachedData } = usePageCache();
 
   useEffect(() => {
     const handleUpdate = () => {
-      setMoodList(getUserMoods());
+      setUpdateTick((prev) => prev + 1);
     };
     window.addEventListener("mood:custom_updated", handleUpdate);
     return () => window.removeEventListener("mood:custom_updated", handleUpdate);
@@ -421,7 +421,8 @@ export const MoodPicker: React.FC<{
     // 确保当前选中的 value（若来自外部导入或特殊标识）也完整包含在展示列表中
     if (value && value.trim()) {
       const safe = value.trim().toLowerCase();
-      if (!all.some((m) => m.id.toLowerCase() === safe)) {
+      const deletedSet = getDeletedMoodIds();
+      if (!deletedSet.has(safe) && !all.some((m) => m.id.toLowerCase() === safe || m.label.toLowerCase() === safe)) {
         all.push({
           id: value.trim(),
           label: value.trim(),
@@ -433,21 +434,7 @@ export const MoodPicker: React.FC<{
       }
     }
     return all;
-  }, [notes, cachedNotes, publicNotes, customMoods, value]);
-
-  // 预设心境
-  const presetMoods = useMemo(() => DEFAULT_MOODS, []);
-
-  // 自定义与已有心境列表（排除默认预设项）
-  const customAndOtherMoods = useMemo(() => {
-    const presetIds = new Set(DEFAULT_MOODS.map((m) => m.id.toLowerCase()));
-    return allMoodsList.filter((m) => !presetIds.has(m.id.toLowerCase()));
-  }, [allMoodsList]);
-
-  // 可删除的自定义心境集合
-  const customMoodIds = useMemo(() => {
-    return new Set(customMoods.map((c) => c.id.toLowerCase()));
-  }, [customMoods]);
+  }, [notes, cachedNotes, publicNotes, updateTick, value]);
 
   const handleCreateConfirm = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -460,7 +447,7 @@ export const MoodPicker: React.FC<{
       emoji: selectedEmoji,
       hex: selectedColor,
     });
-    setMoodList(getUserMoods());
+    setUpdateTick((prev) => prev + 1);
     onChange(created.id);
     setNewLabel("");
     setIsCreating(false);
@@ -471,8 +458,7 @@ export const MoodPicker: React.FC<{
     e.stopPropagation();
     e.preventDefault();
     deleteMood(id);
-    const updated = getUserMoods();
-    setMoodList(updated);
+    setUpdateTick((prev) => prev + 1);
 
     // 若当前选中的分类被删除，自动优雅回退至第一个可用分类
     const currentId = String(current?.id || "").toLowerCase();
@@ -483,8 +469,13 @@ export const MoodPicker: React.FC<{
       currentLabel === targetId ||
       String(value || "").toLowerCase() === targetId
     ) {
-      if (updated.length > 0) {
-        onChange(updated[0].id);
+      const remaining = allMoodsList.filter(
+        (m) =>
+          String(m.id || "").toLowerCase() !== targetId &&
+          String(m.label || "").toLowerCase() !== targetId
+      );
+      if (remaining.length > 0) {
+        onChange(remaining[0].id);
       } else {
         onChange("default");
       }
@@ -498,7 +489,12 @@ export const MoodPicker: React.FC<{
         setIsOpen(data.open);
         if (!data.open) setIsCreating(false);
       }}
-      positioning="below-start"
+      positioning={{
+        position: borderless ? "above" : "below",
+        align: "start",
+        pinned: true,
+      }}
+      surfaceMotion={null}
       trapFocus={false}
     >
       <PopoverTrigger disableButtonEnhancement>
@@ -536,7 +532,7 @@ export const MoodPicker: React.FC<{
       </PopoverTrigger>
 
       <PopoverSurface
-        className="win11-mica-card"
+        className="win11-mica-card mood-picker-popover"
         style={{
           minWidth: "240px",
           maxWidth: "290px",
@@ -544,6 +540,7 @@ export const MoodPicker: React.FC<{
           borderRadius: "12px",
           maxHeight: "360px",
           overflowY: "auto",
+          overscrollBehavior: "contain",
         }}
       >
         {!isCreating ? (
@@ -565,11 +562,11 @@ export const MoodPicker: React.FC<{
             >
               <span>心境类别</span>
               <span style={{ fontSize: "10px", opacity: 0.65 }}>
-                {moodList.length} 个分类
+                {allMoodsList.length} 个分类
               </span>
             </div>
 
-            {moodList.length === 0 ? (
+            {allMoodsList.length === 0 ? (
               <div
                 style={{
                   padding: "16px 8px",
@@ -582,15 +579,17 @@ export const MoodPicker: React.FC<{
               </div>
             ) : (
               <div
+                className="mood-picker-popover"
                 style={{
                   display: "flex",
                   flexDirection: "column",
                   gap: "2px",
                   maxHeight: "220px",
                   overflowY: "auto",
+                  overscrollBehavior: "contain",
                 }}
               >
-                {moodList.map((m) => {
+                {allMoodsList.map((m) => {
                   const Icon = m.icon;
                   const isSelected =
                     String(value || "").toLowerCase() === String(m.id || "").toLowerCase() ||
