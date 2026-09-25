@@ -493,6 +493,7 @@ export const MoodPicker: React.FC<{
         position: borderless ? "above" : "below",
         align: "start",
         pinned: true,
+        useTransform: false,
       }}
       surfaceMotion={null}
       trapFocus={false}
@@ -532,7 +533,7 @@ export const MoodPicker: React.FC<{
       </PopoverTrigger>
 
       <PopoverSurface
-        className="win11-mica-card mood-picker-popover"
+        className="win11-mica-popover mood-picker-popover"
         style={{
           minWidth: "240px",
           maxWidth: "290px",

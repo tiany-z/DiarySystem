@@ -86,6 +86,7 @@ export const WeatherPicker: React.FC<{
         position: borderless ? "above" : "below",
         align: "start",
         pinned: true,
+        useTransform: false,
       }}
       surfaceMotion={null}
     >

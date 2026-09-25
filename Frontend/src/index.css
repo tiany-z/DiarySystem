@@ -234,7 +234,6 @@ html.dark::-webkit-scrollbar-thumb:hover {
 .fui-Card.hover-lift:hover,
 .fui-Card:hover,
 .win11-mica-card.hover-lift:hover,
-.win11-mica-card:hover,
 .user-row-card:hover,
 [data-win10-tile]:hover {
   transform: none !important;
@@ -4865,4 +4864,35 @@ html.dark .fui-Card.hover-lift:hover,
 
 .mood-picker-popover::-webkit-scrollbar-thumb:hover {
   background: rgba(128, 128, 128, 0.45) !important;
-}
+}
+
+/* Windows 11 云母质感浮动弹出层（专用于 PopoverSurface / MenuPopover，杜绝 hover 抖动与跳动） */
+.win11-mica-popover {
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  background-color: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid rgba(128, 128, 128, 0.16) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.16), 0 2px 8px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  transition: none !important;
+}
+
+html.dark .win11-mica-popover,
+.dark .win11-mica-popover {
+  background-color: rgba(30, 31, 38, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 2px 10px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 坚决杜绝 hover 对浮动弹出层 transform/定位位置的任何篡改与过渡动画 */
+.fui-PopoverSurface,
+.fui-MenuPopover,
+.win11-mica-popover {
+  transition: none !important;
+}
+
+.fui-PopoverSurface:hover,
+.fui-MenuPopover:hover,
+.win11-mica-popover:hover {
+  pointer-events: auto !important;
+}
+
